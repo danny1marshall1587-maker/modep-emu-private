@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#121417">
+    <title>MODEP Pro Live Digital Mixing Console</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/mixer.css?v=20261017b">
+    <script src="js/touch-governor.js?v=20261017b"></script>
+    <script src="js/reaper-transport.js?v=20261017b"></script>
+
+</head>
+<body>
+    <!-- =====================================================
+         DSP RACK FULL-PAGE VIEW
+         Shown when tapping "CHANNEL DSP RACK" on any strip.
+         Replaces the mixer canvas entirely. Back button returns.
+         ===================================================== -->
+    <div id="dsp-rack-page">
+        <!-- LEFT: Focused Channel Strip (Fader, Solo, Mute, Meter) -->
+        <div id="dsp-rack-focused-strip">
+            <!-- Populated dynamically by updateFocusedChannelStrip(ch) -->
+        </div>
+
+        <!-- RIGHT: DSP rack controls (Sub-Menu Tabbed Rack) -->
+        <div id="dsp-rack-main">
+            <!-- Header bar with channel name + Quick Channel Switcher + BACK button -->
+            <div class="dsp-rack-page-header">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-width:0;">
+                    <div>
+                        <div class="dsp-rack-page-title" id="dsp-rack-page-title">🎛️ Channel 1 — DSP Rack</div>
+                        <div class="dsp-rack-page-subtitle">1176 Preamp &rarr; Pre-Gain &rarr; 4-Slot FX &rarr; Denoiser &rarr; 8-Band ReaEQ &rarr; Comp &rarr; De-Esser</div>
+                    </div>
+                    <div class="dsp-rack-ch-switcher" id="dsp-rack-ch-switcher">
+                        <button type="button" class="btn-rack-ch-pill active" onclick="showDspRackPage(0)">CH 1</button>
+                        <button type="button" class="btn-rack-ch-pill" onclick="showDspRackPage(1)">CH 2</button>
+                        <button type="button" class="btn-rack-ch-pill" onclick="showDspRackPage(2)">CH 3</button>
+                        <button type="button" class="btn-rack-ch-pill" onclick="showDspRackPage(3)">CH 4</button>
+                        <button type="button" class="btn-rack-ch-pill" onclick="showDspRackPage(4)">CH 5</button>
+                        <button type="button" class="btn-rack-ch-pill" onclick="showDspRackPage(5)">CH 6</button>
+                        <button type="button" class="btn-rack-ch-pill" onclick="showDspRackPage(6)">CH 7</button>
+                        <button type="button" class="btn-rack-ch-pill" onclick="showDspRackPage(7)">CH 8</button>
+                    </div>
+                </div>
+                <button class="btn-rack-back" onclick="closeDspRackPage()">← BACK TO MIXER</button>
+            </div>
+
+            <!-- Touch Sub-Menu Tabs for DSP Rack Stages (Eliminates vertical cramping on 960x600 tablet) -->
+            <div class="dsp-rack-subtabs" id="dsp-rack-subtabs">
+                <button type="button" class="btn-rack-subtab active" id="rack-tab-btn-input_fx" onclick="setDspRackSubTab('input_fx')">🔥 1. PREAMP, SLOTS &amp; DENOISE</button>
+                <button type="button" class="btn-rack-subtab" id="rack-tab-btn-eq" onclick="setDspRackSubTab('eq')">🎛️ 2. 8-BAND EQ &amp; AFD</button>
+                <button type="button" class="btn-rack-subtab" id="rack-tab-btn-dynamics" onclick="setDspRackSubTab('dynamics')">⚡ 3. COMP &amp; DE-ESSER</button>
+                <button type="button" class="btn-rack-subtab" id="rack-tab-btn-all" onclick="setDspRackSubTab('all')">📋 ALL 7 STAGES</button>
+            </div>
+
+            <!-- Input Gain (kept synced in DOM; Stage 2 card provides large inline slider) -->
+            <div class="rack-gain-section" id="dsp-rack-gain-section">
+                <div>
+                    <div class="rack-gain-title" id="dsp-rack-gain-label">INPUT GAIN — IN 1 (UMC1820)</div>
+                    <div class="rack-gain-hw">Behringer UMC1820 Digital Pre-Gain</div>
+                </div>
+                <input type="range" class="rack-gain-slider" id="dsp-rack-gain-slider"
+                    min="-18" max="24" step="0.5" value="0"
+                    oninput="handleRackGainChange(this.value)">
+                <span class="rack-gain-val" id="dsp-rack-gain-val">0.0 dB</span>
+                <button class="btn-top active" id="dsp-rack-regain-btn"
+                    onclick="toggleRackRegain()"
+                    title="REGAIN: boosting gain automatically trims fader to keep level constant">REGAIN ON</button>
+            </div>
+
+            <!-- The rack rows are injected here by showDspRackPage() -->
+            <div id="dsp-rack-grid" data-rack-tab="input_fx"></div>
+        </div>
+    </div>
+
+    <header>
+        <div class="logo-area">
+            <span class="brand-title">MODEP PRO</span>
+            <span class="badge-live" id="live-indicator" onclick="if(window.openPiNetworkModal){window.openPiNetworkModal();}else if(window.promptPiHostOverride){window.promptPiHostOverride();}" title="Tap to switch Raspberry Pi between Studio Wi-Fi and Stage Hotspot or configure IP">LIVE SYNC</span>
+            <span class="pi-telemetry-pill" id="pi-telemetry-pill" onclick="if(window.resetPiXruns)window.resetPiXruns()" title="Raspberry Pi Real-Time JACK DSP Load, System CPU, Core Temp &amp; XRUN Counter (Tap to reset XRUN count)">
+                <span class="pi-tel-item" id="pi-tel-dsp">DSP 0.8%</span>
+                <span class="pi-tel-sep">|</span>
+                <span class="pi-tel-item" id="pi-tel-cpu">CPU 8%</span>
+                <span class="pi-tel-sep">|</span>
+                <span class="pi-tel-item" id="pi-tel-temp">44°C</span>
+                <span class="pi-tel-sep">|</span>
+                <span class="pi-tel-xrun ok" id="pi-tel-xrun">XRUN 0</span>
+            </span>
+        </div>
+        <div class="header-controls">
+            <!-- Global Master Tap Tempo Sync Engine -->
+            <div class="tap-tempo-box" title="Global Master Tap Tempo: syncs all pedalboard delays and modulation with zero pitch bounce">
+                <button class="btn-tap-tempo" id="btn-tap-tempo" onclick="handleTapTempo()">
+                    <span>⏱️ TAP</span>
+                </button>
+                <div class="tempo-display">
+                    <span id="tempo-bpm-val">120.0</span>
+                    <span class="tempo-bpm-unit">BPM</span>
+                </div>
+            </div>
+            <!-- Stage 7: Native 2" Multitrack Tape Machine Transport Controls -->
+            <div class="reaper-transport-group">
+                <button class="btn-transport btn-transport-rec" id="btn-reaper-rec" title="2-Inch Multitrack Tape Record (20+ Stems)" onclick="sendTapeTransport('rec')">● REC</button>
+                <button class="btn-transport btn-transport-stop" id="btn-reaper-stop" title="2-Inch Multitrack Tape Stop &amp; Save WAV Stems" onclick="sendTapeTransport('stop')">■ STOP</button>
+                <button class="btn-transport btn-transport-play" id="btn-reaper-play" title="2-Inch Multitrack Tape Monitor Playback" onclick="sendTapeTransport('play')">▶ PLAY</button>
+                <button class="btn-transport btn-transport-web" id="btn-reaper-web" style="background:#78350f; border-color:#f59e0b; color:#fef3c7;" title="Open 2-Inch 20+ Track Analog Tape Deck &amp; Monitor Mixer (0 VU = -18 dBFS)" onclick="openDspModal('tape', 'master')">📼 2" TAPE</button>
+            </div>
+            <!-- Touch Sub-Menu Triggers (Replaces tiny multi-row header clutter with large tablet sub-menus) -->
+            <button type="button" class="btn-top btn-submenu-trigger" id="btn-submenu-master-suite" onclick="toggleTouchSubmenu('master-suite')" title="Open Master Processing Suite &amp; Fader Physics Sub-Menu">🎛️ MASTER SUITE ▾</button>
+            <button type="button" class="btn-top btn-submenu-trigger" id="btn-submenu-system-scenes" onclick="toggleTouchSubmenu('system-scenes')" title="Open Show Scenes, Audio Interface, Wi-Fi/Hotspot &amp; System Sub-Menu">⚙️ SYSTEM &amp; SCENES ▾</button>
+        </div>
+    </header>
+
+    <!-- Touch Sub-Menu Backdrop & Drawers -->
+    <div class="touch-submenu-backdrop" id="touch-submenu-backdrop" onclick="closeAllTouchSubmenus()"></div>
+
+    <div class="touch-submenu-drawer" id="submenu-master-suite">
+        <div class="touch-submenu-header">
+            <span>🎛️ MASTER PROCESSING SUITE &amp; FADER PHYSICS</span>
+            <button type="button" class="btn-submenu-close" onclick="closeAllTouchSubmenus()">✕ CLOSE</button>
+        </div>
+        <div class="touch-submenu-grid">
+            <button class="btn-top active submenu-card-btn" id="btn-amm-master" onclick="toggleGlobalAmm()">🎙️ AMM DUGAN: ON</button>
+            <button class="btn-top active submenu-card-btn" id="btn-fb-master" onclick="closeAllTouchSubmenus(); openDspModal('feedback', 'master')">🎯 AFS FEEDBACK KILLER</button>
+            <button class="btn-top submenu-card-btn" id="btn-room-cal-header" style="background:#4338ca; border-color:#6366f1; color:#e0e7ff;" onclick="closeAllTouchSubmenus(); openDspModal('room_cal', 'master')">🏛️ AUTO-EQ ROOM CALIBRATOR</button>
+            <button class="btn-top active submenu-card-btn" id="btn-analog-summing" style="background:#78350f; border-color:#d97706; color:#fef3c7;" onclick="closeAllTouchSubmenus(); openDspModal('summing', 'master')" title="Analog Console Summing &amp; Discrete Transformer Emulation">🎛️ SUMMING: NEVE 8048</button>
+            <div class="speed-control-box submenu-card-wide" title="Touchscreen anti-jump speed limiter: controls maximum throw glide rate">
+                <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                    <span style="font-size:0.78rem; font-weight:900; color:#e2e8f0;">🎚️ TOUCH FADER GLIDE DAMPING:</span>
+                    <span id="speed-val" style="color:#38bdf8; font-weight:900; font-size:0.82rem;">RAW (INSTANT)</span>
+                </div>
+                <input type="range" class="speed-slider" id="fader-damping-slider" min="1" max="10" step="1" value="1" oninput="updateFaderSpeed(this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="touch-submenu-drawer" id="submenu-system-scenes">
+        <div class="touch-submenu-header">
+            <span>⚙️ SHOW SCENES, AUDIO I/O &amp; TABLET SYSTEM</span>
+            <button type="button" class="btn-submenu-close" onclick="closeAllTouchSubmenus()">✕ CLOSE</button>
+        </div>
+        <div class="touch-submenu-grid">
+            <button class="btn-top submenu-card-btn" id="btn-scenes-header" style="background:#065f46; border-color:#10b981; color:#d1fae5;" onclick="closeAllTouchSubmenus(); openDspModal('scenes', 'master')" title="1-Tap Show Scene Snapshot Save &amp; Recall (8 Slots)">💾 SHOW SCENES (8 SLOTS)</button>
+            <span class="badge submenu-card-btn" id="hw-interface-badge" onclick="closeAllTouchSubmenus(); openDspModal('audio_hw', 'master')" style="cursor:pointer;" title="Tap to configure USB/ALSA Audio Interface, Sample Rate, Buffer &amp; I/O Patch Matrix">🔊 AUDIENT EVO 4 (4×4 @ 48kHz)</span>
+            <button class="btn-top submenu-card-btn" id="btn-pi-net-switch" onclick="closeAllTouchSubmenus(); if(window.openPiNetworkModal)window.openPiNetworkModal()" style="background:#0f172a; border-color:#38bdf8; color:#38bdf8; font-weight:800;" title="Switch Raspberry Pi between Studio Wi-Fi and Stage Hotspot">📶 WIFI ↔ HOTSPOT</button>
+            <button class="btn-top submenu-card-btn" id="btn-link-views" style="background:#1e293b; border-color:#475569; color:#cbd5e1;" onclick="if(window.toggleLinkViews)window.toggleLinkViews()" title="When enabled, switching mixer tabs or opening DSP modals on one tablet/browser mirrors the screen on all connected devices">🔗 LINK VIEWS: OFF</button>
+            <button class="btn-top submenu-card-btn" id="btn-apk-refresh" style="background:#0284c7; border-color:#38bdf8; color:#f0f9ff; font-weight:900;" onclick="if(window.hardRefreshConsoleUI){window.hardRefreshConsoleUI();}else{window.location.reload();}" title="1-Tap Hard Reload of Console UI (Pulls live UI from Pi when connected)">🔄 REFRESH CONSOLE UI</button>
+            <a class="btn-top submenu-card-btn" href="PatchboxPrime.apk" download="PatchboxPrime.apk" onclick="closeAllTouchSubmenus(); if(document.documentElement.requestFullscreen && !document.fullscreenElement){document.documentElement.requestFullscreen().catch(()=>{});}" style="background:#0f766e; border-color:#14b8a6; color:#ccfbf1; text-decoration:none;" title="Download Lenovo Tab M11 Kiosk APK &amp; Enter Fullscreen">📱 DOWNLOAD M11 APK</a>
+        </div>
+    </div>
+
+    <!-- Professional Mixer View Tabs & Collapsible Sends-On-Faders Touch Drawer -->
+    <div class="mixer-nav-tabs">
+        <div class="nav-row-top" style="display:flex; width:100%; align-items:center; justify-content:space-between; gap:6px; flex-wrap:nowrap;">
+            <div class="tab-group">
+                <button class="btn-tab active" id="tab-btn-inputs" onclick="switchMixerView('inputs')">CHANNELS 1-8</button>
+                <button class="btn-tab" id="tab-btn-sends" onclick="switchMixerView('sends')">FX SENDS &amp; RETURNS</button>
+                <button class="btn-tab" id="tab-btn-monitors" onclick="switchMixerView('monitors')">MAIN PA &amp; MONITORS</button>
+                <button type="button" class="btn-tab btn-sof-drawer-toggle" id="btn-sof-drawer-toggle" onclick="toggleSofDrawer()" title="Open/Close Sends-On-Fader Bus Selector Bar">🎚️ SENDS ON FADER ▾</button>
+            </div>
+
+            <div class="global-quick-actions" style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+                <button class="btn-clear-solo" id="btn-clear-solo" onclick="clearAllSolos()" title="Flashes when any channel or bus is SOLOed — tap to clear all solos">SOLO CLEAR</button>
+                <button class="btn-clear-clips" id="btn-clear-clips" onclick="clearAllClips()" title="Tap to reset all latched red Peak/Clip Hold LEDs">CLR CLIP</button>
+                <button class="btn-mute-stage-mics" id="btn-mute-stage-mics" onclick="toggleMuteStageMics()" title="Mute Stage Mics CH 1-6 while leaving CH 7-8 open for intermission playback">
+                    <span>🎙️ MUTE MICS</span>
+                </button>
+                <button class="btn-fx-mute-momentary" id="btn-fx-mute-momentary" onpointerdown="startMomentaryFxMute(event)" onpointerup="stopMomentaryFxMute(event)" onpointercancel="stopMomentaryFxMute(event)" title="Hold down to instantly kill all reverb &amp; delay send returns between songs">
+                    <span>🔇 FX MUTE</span>
+                    <span class="btn-fx-mute-sub">HOLD TO MUTE</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="nav-row-sof" id="nav-row-sof-drawer">
+            <div class="sof-group">
+                <span class="sof-label">SENDS ON FADER:</span>
+                <button class="btn-sof" id="sof-btn-mon1" onclick="toggleSofMode('mon1', 'MONITOR 1 (Wedge L)')">MON 1</button>
+                <button class="btn-sof" id="sof-btn-mon2" onclick="toggleSofMode('mon2', 'MONITOR 2 (Wedge R)')">MON 2</button>
+                <button class="btn-sof" id="sof-btn-mon3" onclick="toggleSofMode('mon3', 'MONITOR 3 (In-Ear 1)')">MON 3 (IEM)</button>
+                <button class="btn-sof" id="sof-btn-mon4" onclick="toggleSofMode('mon4', 'MONITOR 4 (In-Ear 2)')">MON 4</button>
+                <button class="btn-sof" id="sof-btn-mon5" onclick="toggleSofMode('mon5', 'MONITOR 5 (Drum Fill)')">MON 5</button>
+                <button class="btn-sof" id="sof-btn-mon6" onclick="toggleSofMode('mon6', 'MONITOR 6 (Side Fill)')">MON 6</button>
+                <button class="btn-sof" id="sof-btn-fx1" onclick="toggleSofMode('fx1', 'FX SEND 1 (Concert Hall / Chamber / Acoustic Reverb 1)')">FX 1 (REV 1)</button>
+                <button class="btn-sof" id="sof-btn-fx2" onclick="toggleSofMode('fx2', 'FX SEND 2 (Vocal Lush Hall Reverb 2)')">FX 2 (REV 2)</button>
+                <button class="btn-sof" id="sof-btn-fx3" onclick="toggleSofMode('fx3', 'FX SEND 3 (15/30 IPS Tape Slapback Delay 1)')">FX 3 (DLY 1)</button>
+                <button class="btn-sof" id="sof-btn-fx4" onclick="toggleSofMode('fx4', 'FX SEND 4 (Modulated Vocal Delay 2)')">FX 4 (DLY 2)</button>
+                <button class="btn-sof-exit" id="sof-exit-btn" onclick="exitSofMode()">✕ EXIT SOF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Sends-On-Faders Live Alert Banner -->
+    <div class="sof-banner" id="sof-active-banner">
+        <span id="sof-banner-text">⚠️ SENDS ON FADER ACTIVE: MIXING TO MONITOR 1 (Wedge L)</span>
+        <button class="btn-top" style="background:#000; color:#fbbf24; border-color:#000; padding:4px 12px; font-size:0.78rem; min-height:32px;" onclick="exitSofMode()">RETURN TO MAIN FADERS</button>
+    </div>
+
+    <div class="mixer-container">
+        <!-- 8 Console Input Channels mapped directly to Behringer UMC1820 Physical Inputs 1-8 -->
+        
+        <!-- 8 Console Input Channels mapped directly to Behringer UMC1820 Physical Inputs 1-8 -->
+
+                <div class="channel-strip input-strip" id="ch-0">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ch-badge-0" onclick="openColorPalette('ch-0', event)" title="Tap to change channel color tag">IN 1 &bull; CH 1</div>
+                        <div class="ch-sub-name" id="ch-name-0" onclick="openRenameModal('ch-0', 'CH 1')" title="Tap or hold to rename channel">Vocal 1</div>
+                    </div>
+
+                    <!-- Per-Channel Hardware Input Soft-Patch -->
+                    <div class="soft-patch-row">
+                        <span>IN:</span>
+                        <select class="soft-patch-select" id="ch-input-source-0"
+                            onchange="handleSoftPatchChange(0, parseInt(this.value))"
+                            title="Route hardware capture port to this channel">
+                            <option value="1" selected>HW 1</option><option value="2" >HW 2</option><option value="3" >HW 3</option><option value="4" >HW 4</option><option value="5" >HW 5</option><option value="6" >HW 6</option><option value="7" >HW 7</option><option value="8" >HW 8</option><option value="9" >HW 9</option><option value="10" >HW 10</option><option value="11" >HW 11</option><option value="12" >HW 12</option><option value="13" >HW 13</option><option value="14" >HW 14</option><option value="15" >HW 15</option><option value="16" >HW 16</option><option value="17" >HW 17</option><option value="18" >HW 18</option>
+                        </select>
+                    </div>
+                    <!-- Step 1: One-Tap 80Hz HPF & Per-Channel L/C/R Pan -->
+                    <div class="ch-pan-hpf-row">
+                        <button class="btn-ch-hpf" id="btn-hpf-0" onclick="toggleChannelHpf80(0)" title="One-Tap 80Hz High-Pass Filter (Low-Cut)">Ø80</button>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-0" min="-100" max="100" step="1" value="0" oninput="setChannelPan(0, this.value)" ondblclick="resetChannelPan(0)" title="Channel L/C/R Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-0" onclick="resetChannelPan(0)" title="Tap to reset Pan to Center">C</span>
+                    </div>
+
+                    <!-- Touch Sub-Menu Button for Input, Pan, HPF & Stereo Link -->
+                    <button type="button" class="btn-ch-setup-open" id="btn-ch-setup-0" onclick="openChannelSetupModal(0)" title="Open Channel 1 Input, Pan, 80Hz HPF &amp; Stereo Link Sub-Menu">🎛️ IN 1 &bull; PAN C</button>
+                    <!-- Single Clean Channel DSP Rack Button -->
+                    <button type="button" class="btn-channel-dsp-open" id="btn-ch-dsp-0" onclick="showDspRackPage(0)" title="Open Channel 1 DSP Rack">⚡ DSP</button>
+
+                    <div class="fader-section">
+                        <div class="meter-container" title="Channel Peak Level (-18dB Yellow, -6dB Orange, 0dB Red Clipping)">
+                            <div class="clip-hold-led" id="clip-led-0" onclick="clearClipHold(0, event)" title="Sticky Peak Clip Hold (Tap to Clear)">CLIP</div>
+                            <div class="meter-bar" id="meter-0"></div>
+                            <div class="meter-ticks">
+                                <div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div>
+                            </div>
+                        </div>
+                        <!-- Multi-Color Channel Gain Reduction (GR) Meter -->
+                        <div class="gr-meter-container" title="Gain Reduction: 0-6dB Green (Acoustic), 6-12dB Orange (Vocal Leveler), >12dB Red (Heavy)">
+                            <div class="gr-meter-bar" id="gr-meter-0"></div>
+                            <span class="gr-meter-scale-title">GR</span>
+                        </div>
+                        <div class="fader-track" id="fader-track-0" data-channel="0" data-target="0">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-0" data-channel="0" data-target="0" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-0">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-amm active" id="amm-ch-0" onclick="toggleChAmm(0)">AMM DUGAN</button>
+                        <button class="btn-strip btn-solo" id="solo-ch-0" onclick="toggleChSolo(0)">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ch-0" onclick="toggleChMute(0)">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip input-strip" id="ch-1">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ch-badge-1" onclick="openColorPalette('ch-1', event)" title="Tap to change channel color tag">IN 2 &bull; CH 2</div>
+                        <div class="ch-sub-name" id="ch-name-1" onclick="openRenameModal('ch-1', 'CH 2')" title="Tap or hold to rename channel">Guitar</div>
+                    </div>
+
+                    <!-- Per-Channel Hardware Input Soft-Patch -->
+                    <div class="soft-patch-row">
+                        <span>IN:</span>
+                        <select class="soft-patch-select" id="ch-input-source-1"
+                            onchange="handleSoftPatchChange(1, parseInt(this.value))"
+                            title="Route hardware capture port to this channel">
+                            <option value="1" >HW 1</option><option value="2" selected>HW 2</option><option value="3" >HW 3</option><option value="4" >HW 4</option><option value="5" >HW 5</option><option value="6" >HW 6</option><option value="7" >HW 7</option><option value="8" >HW 8</option><option value="9" >HW 9</option><option value="10" >HW 10</option><option value="11" >HW 11</option><option value="12" >HW 12</option><option value="13" >HW 13</option><option value="14" >HW 14</option><option value="15" >HW 15</option><option value="16" >HW 16</option><option value="17" >HW 17</option><option value="18" >HW 18</option>
+                        </select>
+                    </div>
+                    <!-- Step 1: One-Tap 80Hz HPF & Per-Channel L/C/R Pan -->
+                    <div class="ch-pan-hpf-row">
+                        <button class="btn-ch-hpf" id="btn-hpf-1" onclick="toggleChannelHpf80(1)" title="One-Tap 80Hz High-Pass Filter (Low-Cut)">Ø80</button>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-1" min="-100" max="100" step="1" value="0" oninput="setChannelPan(1, this.value)" ondblclick="resetChannelPan(1)" title="Channel L/C/R Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-1" onclick="resetChannelPan(1)" title="Tap to reset Pan to Center">C</span>
+                    </div>
+
+                    <!-- Touch Sub-Menu Button for Input, Pan, HPF & Stereo Link -->
+                    <button type="button" class="btn-ch-setup-open" id="btn-ch-setup-1" onclick="openChannelSetupModal(1)" title="Open Channel 2 Input, Pan, 80Hz HPF &amp; Stereo Link Sub-Menu">🎛️ IN 2 &bull; PAN C</button>
+                    <!-- Single Clean Channel DSP Rack Button -->
+                    <button type="button" class="btn-channel-dsp-open" id="btn-ch-dsp-1" onclick="showDspRackPage(1)" title="Open Channel 2 DSP Rack">⚡ DSP</button>
+
+                    <div class="fader-section">
+                        <div class="meter-container" title="Channel Peak Level (-18dB Yellow, -6dB Orange, 0dB Red Clipping)">
+                            <div class="clip-hold-led" id="clip-led-1" onclick="clearClipHold(1, event)" title="Sticky Peak Clip Hold (Tap to Clear)">CLIP</div>
+                            <div class="meter-bar" id="meter-1"></div>
+                            <div class="meter-ticks">
+                                <div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div>
+                            </div>
+                        </div>
+                        <!-- Multi-Color Channel Gain Reduction (GR) Meter -->
+                        <div class="gr-meter-container" title="Gain Reduction: 0-6dB Green (Acoustic), 6-12dB Orange (Vocal Leveler), >12dB Red (Heavy)">
+                            <div class="gr-meter-bar" id="gr-meter-1"></div>
+                            <span class="gr-meter-scale-title">GR</span>
+                        </div>
+                        <div class="fader-track" id="fader-track-1" data-channel="1" data-target="1">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-1" data-channel="1" data-target="1" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-1">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-amm active" id="amm-ch-1" onclick="toggleChAmm(1)">AMM DUGAN</button>
+                        <button class="btn-strip btn-solo" id="solo-ch-1" onclick="toggleChSolo(1)">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ch-1" onclick="toggleChMute(1)">MUTE</button>
+                    </div>
+                </div>
+                
+                    <div class="stereo-link-col" id="stereo-link-col-0">
+                        <button class="btn-stereo-link" id="btn-stereo-link-0"
+                            onclick="toggleStereoLink(0)"
+                            title="Link CH 2+CH 3 as stereo pair — hard pan L/R, mirror fader/mute/solo/DSP">
+                            [ LINK ]
+                        </button>
+                    </div>
+                    
+                <div class="channel-strip input-strip" id="ch-2">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ch-badge-2" onclick="openColorPalette('ch-2', event)" title="Tap to change channel color tag">IN 3 &bull; CH 3</div>
+                        <div class="ch-sub-name" id="ch-name-2" onclick="openRenameModal('ch-2', 'CH 3')" title="Tap or hold to rename channel">Bass</div>
+                    </div>
+
+                    <!-- Per-Channel Hardware Input Soft-Patch -->
+                    <div class="soft-patch-row">
+                        <span>IN:</span>
+                        <select class="soft-patch-select" id="ch-input-source-2"
+                            onchange="handleSoftPatchChange(2, parseInt(this.value))"
+                            title="Route hardware capture port to this channel">
+                            <option value="1" >HW 1</option><option value="2" >HW 2</option><option value="3" selected>HW 3</option><option value="4" >HW 4</option><option value="5" >HW 5</option><option value="6" >HW 6</option><option value="7" >HW 7</option><option value="8" >HW 8</option><option value="9" >HW 9</option><option value="10" >HW 10</option><option value="11" >HW 11</option><option value="12" >HW 12</option><option value="13" >HW 13</option><option value="14" >HW 14</option><option value="15" >HW 15</option><option value="16" >HW 16</option><option value="17" >HW 17</option><option value="18" >HW 18</option>
+                        </select>
+                    </div>
+                    <!-- Step 1: One-Tap 80Hz HPF & Per-Channel L/C/R Pan -->
+                    <div class="ch-pan-hpf-row">
+                        <button class="btn-ch-hpf" id="btn-hpf-2" onclick="toggleChannelHpf80(2)" title="One-Tap 80Hz High-Pass Filter (Low-Cut)">Ø80</button>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-2" min="-100" max="100" step="1" value="0" oninput="setChannelPan(2, this.value)" ondblclick="resetChannelPan(2)" title="Channel L/C/R Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-2" onclick="resetChannelPan(2)" title="Tap to reset Pan to Center">C</span>
+                    </div>
+
+                    <!-- Touch Sub-Menu Button for Input, Pan, HPF & Stereo Link -->
+                    <button type="button" class="btn-ch-setup-open" id="btn-ch-setup-2" onclick="openChannelSetupModal(2)" title="Open Channel 3 Input, Pan, 80Hz HPF &amp; Stereo Link Sub-Menu">🎛️ IN 3 &bull; PAN C</button>
+                    <!-- Single Clean Channel DSP Rack Button -->
+                    <button type="button" class="btn-channel-dsp-open" id="btn-ch-dsp-2" onclick="showDspRackPage(2)" title="Open Channel 3 DSP Rack">⚡ DSP</button>
+
+                    <div class="fader-section">
+                        <div class="meter-container" title="Channel Peak Level (-18dB Yellow, -6dB Orange, 0dB Red Clipping)">
+                            <div class="clip-hold-led" id="clip-led-2" onclick="clearClipHold(2, event)" title="Sticky Peak Clip Hold (Tap to Clear)">CLIP</div>
+                            <div class="meter-bar" id="meter-2"></div>
+                            <div class="meter-ticks">
+                                <div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div>
+                            </div>
+                        </div>
+                        <!-- Multi-Color Channel Gain Reduction (GR) Meter -->
+                        <div class="gr-meter-container" title="Gain Reduction: 0-6dB Green (Acoustic), 6-12dB Orange (Vocal Leveler), >12dB Red (Heavy)">
+                            <div class="gr-meter-bar" id="gr-meter-2"></div>
+                            <span class="gr-meter-scale-title">GR</span>
+                        </div>
+                        <div class="fader-track" id="fader-track-2" data-channel="2" data-target="2">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-2" data-channel="2" data-target="2" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-2">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-amm active" id="amm-ch-2" onclick="toggleChAmm(2)">AMM DUGAN</button>
+                        <button class="btn-strip btn-solo" id="solo-ch-2" onclick="toggleChSolo(2)">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ch-2" onclick="toggleChMute(2)">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip input-strip" id="ch-3">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ch-badge-3" onclick="openColorPalette('ch-3', event)" title="Tap to change channel color tag">IN 4 &bull; CH 4</div>
+                        <div class="ch-sub-name" id="ch-name-3" onclick="openRenameModal('ch-3', 'CH 4')" title="Tap or hold to rename channel">Kick Drum</div>
+                    </div>
+
+                    <!-- Per-Channel Hardware Input Soft-Patch -->
+                    <div class="soft-patch-row">
+                        <span>IN:</span>
+                        <select class="soft-patch-select" id="ch-input-source-3"
+                            onchange="handleSoftPatchChange(3, parseInt(this.value))"
+                            title="Route hardware capture port to this channel">
+                            <option value="1" >HW 1</option><option value="2" >HW 2</option><option value="3" >HW 3</option><option value="4" selected>HW 4</option><option value="5" >HW 5</option><option value="6" >HW 6</option><option value="7" >HW 7</option><option value="8" >HW 8</option><option value="9" >HW 9</option><option value="10" >HW 10</option><option value="11" >HW 11</option><option value="12" >HW 12</option><option value="13" >HW 13</option><option value="14" >HW 14</option><option value="15" >HW 15</option><option value="16" >HW 16</option><option value="17" >HW 17</option><option value="18" >HW 18</option>
+                        </select>
+                    </div>
+                    <!-- Step 1: One-Tap 80Hz HPF & Per-Channel L/C/R Pan -->
+                    <div class="ch-pan-hpf-row">
+                        <button class="btn-ch-hpf" id="btn-hpf-3" onclick="toggleChannelHpf80(3)" title="One-Tap 80Hz High-Pass Filter (Low-Cut)">Ø80</button>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-3" min="-100" max="100" step="1" value="0" oninput="setChannelPan(3, this.value)" ondblclick="resetChannelPan(3)" title="Channel L/C/R Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-3" onclick="resetChannelPan(3)" title="Tap to reset Pan to Center">C</span>
+                    </div>
+
+                    <!-- Touch Sub-Menu Button for Input, Pan, HPF & Stereo Link -->
+                    <button type="button" class="btn-ch-setup-open" id="btn-ch-setup-3" onclick="openChannelSetupModal(3)" title="Open Channel 4 Input, Pan, 80Hz HPF &amp; Stereo Link Sub-Menu">🎛️ IN 4 &bull; PAN C</button>
+                    <!-- Single Clean Channel DSP Rack Button -->
+                    <button type="button" class="btn-channel-dsp-open" id="btn-ch-dsp-3" onclick="showDspRackPage(3)" title="Open Channel 4 DSP Rack">⚡ DSP</button>
+
+                    <div class="fader-section">
+                        <div class="meter-container" title="Channel Peak Level (-18dB Yellow, -6dB Orange, 0dB Red Clipping)">
+                            <div class="clip-hold-led" id="clip-led-3" onclick="clearClipHold(3, event)" title="Sticky Peak Clip Hold (Tap to Clear)">CLIP</div>
+                            <div class="meter-bar" id="meter-3"></div>
+                            <div class="meter-ticks">
+                                <div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div>
+                            </div>
+                        </div>
+                        <!-- Multi-Color Channel Gain Reduction (GR) Meter -->
+                        <div class="gr-meter-container" title="Gain Reduction: 0-6dB Green (Acoustic), 6-12dB Orange (Vocal Leveler), >12dB Red (Heavy)">
+                            <div class="gr-meter-bar" id="gr-meter-3"></div>
+                            <span class="gr-meter-scale-title">GR</span>
+                        </div>
+                        <div class="fader-track" id="fader-track-3" data-channel="3" data-target="3">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-3" data-channel="3" data-target="3" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-3">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-amm active" id="amm-ch-3" onclick="toggleChAmm(3)">AMM DUGAN</button>
+                        <button class="btn-strip btn-solo" id="solo-ch-3" onclick="toggleChSolo(3)">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ch-3" onclick="toggleChMute(3)">MUTE</button>
+                    </div>
+                </div>
+                
+                    <div class="stereo-link-col" id="stereo-link-col-1">
+                        <button class="btn-stereo-link" id="btn-stereo-link-1"
+                            onclick="toggleStereoLink(1)"
+                            title="Link CH 4+CH 5 as stereo pair — hard pan L/R, mirror fader/mute/solo/DSP">
+                            [ LINK ]
+                        </button>
+                    </div>
+                    
+                <div class="channel-strip input-strip" id="ch-4">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ch-badge-4" onclick="openColorPalette('ch-4', event)" title="Tap to change channel color tag">IN 5 &bull; CH 5</div>
+                        <div class="ch-sub-name" id="ch-name-4" onclick="openRenameModal('ch-4', 'CH 5')" title="Tap or hold to rename channel">Snare</div>
+                    </div>
+
+                    <!-- Per-Channel Hardware Input Soft-Patch -->
+                    <div class="soft-patch-row">
+                        <span>IN:</span>
+                        <select class="soft-patch-select" id="ch-input-source-4"
+                            onchange="handleSoftPatchChange(4, parseInt(this.value))"
+                            title="Route hardware capture port to this channel">
+                            <option value="1" >HW 1</option><option value="2" >HW 2</option><option value="3" >HW 3</option><option value="4" >HW 4</option><option value="5" selected>HW 5</option><option value="6" >HW 6</option><option value="7" >HW 7</option><option value="8" >HW 8</option><option value="9" >HW 9</option><option value="10" >HW 10</option><option value="11" >HW 11</option><option value="12" >HW 12</option><option value="13" >HW 13</option><option value="14" >HW 14</option><option value="15" >HW 15</option><option value="16" >HW 16</option><option value="17" >HW 17</option><option value="18" >HW 18</option>
+                        </select>
+                    </div>
+                    <!-- Step 1: One-Tap 80Hz HPF & Per-Channel L/C/R Pan -->
+                    <div class="ch-pan-hpf-row">
+                        <button class="btn-ch-hpf" id="btn-hpf-4" onclick="toggleChannelHpf80(4)" title="One-Tap 80Hz High-Pass Filter (Low-Cut)">Ø80</button>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-4" min="-100" max="100" step="1" value="0" oninput="setChannelPan(4, this.value)" ondblclick="resetChannelPan(4)" title="Channel L/C/R Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-4" onclick="resetChannelPan(4)" title="Tap to reset Pan to Center">C</span>
+                    </div>
+
+                    <!-- Touch Sub-Menu Button for Input, Pan, HPF & Stereo Link -->
+                    <button type="button" class="btn-ch-setup-open" id="btn-ch-setup-4" onclick="openChannelSetupModal(4)" title="Open Channel 5 Input, Pan, 80Hz HPF &amp; Stereo Link Sub-Menu">🎛️ IN 5 &bull; PAN C</button>
+                    <!-- Single Clean Channel DSP Rack Button -->
+                    <button type="button" class="btn-channel-dsp-open" id="btn-ch-dsp-4" onclick="showDspRackPage(4)" title="Open Channel 5 DSP Rack">⚡ DSP</button>
+
+                    <div class="fader-section">
+                        <div class="meter-container" title="Channel Peak Level (-18dB Yellow, -6dB Orange, 0dB Red Clipping)">
+                            <div class="clip-hold-led" id="clip-led-4" onclick="clearClipHold(4, event)" title="Sticky Peak Clip Hold (Tap to Clear)">CLIP</div>
+                            <div class="meter-bar" id="meter-4"></div>
+                            <div class="meter-ticks">
+                                <div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div>
+                            </div>
+                        </div>
+                        <!-- Multi-Color Channel Gain Reduction (GR) Meter -->
+                        <div class="gr-meter-container" title="Gain Reduction: 0-6dB Green (Acoustic), 6-12dB Orange (Vocal Leveler), >12dB Red (Heavy)">
+                            <div class="gr-meter-bar" id="gr-meter-4"></div>
+                            <span class="gr-meter-scale-title">GR</span>
+                        </div>
+                        <div class="fader-track" id="fader-track-4" data-channel="4" data-target="4">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-4" data-channel="4" data-target="4" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-4">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-amm active" id="amm-ch-4" onclick="toggleChAmm(4)">AMM DUGAN</button>
+                        <button class="btn-strip btn-solo" id="solo-ch-4" onclick="toggleChSolo(4)">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ch-4" onclick="toggleChMute(4)">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip input-strip" id="ch-5">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ch-badge-5" onclick="openColorPalette('ch-5', event)" title="Tap to change channel color tag">IN 6 &bull; CH 6</div>
+                        <div class="ch-sub-name" id="ch-name-5" onclick="openRenameModal('ch-5', 'CH 6')" title="Tap or hold to rename channel">Hi-Hat / O/H</div>
+                    </div>
+
+                    <!-- Per-Channel Hardware Input Soft-Patch -->
+                    <div class="soft-patch-row">
+                        <span>IN:</span>
+                        <select class="soft-patch-select" id="ch-input-source-5"
+                            onchange="handleSoftPatchChange(5, parseInt(this.value))"
+                            title="Route hardware capture port to this channel">
+                            <option value="1" >HW 1</option><option value="2" >HW 2</option><option value="3" >HW 3</option><option value="4" >HW 4</option><option value="5" >HW 5</option><option value="6" selected>HW 6</option><option value="7" >HW 7</option><option value="8" >HW 8</option><option value="9" >HW 9</option><option value="10" >HW 10</option><option value="11" >HW 11</option><option value="12" >HW 12</option><option value="13" >HW 13</option><option value="14" >HW 14</option><option value="15" >HW 15</option><option value="16" >HW 16</option><option value="17" >HW 17</option><option value="18" >HW 18</option>
+                        </select>
+                    </div>
+                    <!-- Step 1: One-Tap 80Hz HPF & Per-Channel L/C/R Pan -->
+                    <div class="ch-pan-hpf-row">
+                        <button class="btn-ch-hpf" id="btn-hpf-5" onclick="toggleChannelHpf80(5)" title="One-Tap 80Hz High-Pass Filter (Low-Cut)">Ø80</button>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-5" min="-100" max="100" step="1" value="0" oninput="setChannelPan(5, this.value)" ondblclick="resetChannelPan(5)" title="Channel L/C/R Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-5" onclick="resetChannelPan(5)" title="Tap to reset Pan to Center">C</span>
+                    </div>
+
+                    <!-- Touch Sub-Menu Button for Input, Pan, HPF & Stereo Link -->
+                    <button type="button" class="btn-ch-setup-open" id="btn-ch-setup-5" onclick="openChannelSetupModal(5)" title="Open Channel 6 Input, Pan, 80Hz HPF &amp; Stereo Link Sub-Menu">🎛️ IN 6 &bull; PAN C</button>
+                    <!-- Single Clean Channel DSP Rack Button -->
+                    <button type="button" class="btn-channel-dsp-open" id="btn-ch-dsp-5" onclick="showDspRackPage(5)" title="Open Channel 6 DSP Rack">⚡ DSP</button>
+
+                    <div class="fader-section">
+                        <div class="meter-container" title="Channel Peak Level (-18dB Yellow, -6dB Orange, 0dB Red Clipping)">
+                            <div class="clip-hold-led" id="clip-led-5" onclick="clearClipHold(5, event)" title="Sticky Peak Clip Hold (Tap to Clear)">CLIP</div>
+                            <div class="meter-bar" id="meter-5"></div>
+                            <div class="meter-ticks">
+                                <div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div>
+                            </div>
+                        </div>
+                        <!-- Multi-Color Channel Gain Reduction (GR) Meter -->
+                        <div class="gr-meter-container" title="Gain Reduction: 0-6dB Green (Acoustic), 6-12dB Orange (Vocal Leveler), >12dB Red (Heavy)">
+                            <div class="gr-meter-bar" id="gr-meter-5"></div>
+                            <span class="gr-meter-scale-title">GR</span>
+                        </div>
+                        <div class="fader-track" id="fader-track-5" data-channel="5" data-target="5">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-5" data-channel="5" data-target="5" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-5">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-amm active" id="amm-ch-5" onclick="toggleChAmm(5)">AMM DUGAN</button>
+                        <button class="btn-strip btn-solo" id="solo-ch-5" onclick="toggleChSolo(5)">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ch-5" onclick="toggleChMute(5)">MUTE</button>
+                    </div>
+                </div>
+                
+                    <div class="stereo-link-col" id="stereo-link-col-2">
+                        <button class="btn-stereo-link" id="btn-stereo-link-2"
+                            onclick="toggleStereoLink(2)"
+                            title="Link CH 6+CH 7 as stereo pair — hard pan L/R, mirror fader/mute/solo/DSP">
+                            [ LINK ]
+                        </button>
+                    </div>
+                    
+                <div class="channel-strip input-strip" id="ch-6">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ch-badge-6" onclick="openColorPalette('ch-6', event)" title="Tap to change channel color tag">IN 7 &bull; CH 7</div>
+                        <div class="ch-sub-name" id="ch-name-6" onclick="openRenameModal('ch-6', 'CH 7')" title="Tap or hold to rename channel">Keys L</div>
+                    </div>
+
+                    <!-- Per-Channel Hardware Input Soft-Patch -->
+                    <div class="soft-patch-row">
+                        <span>IN:</span>
+                        <select class="soft-patch-select" id="ch-input-source-6"
+                            onchange="handleSoftPatchChange(6, parseInt(this.value))"
+                            title="Route hardware capture port to this channel">
+                            <option value="1" >HW 1</option><option value="2" >HW 2</option><option value="3" >HW 3</option><option value="4" >HW 4</option><option value="5" >HW 5</option><option value="6" >HW 6</option><option value="7" selected>HW 7</option><option value="8" >HW 8</option><option value="9" >HW 9</option><option value="10" >HW 10</option><option value="11" >HW 11</option><option value="12" >HW 12</option><option value="13" >HW 13</option><option value="14" >HW 14</option><option value="15" >HW 15</option><option value="16" >HW 16</option><option value="17" >HW 17</option><option value="18" >HW 18</option>
+                        </select>
+                    </div>
+                    <!-- Step 1: One-Tap 80Hz HPF & Per-Channel L/C/R Pan -->
+                    <div class="ch-pan-hpf-row">
+                        <button class="btn-ch-hpf" id="btn-hpf-6" onclick="toggleChannelHpf80(6)" title="One-Tap 80Hz High-Pass Filter (Low-Cut)">Ø80</button>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-6" min="-100" max="100" step="1" value="0" oninput="setChannelPan(6, this.value)" ondblclick="resetChannelPan(6)" title="Channel L/C/R Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-6" onclick="resetChannelPan(6)" title="Tap to reset Pan to Center">C</span>
+                    </div>
+
+                    <!-- Touch Sub-Menu Button for Input, Pan, HPF & Stereo Link -->
+                    <button type="button" class="btn-ch-setup-open" id="btn-ch-setup-6" onclick="openChannelSetupModal(6)" title="Open Channel 7 Input, Pan, 80Hz HPF &amp; Stereo Link Sub-Menu">🎛️ IN 7 &bull; PAN C</button>
+                    <!-- Single Clean Channel DSP Rack Button -->
+                    <button type="button" class="btn-channel-dsp-open" id="btn-ch-dsp-6" onclick="showDspRackPage(6)" title="Open Channel 7 DSP Rack">⚡ DSP</button>
+
+                    <div class="fader-section">
+                        <div class="meter-container" title="Channel Peak Level (-18dB Yellow, -6dB Orange, 0dB Red Clipping)">
+                            <div class="clip-hold-led" id="clip-led-6" onclick="clearClipHold(6, event)" title="Sticky Peak Clip Hold (Tap to Clear)">CLIP</div>
+                            <div class="meter-bar" id="meter-6"></div>
+                            <div class="meter-ticks">
+                                <div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div>
+                            </div>
+                        </div>
+                        <!-- Multi-Color Channel Gain Reduction (GR) Meter -->
+                        <div class="gr-meter-container" title="Gain Reduction: 0-6dB Green (Acoustic), 6-12dB Orange (Vocal Leveler), >12dB Red (Heavy)">
+                            <div class="gr-meter-bar" id="gr-meter-6"></div>
+                            <span class="gr-meter-scale-title">GR</span>
+                        </div>
+                        <div class="fader-track" id="fader-track-6" data-channel="6" data-target="6">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-6" data-channel="6" data-target="6" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-6">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-amm active" id="amm-ch-6" onclick="toggleChAmm(6)">AMM DUGAN</button>
+                        <button class="btn-strip btn-solo" id="solo-ch-6" onclick="toggleChSolo(6)">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ch-6" onclick="toggleChMute(6)">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip input-strip" id="ch-7">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ch-badge-7" onclick="openColorPalette('ch-7', event)" title="Tap to change channel color tag">IN 8 &bull; CH 8</div>
+                        <div class="ch-sub-name" id="ch-name-7" onclick="openRenameModal('ch-7', 'CH 8')" title="Tap or hold to rename channel">Keys R</div>
+                    </div>
+
+                    <!-- Per-Channel Hardware Input Soft-Patch -->
+                    <div class="soft-patch-row">
+                        <span>IN:</span>
+                        <select class="soft-patch-select" id="ch-input-source-7"
+                            onchange="handleSoftPatchChange(7, parseInt(this.value))"
+                            title="Route hardware capture port to this channel">
+                            <option value="1" >HW 1</option><option value="2" >HW 2</option><option value="3" >HW 3</option><option value="4" >HW 4</option><option value="5" >HW 5</option><option value="6" >HW 6</option><option value="7" >HW 7</option><option value="8" selected>HW 8</option><option value="9" >HW 9</option><option value="10" >HW 10</option><option value="11" >HW 11</option><option value="12" >HW 12</option><option value="13" >HW 13</option><option value="14" >HW 14</option><option value="15" >HW 15</option><option value="16" >HW 16</option><option value="17" >HW 17</option><option value="18" >HW 18</option>
+                        </select>
+                    </div>
+                    <!-- Step 1: One-Tap 80Hz HPF & Per-Channel L/C/R Pan -->
+                    <div class="ch-pan-hpf-row">
+                        <button class="btn-ch-hpf" id="btn-hpf-7" onclick="toggleChannelHpf80(7)" title="One-Tap 80Hz High-Pass Filter (Low-Cut)">Ø80</button>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-7" min="-100" max="100" step="1" value="0" oninput="setChannelPan(7, this.value)" ondblclick="resetChannelPan(7)" title="Channel L/C/R Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-7" onclick="resetChannelPan(7)" title="Tap to reset Pan to Center">C</span>
+                    </div>
+
+                    <!-- Touch Sub-Menu Button for Input, Pan, HPF & Stereo Link -->
+                    <button type="button" class="btn-ch-setup-open" id="btn-ch-setup-7" onclick="openChannelSetupModal(7)" title="Open Channel 8 Input, Pan, 80Hz HPF &amp; Stereo Link Sub-Menu">🎛️ IN 8 &bull; PAN C</button>
+                    <!-- Single Clean Channel DSP Rack Button -->
+                    <button type="button" class="btn-channel-dsp-open" id="btn-ch-dsp-7" onclick="showDspRackPage(7)" title="Open Channel 8 DSP Rack">⚡ DSP</button>
+
+                    <div class="fader-section">
+                        <div class="meter-container" title="Channel Peak Level (-18dB Yellow, -6dB Orange, 0dB Red Clipping)">
+                            <div class="clip-hold-led" id="clip-led-7" onclick="clearClipHold(7, event)" title="Sticky Peak Clip Hold (Tap to Clear)">CLIP</div>
+                            <div class="meter-bar" id="meter-7"></div>
+                            <div class="meter-ticks">
+                                <div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div><div class="meter-tick"></div>
+                            </div>
+                        </div>
+                        <!-- Multi-Color Channel Gain Reduction (GR) Meter -->
+                        <div class="gr-meter-container" title="Gain Reduction: 0-6dB Green (Acoustic), 6-12dB Orange (Vocal Leveler), >12dB Red (Heavy)">
+                            <div class="gr-meter-bar" id="gr-meter-7"></div>
+                            <span class="gr-meter-scale-title">GR</span>
+                        </div>
+                        <div class="fader-track" id="fader-track-7" data-channel="7" data-target="7">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-7" data-channel="7" data-target="7" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-7">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-amm active" id="amm-ch-7" onclick="toggleChAmm(7)">AMM DUGAN</button>
+                        <button class="btn-strip btn-solo" id="solo-ch-7" onclick="toggleChSolo(7)">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ch-7" onclick="toggleChMute(7)">MUTE</button>
+                    </div>
+                </div>
+                
+                    <div class="stereo-link-col" id="stereo-link-col-3">
+                        <button class="btn-stereo-link" id="btn-stereo-link-3"
+                            onclick="toggleStereoLink(3)"
+                            title="Link CH 8+CH 9 as stereo pair — hard pan L/R, mirror fader/mute/solo/DSP">
+                            [ LINK ]
+                        </button>
+                    </div>
+                    
+
+        <!-- 4 Dedicated FX Send Channels (Aux 1-4) with Permanent Reverb/Delay Engines -->
+
+                <div class="channel-strip aux-send send-strip" id="send-strip-1" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="send-badge-1" onclick="openColorPalette('send-1', event)" style="background:#8b5cf6;" title="Tap to change color tag">SEND 1</div>
+                        <div class="ch-sub-name" id="send-name-1" onclick="openRenameModal('send-1', 'SEND 1')" title="Tap or hold to rename">Reverb 1: Hall / Chamber / Acoustic</div>
+                    </div>
+                    <!-- Permanent Reverb/Delay DSP processor on Send -->
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active" onclick="openDspModal('reverb', 'send-1')" style="grid-column: span 2; background:#78350f; border-color:#f59e0b; color:#fef3c7;">
+                            🏛️ REVERB 1: HALL / CHAMBER / PLATE
+                        </div>
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'send-1')">ReEQ SEND</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'send-1')">DUCK COMP</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-send-1" onclick="clearClipHold('send-1', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-send-1"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-send-1" data-target="send-1" data-channel="send-1">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-send-1" data-target="send-1" data-channel="send-1" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-send-1">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-solo" id="solo-send-1" onclick="toggleBusSolo('send-1')">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-send-1" onclick="toggleBusMute('send-1')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip aux-send send-strip" id="send-strip-2" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="send-badge-2" onclick="openColorPalette('send-2', event)" style="background:#8b5cf6;" title="Tap to change color tag">SEND 2</div>
+                        <div class="ch-sub-name" id="send-name-2" onclick="openRenameModal('send-2', 'SEND 2')" title="Tap or hold to rename">Reverb 2: Vocal Hall</div>
+                    </div>
+                    <!-- Permanent Reverb/Delay DSP processor on Send -->
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active" onclick="openDspModal('reverb', 'send-2')" style="grid-column: span 2; background:#78350f; border-color:#f59e0b; color:#fef3c7;">
+                            🎤 REVERB 2: VOCAL HALL
+                        </div>
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'send-2')">ReEQ SEND</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'send-2')">DUCK COMP</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-send-2" onclick="clearClipHold('send-2', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-send-2"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-send-2" data-target="send-2" data-channel="send-2">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-send-2" data-target="send-2" data-channel="send-2" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-send-2">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-solo" id="solo-send-2" onclick="toggleBusSolo('send-2')">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-send-2" onclick="toggleBusMute('send-2')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip aux-send send-strip" id="send-strip-3" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="send-badge-3" onclick="openColorPalette('send-3', event)" style="background:#8b5cf6;" title="Tap to change color tag">SEND 3</div>
+                        <div class="ch-sub-name" id="send-name-3" onclick="openRenameModal('send-3', 'SEND 3')" title="Tap or hold to rename">Delay 1: Tape Slapback</div>
+                    </div>
+                    <!-- Permanent Reverb/Delay DSP processor on Send -->
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active" onclick="openDspModal('delay', 'send-3')" style="grid-column: span 2; background:#064e3b; border-color:#10b981; color:#fff;">
+                            📼 DELAY 1: TAPE SLAPBACK
+                        </div>
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'send-3')">ReEQ SEND</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'send-3')">DUCK COMP</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-send-3" onclick="clearClipHold('send-3', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-send-3"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-send-3" data-target="send-3" data-channel="send-3">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-send-3" data-target="send-3" data-channel="send-3" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-send-3">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-solo" id="solo-send-3" onclick="toggleBusSolo('send-3')">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-send-3" onclick="toggleBusMute('send-3')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip aux-send send-strip" id="send-strip-4" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="send-badge-4" onclick="openColorPalette('send-4', event)" style="background:#8b5cf6;" title="Tap to change color tag">SEND 4</div>
+                        <div class="ch-sub-name" id="send-name-4" onclick="openRenameModal('send-4', 'SEND 4')" title="Tap or hold to rename">Delay 2: Mod Vocal Echo</div>
+                    </div>
+                    <!-- Permanent Reverb/Delay DSP processor on Send -->
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active" onclick="openDspModal('delay', 'send-4')" style="grid-column: span 2; background:#064e3b; border-color:#10b981; color:#fff;">
+                            🎤 DELAY 2: MOD VOCAL ECHO
+                        </div>
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'send-4')">ReEQ SEND</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'send-4')">DUCK COMP</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-send-4" onclick="clearClipHold('send-4', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-send-4"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-send-4" data-target="send-4" data-channel="send-4">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-send-4" data-target="send-4" data-channel="send-4" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-send-4">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-solo" id="solo-send-4" onclick="toggleBusSolo('send-4')">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-send-4" onclick="toggleBusMute('send-4')">MUTE</button>
+                    </div>
+                </div>
+                
+
+        <!-- 4 Dedicated Stereo FX Returns with High-Pass Filters & Mute Groups -->
+
+                <div class="channel-strip fx-return return-strip" id="return-strip-1" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ret-badge-1" onclick="openColorPalette('ret-1', event)" style="background:#ec4899;" title="Tap to change color tag">RET 1</div>
+                        <div class="ch-sub-name" id="ret-name-1" onclick="openRenameModal('ret-1', 'RET 1')" title="Tap or hold to rename">Reverb 1 Return (Hall/Chamber)</div>
+                    </div>
+                    <div class="ch-pan-hpf-row">
+                        <span style="font-size:0.55rem; font-weight:800; color:#f472b6;">PAN</span>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-ret-1" min="-100" max="100" step="1" value="0" oninput="setChannelPan('ret-1', this.value)" ondblclick="resetChannelPan('ret-1')" title="FX Return Balance / Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-ret-1" onclick="resetChannelPan('ret-1')" title="Tap to reset Pan to Center">C</span>
+                    </div>
+                    <div class="dsp-badges" style="margin-top:4px;">
+                        <div class="dsp-pill active" onclick="openDspModal('reverb', 'ret-1')" style="grid-column: span 2; background:#78350f; border-color:#f59e0b; color:#fef3c7;">🏛️ REVERB 1: HALL / CHAMBER / PLATE</div>
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'ret-1')" style="grid-column: span 2;">ReEQ RET EQ</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'ret-1')">GLUE COMP</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'ret-1')">FB-KILL</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container" style="margin-right:2px;">
+                            <div class="clip-hold-led" id="clip-led-ret-1" onclick="clearClipHold('ret-1', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-ret-1-l"></div>
+                        </div>
+                        <div class="meter-container">
+                            <div class="meter-bar" id="meter-ret-1-r"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-ret-1" data-target="ret-1" data-channel="ret-1">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-ret-1" data-target="ret-1" data-channel="ret-1" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-ret-1">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-solo" id="solo-ret-1" onclick="toggleBusSolo('ret-1')">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ret-1" onclick="toggleBusMute('ret-1')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip fx-return return-strip" id="return-strip-2" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ret-badge-2" onclick="openColorPalette('ret-2', event)" style="background:#ec4899;" title="Tap to change color tag">RET 2</div>
+                        <div class="ch-sub-name" id="ret-name-2" onclick="openRenameModal('ret-2', 'RET 2')" title="Tap or hold to rename">Reverb 2 Return (Vocal Hall)</div>
+                    </div>
+                    <div class="ch-pan-hpf-row">
+                        <span style="font-size:0.55rem; font-weight:800; color:#f472b6;">PAN</span>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-ret-2" min="-100" max="100" step="1" value="0" oninput="setChannelPan('ret-2', this.value)" ondblclick="resetChannelPan('ret-2')" title="FX Return Balance / Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-ret-2" onclick="resetChannelPan('ret-2')" title="Tap to reset Pan to Center">C</span>
+                    </div>
+                    <div class="dsp-badges" style="margin-top:4px;">
+                        <div class="dsp-pill active" onclick="openDspModal('reverb', 'ret-2')" style="grid-column: span 2; background:#78350f; border-color:#f59e0b; color:#fef3c7;">🎤 REVERB 2: VOCAL HALL</div>
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'ret-2')" style="grid-column: span 2;">ReEQ RET EQ</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'ret-2')">GLUE COMP</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'ret-2')">FB-KILL</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container" style="margin-right:2px;">
+                            <div class="clip-hold-led" id="clip-led-ret-2" onclick="clearClipHold('ret-2', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-ret-2-l"></div>
+                        </div>
+                        <div class="meter-container">
+                            <div class="meter-bar" id="meter-ret-2-r"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-ret-2" data-target="ret-2" data-channel="ret-2">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-ret-2" data-target="ret-2" data-channel="ret-2" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-ret-2">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-solo" id="solo-ret-2" onclick="toggleBusSolo('ret-2')">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ret-2" onclick="toggleBusMute('ret-2')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip fx-return return-strip" id="return-strip-3" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ret-badge-3" onclick="openColorPalette('ret-3', event)" style="background:#ec4899;" title="Tap to change color tag">RET 3</div>
+                        <div class="ch-sub-name" id="ret-name-3" onclick="openRenameModal('ret-3', 'RET 3')" title="Tap or hold to rename">Delay 1 Return (Slapback)</div>
+                    </div>
+                    <div class="ch-pan-hpf-row">
+                        <span style="font-size:0.55rem; font-weight:800; color:#f472b6;">PAN</span>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-ret-3" min="-100" max="100" step="1" value="0" oninput="setChannelPan('ret-3', this.value)" ondblclick="resetChannelPan('ret-3')" title="FX Return Balance / Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-ret-3" onclick="resetChannelPan('ret-3')" title="Tap to reset Pan to Center">C</span>
+                    </div>
+                    <div class="dsp-badges" style="margin-top:4px;">
+                        <div class="dsp-pill active" onclick="openDspModal('delay', 'ret-3')" style="grid-column: span 2; background:#064e3b; border-color:#10b981; color:#fff;">📼 DELAY 1: TAPE SLAPBACK</div>
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'ret-3')" style="grid-column: span 2;">ReEQ RET EQ</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'ret-3')">GLUE COMP</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'ret-3')">FB-KILL</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container" style="margin-right:2px;">
+                            <div class="clip-hold-led" id="clip-led-ret-3" onclick="clearClipHold('ret-3', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-ret-3-l"></div>
+                        </div>
+                        <div class="meter-container">
+                            <div class="meter-bar" id="meter-ret-3-r"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-ret-3" data-target="ret-3" data-channel="ret-3">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-ret-3" data-target="ret-3" data-channel="ret-3" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-ret-3">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-solo" id="solo-ret-3" onclick="toggleBusSolo('ret-3')">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ret-3" onclick="toggleBusMute('ret-3')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip fx-return return-strip" id="return-strip-4" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="ret-badge-4" onclick="openColorPalette('ret-4', event)" style="background:#ec4899;" title="Tap to change color tag">RET 4</div>
+                        <div class="ch-sub-name" id="ret-name-4" onclick="openRenameModal('ret-4', 'RET 4')" title="Tap or hold to rename">Delay 2 Return (Mod Vocal)</div>
+                    </div>
+                    <div class="ch-pan-hpf-row">
+                        <span style="font-size:0.55rem; font-weight:800; color:#f472b6;">PAN</span>
+                        <input type="range" class="ch-pan-slider" id="pan-slider-ret-4" min="-100" max="100" step="1" value="0" oninput="setChannelPan('ret-4', this.value)" ondblclick="resetChannelPan('ret-4')" title="FX Return Balance / Pan (Double-tap to Center)">
+                        <span class="ch-pan-val" id="pan-val-ret-4" onclick="resetChannelPan('ret-4')" title="Tap to reset Pan to Center">C</span>
+                    </div>
+                    <div class="dsp-badges" style="margin-top:4px;">
+                        <div class="dsp-pill active" onclick="openDspModal('delay', 'ret-4')" style="grid-column: span 2; background:#064e3b; border-color:#10b981; color:#fff;">🎤 DELAY 2: MOD VOCAL ECHO</div>
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'ret-4')" style="grid-column: span 2;">ReEQ RET EQ</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'ret-4')">GLUE COMP</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'ret-4')">FB-KILL</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container" style="margin-right:2px;">
+                            <div class="clip-hold-led" id="clip-led-ret-4" onclick="clearClipHold('ret-4', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-ret-4-l"></div>
+                        </div>
+                        <div class="meter-container">
+                            <div class="meter-bar" id="meter-ret-4-r"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-ret-4" data-target="ret-4" data-channel="ret-4">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-ret-4" data-target="ret-4" data-channel="ret-4" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-ret-4">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-solo" id="solo-ret-4" onclick="toggleBusSolo('ret-4')">SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-ret-4" onclick="toggleBusMute('ret-4')">MUTE</button>
+                    </div>
+                </div>
+                
+
+        <!-- 6 Dedicated Stage Monitor Outputs (Aux 1-6 Out) with Dual Dynamics Slots (Slot 1 Comp + Slot 2 Speaker Limiter) -->
+
+                <div class="channel-strip monitor-out monitor-strip" id="monitor-strip-1" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="mon-badge-1" onclick="openColorPalette('mon-1', event)" style="background:#06b6d4;" title="Tap to change color tag">MON 1</div>
+                        <div class="ch-sub-name" id="mon-name-1" onclick="openRenameModal('mon-1', 'MONITOR 1')" title="Tap or hold to rename">Stage Wedge L</div>
+                    </div>
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'mon-1')">ReEQ ROOM</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'mon-1')">FB-KILL</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'mon-1')" title="Dynamics Slot 1: Bus Compressor">⚡ COMP 1</div>
+                        <div class="dsp-pill active" onclick="openDspModal('limiter', 'mon-1')" title="Dynamics Slot 2: Speaker Limiter (-1.0 dBFS)">🛡️ LIMIT 2</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-mon-1" onclick="clearClipHold('mon-1', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-mon-1"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-mon-1" data-target="mon-1" data-channel="mon-1">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-mon-1" data-target="mon-1" data-channel="mon-1" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-mon-1">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip" style="background:#0891b2" onclick="toggleSofMode('mon1', 'MONITOR 1 (Stage Wedge L)')">SOF MIX</button>
+                        <button class="btn-strip btn-solo" id="solo-mon-1" onclick="toggleBusSolo('mon-1')" title="Solo / Cue Monitor 1 to Headphone/Main Out 1/2">CUE/SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-mon-1" onclick="toggleBusMute('mon-1')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip monitor-out monitor-strip" id="monitor-strip-2" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="mon-badge-2" onclick="openColorPalette('mon-2', event)" style="background:#06b6d4;" title="Tap to change color tag">MON 2</div>
+                        <div class="ch-sub-name" id="mon-name-2" onclick="openRenameModal('mon-2', 'MONITOR 2')" title="Tap or hold to rename">Stage Wedge R</div>
+                    </div>
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'mon-2')">ReEQ ROOM</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'mon-2')">FB-KILL</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'mon-2')" title="Dynamics Slot 1: Bus Compressor">⚡ COMP 1</div>
+                        <div class="dsp-pill active" onclick="openDspModal('limiter', 'mon-2')" title="Dynamics Slot 2: Speaker Limiter (-1.0 dBFS)">🛡️ LIMIT 2</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-mon-2" onclick="clearClipHold('mon-2', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-mon-2"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-mon-2" data-target="mon-2" data-channel="mon-2">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-mon-2" data-target="mon-2" data-channel="mon-2" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-mon-2">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip" style="background:#0891b2" onclick="toggleSofMode('mon2', 'MONITOR 2 (Stage Wedge R)')">SOF MIX</button>
+                        <button class="btn-strip btn-solo" id="solo-mon-2" onclick="toggleBusSolo('mon-2')" title="Solo / Cue Monitor 2 to Headphone/Main Out 1/2">CUE/SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-mon-2" onclick="toggleBusMute('mon-2')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip monitor-out monitor-strip" id="monitor-strip-3" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="mon-badge-3" onclick="openColorPalette('mon-3', event)" style="background:#06b6d4;" title="Tap to change color tag">MON 3</div>
+                        <div class="ch-sub-name" id="mon-name-3" onclick="openRenameModal('mon-3', 'MONITOR 3')" title="Tap or hold to rename">In-Ear Mon 1 (IEM)</div>
+                    </div>
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'mon-3')">ReEQ ROOM</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'mon-3')">FB-KILL</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'mon-3')" title="Dynamics Slot 1: Bus Compressor">⚡ COMP 1</div>
+                        <div class="dsp-pill active" onclick="openDspModal('limiter', 'mon-3')" title="Dynamics Slot 2: Speaker Limiter (-1.0 dBFS)">🛡️ LIMIT 2</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-mon-3" onclick="clearClipHold('mon-3', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-mon-3"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-mon-3" data-target="mon-3" data-channel="mon-3">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-mon-3" data-target="mon-3" data-channel="mon-3" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-mon-3">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip" style="background:#0891b2" onclick="toggleSofMode('mon3', 'MONITOR 3 (In-Ear Mon 1 (IEM))')">SOF MIX</button>
+                        <button class="btn-strip btn-solo" id="solo-mon-3" onclick="toggleBusSolo('mon-3')" title="Solo / Cue Monitor 3 to Headphone/Main Out 1/2">CUE/SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-mon-3" onclick="toggleBusMute('mon-3')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip monitor-out monitor-strip" id="monitor-strip-4" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="mon-badge-4" onclick="openColorPalette('mon-4', event)" style="background:#06b6d4;" title="Tap to change color tag">MON 4</div>
+                        <div class="ch-sub-name" id="mon-name-4" onclick="openRenameModal('mon-4', 'MONITOR 4')" title="Tap or hold to rename">In-Ear Mon 2 (IEM)</div>
+                    </div>
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'mon-4')">ReEQ ROOM</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'mon-4')">FB-KILL</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'mon-4')" title="Dynamics Slot 1: Bus Compressor">⚡ COMP 1</div>
+                        <div class="dsp-pill active" onclick="openDspModal('limiter', 'mon-4')" title="Dynamics Slot 2: Speaker Limiter (-1.0 dBFS)">🛡️ LIMIT 2</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-mon-4" onclick="clearClipHold('mon-4', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-mon-4"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-mon-4" data-target="mon-4" data-channel="mon-4">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-mon-4" data-target="mon-4" data-channel="mon-4" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-mon-4">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip" style="background:#0891b2" onclick="toggleSofMode('mon4', 'MONITOR 4 (In-Ear Mon 2 (IEM))')">SOF MIX</button>
+                        <button class="btn-strip btn-solo" id="solo-mon-4" onclick="toggleBusSolo('mon-4')" title="Solo / Cue Monitor 4 to Headphone/Main Out 1/2">CUE/SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-mon-4" onclick="toggleBusMute('mon-4')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip monitor-out monitor-strip" id="monitor-strip-5" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="mon-badge-5" onclick="openColorPalette('mon-5', event)" style="background:#06b6d4;" title="Tap to change color tag">MON 5</div>
+                        <div class="ch-sub-name" id="mon-name-5" onclick="openRenameModal('mon-5', 'MONITOR 5')" title="Tap or hold to rename">Drum Fill Sub</div>
+                    </div>
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'mon-5')">ReEQ ROOM</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'mon-5')">FB-KILL</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'mon-5')" title="Dynamics Slot 1: Bus Compressor">⚡ COMP 1</div>
+                        <div class="dsp-pill active" onclick="openDspModal('limiter', 'mon-5')" title="Dynamics Slot 2: Speaker Limiter (-1.0 dBFS)">🛡️ LIMIT 2</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-mon-5" onclick="clearClipHold('mon-5', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-mon-5"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-mon-5" data-target="mon-5" data-channel="mon-5">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-mon-5" data-target="mon-5" data-channel="mon-5" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-mon-5">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip" style="background:#0891b2" onclick="toggleSofMode('mon5', 'MONITOR 5 (Drum Fill Sub)')">SOF MIX</button>
+                        <button class="btn-strip btn-solo" id="solo-mon-5" onclick="toggleBusSolo('mon-5')" title="Solo / Cue Monitor 5 to Headphone/Main Out 1/2">CUE/SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-mon-5" onclick="toggleBusMute('mon-5')">MUTE</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip monitor-out monitor-strip" id="monitor-strip-6" style="display:none;">
+                    <div class="ch-header">
+                        <div class="ch-title-badge" id="mon-badge-6" onclick="openColorPalette('mon-6', event)" style="background:#06b6d4;" title="Tap to change color tag">MON 6</div>
+                        <div class="ch-sub-name" id="mon-name-6" onclick="openRenameModal('mon-6', 'MONITOR 6')" title="Tap or hold to rename">Side Fill PA</div>
+                    </div>
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'mon-6')">ReEQ ROOM</div>
+                        <div class="dsp-pill active" onclick="openDspModal('feedback', 'mon-6')">FB-KILL</div>
+                        <div class="dsp-pill active" onclick="openDspModal('comp', 'mon-6')" title="Dynamics Slot 1: Bus Compressor">⚡ COMP 1</div>
+                        <div class="dsp-pill active" onclick="openDspModal('limiter', 'mon-6')" title="Dynamics Slot 2: Speaker Limiter (-1.0 dBFS)">🛡️ LIMIT 2</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-container">
+                            <div class="clip-hold-led" id="clip-led-mon-6" onclick="clearClipHold('mon-6', event)">CLIP</div>
+                            <div class="meter-bar" id="meter-mon-6"></div>
+                        </div>
+                        <div class="fader-track" id="fader-track-mon-6" data-target="mon-6" data-channel="mon-6">
+                            <div class="fader-scale">
+                                <div class="scale-mark"><span>+10</span></div>
+                                <div class="scale-mark"><span>+5</span></div>
+                                <div class="scale-mark zero"><span>0</span></div>
+                                <div class="scale-mark"><span>-5</span></div>
+                                <div class="scale-mark"><span>-10</span></div>
+                                <div class="scale-mark"><span>-20</span></div>
+                                <div class="scale-mark"><span>-30</span></div>
+                                <div class="scale-mark"><span>-40</span></div>
+                                <div class="scale-mark"><span>-&infin;</span></div>
+                            </div>
+                            <div class="fader-slot-bg"></div>
+                            <div class="fader-slot-centerline"></div>
+                            <div class="fader-cap" id="fader-cap-mon-6" data-target="mon-6" data-channel="mon-6" style="bottom: 75%;"></div>
+                            <div class="fader-db-display" id="fader-val-mon-6">0.0 dB</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip" style="background:#0891b2" onclick="toggleSofMode('mon6', 'MONITOR 6 (Side Fill PA)')">SOF MIX</button>
+                        <button class="btn-strip btn-solo" id="solo-mon-6" onclick="toggleBusSolo('mon-6')" title="Solo / Cue Monitor 6 to Headphone/Main Out 1/2">CUE/SOLO</button>
+                        <button class="btn-strip btn-mute" id="mute-mon-6" onclick="toggleBusMute('mon-6')">MUTE</button>
+                    </div>
+                </div>
+                
+
+
+        <!-- Master L/R Console Output -->
+        <div class="channel-strip master" id="master-strip">
+            <div class="ch-header">
+                <div class="ch-title-badge" id="master-badge" onclick="openColorPalette('master', event)" style="background:var(--accent-orange);" title="Tap to change color tag">MASTER</div>
+                <div class="ch-sub-name" id="master-name" onclick="openRenameModal('master', 'MASTER BUS')" title="Tap or hold to rename">Main PA (Stereo L/R)</div>
+            </div>
+            <div class="dsp-badges">
+                <div class="dsp-pill active reeq-badge" onclick="openDspModal('reeq', 'master')" style="grid-column: span 2;">ReEQ MASTER EQ</div>
+                <div class="dsp-pill active" onclick="openDspModal('la2a', 'master')" style="background:#451a03; border-color:#b45309; color:#fef3c7;">⚡ LALA LEVELER</div>
+                <div class="dsp-pill active" onclick="openDspModal('limiter', 'master')" style="background:#0f172a; border-color:#38bdf8; color:#e0f2fe;">🛑 BUSTER LIMITER</div>
+            </div>
+            <div class="fader-section">
+                <div class="meter-container" style="margin-right:2px;">
+                    <div class="clip-hold-led" id="clip-led-master" onclick="clearClipHold('master', event)" title="Master Bus Sticky Clip Hold">CLIP</div>
+                    <div class="meter-bar" id="meter-master-l"></div>
+                </div>
+                <div class="meter-container">
+                    <div class="meter-bar" id="meter-master-r"></div>
+                </div>
+                <div class="fader-track" id="fader-track-master" data-target="master" data-channel="master">
+                    <div class="fader-scale">
+                        <div class="scale-mark"><span>+10</span></div>
+                        <div class="scale-mark"><span>+5</span></div>
+                        <div class="scale-mark zero"><span>0</span></div>
+                        <div class="scale-mark"><span>-5</span></div>
+                        <div class="scale-mark"><span>-10</span></div>
+                        <div class="scale-mark"><span>-20</span></div>
+                        <div class="scale-mark"><span>-30</span></div>
+                        <div class="scale-mark"><span>-40</span></div>
+                        <div class="scale-mark"><span>-&infin;</span></div>
+                    </div>
+                    <div class="fader-slot-bg"></div>
+                    <div class="fader-slot-centerline"></div>
+                    <div class="fader-cap" id="fader-cap-master" data-target="master" data-channel="master" style="bottom: 75%;"></div>
+                    <div class="fader-db-display" id="master-db-display">0.0 dB</div>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn-strip" style="background:#374151" onclick="switchMixerView('monitors')">VIEW ALL MONITORS</button>
+                <button class="btn-strip btn-mute" id="master-mute-btn" onclick="toggleMasterMute()">MUTE ALL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive DSP Modals -->
+    <div class="modal-overlay" id="dsp-modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="dsp-modal" id="modal-container">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-title">DSP Processor</div>
+                <button class="btn-close-modal" onclick="closeDspModal()">&times;</button>
+            </div>
+            <div id="modal-body">
+                <!-- Dynamically populated based on opened processor -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablet-Optimized Channel FX Rack Strip Quick Settings Modal -->
+    <div class="modal-overlay" id="channel-rack-overlay" onclick="if(event.target===this)closeChannelRackModal()">
+        <div class="dsp-modal channel-rack-modal" id="channel-rack-modal-container">
+            <div class="modal-header">
+                <div class="modal-title" id="channel-rack-modal-title">🎛️ Channel 1 &bull; Quick FX Strip Rack</div>
+                <button class="btn-close-modal" onclick="closeChannelRackModal()">&times;</button>
+            </div>
+            <p style="font-size:0.78rem; color:#94a3b8; margin-top:-6px;">
+                Signal chain flow: <strong>Input Gain &rarr; ReaEQ Parametric EQ &rarr; Switchable Comp [FETISH 76 | LALA] &rarr; De-Esser (LOADES) &rarr; MODEP Insert Loop</strong>. Adjust inline parameters below or tap <strong>OPEN FULL SCREEN</strong> to enter deep parameter editing.
+            </p>
+            <div class="rack-grid" id="channel-rack-grid">
+                <!-- Populated dynamically by openChannelRackModal(ch) -->
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Tablet-Optimized Channel Input, Pan, 80Hz HPF & Stereo Link Touch Sub-Menu Modal -->
+    <div class="modal-overlay" id="ch-setup-modal-overlay" onclick="if(event.target===this)closeChannelSetupModal()">
+        <div class="dsp-modal ch-setup-modal-card" id="ch-setup-modal-card">
+            <div class="modal-header" style="margin-bottom:8px; padding-bottom:8px;">
+                <div class="modal-title" id="ch-setup-modal-title">🎛️ CH 1 — Input, Pan, HPF &amp; Stereo Link</div>
+                <button class="btn-close-modal" onclick="closeChannelSetupModal()">✕ CLOSE</button>
+            </div>
+            <div id="ch-setup-modal-body" style="flex:1; display:flex; flex-direction:column; gap:10px; overflow-y:auto;">
+                <!-- Populated dynamically by openChannelSetupModal(ch) -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablet-Optimized Channel Rename Modal -->
+    <div class="modal-overlay" id="rename-modal-overlay" onclick="if(event.target===this)closeRenameModal()">
+        <div class="rename-modal-card">
+            <div class="modal-header" style="border:none; padding-bottom:0;">
+                <div class="modal-title" id="rename-modal-title">🏷️ Rename Channel</div>
+                <button class="btn-close-modal" onclick="closeRenameModal()">&times;</button>
+            </div>
+            <p style="font-size:0.78rem; color:#94a3b8;">Enter a custom label for this channel strip. Automatically saved to memory.</p>
+            <input type="text" id="rename-modal-input" class="rename-input" placeholder="e.g. Lead Vocal, Kick Mic..." maxlength="20">
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn-top" style="padding:8px 16px;" onclick="closeRenameModal()">CANCEL</button>
+                <button class="btn-top active" style="padding:8px 20px;" onclick="saveChannelRename()">SAVE NAME</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablet Color Tagging Popover -->
+    <div class="color-popover" id="color-palette-popover">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.8rem; font-weight:800; color:#cbd5e1;">🎨 CHANNEL COLOR</span>
+            <button class="btn-close-modal" style="font-size:1.2rem; min-width:32px; min-height:32px; padding:0;" onclick="closeColorPopover()">&times;</button>
+        </div>
+        <div class="color-grid" id="color-swatch-grid">
+            <!-- Populated dynamically with 12 console accent colors -->
+        </div>
+    </div>
+
+
+        <!-- Modular Mixer Architecture -->
+    <script src="js/config.js?v=20261017b"></script>
+    <script src="js/state.js?v=20261017b"></script>
+    <script src="js/touch-physics.js?v=20261017b"></script>
+    <script src="js/channel-strip.js?v=20261017b"></script>
+    <script src="js/live-controls.js?v=20261017b"></script>
+    <script src="js/touch-submenus.js?v=20261017b"></script>
+    <script src="js/ao-vu-knobs.js?v=20261017b"></script>
+    <script src="js/compressor.js?v=20261017b"></script>
+    <script src="js/reaeq-canvas.js?v=20261017b"></script>
+    <script src="js/reaeq-touch.js?v=20261017b"></script>
+    <script src="js/dsp-rack-eq.js?v=20261017b"></script>
+    <script src="js/dsp-rack.js?v=20261017b"></script>
+    <script src="js/tal-reverb.js?v=20261017b"></script>
+    <script src="js/ir-convolver.js?v=20261017b"></script>
+    <script src="js/tal-delay.js?v=20261017b"></script>
+    <script src="js/modep-slots.js?v=20261017c"></script>
+    <script src="js/room-suite.js?v=20261017b"></script>
+    <script src="js/dsp-modals-ao.js?v=20261017b"></script>
+    <script src="js/dsp-modals.js?v=20261017b"></script>
+    <script src="js/multi-device-sync.js?v=20261017b"></script>
+    <script src="js/telemetry.js?v=20261017b"></script>
+    <script src="js/app.js?v=20261017b"></script>
+
+    <!-- 100% Full-Screen 4-Slot Channel Effect Rack Page -->
+    <div class="modal-overlay" id="fullscreen-slots-overlay" style="display:none; position:fixed; inset:0; width:100vw; height:100vh; background:#070a0f; z-index:9990; flex-direction:column; overflow:hidden; padding:0;">
+        <div id="fullscreen-slots-content" style="width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden;"></div>
+    </div>
+
+    <!-- 100% Full-Screen Effect Picker Page with Category Filter Buttons -->
+    <div class="modal-overlay" id="plugin-picker-overlay" style="display:none; position:fixed; inset:0; width:100vw; height:100vh; background:#070a0f; z-index:9995; flex-direction:column; overflow:hidden; padding:0;">
+        <div class="plugin-picker-card" style="width:100vw; height:100vh; max-width:none; max-height:none; border:none; border-radius:0; background:#070a0f; display:flex; flex-direction:column; padding:12px 18px; box-sizing:border-box;">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:10px; margin-bottom:8px; flex-shrink:0;">
+                <div class="modal-title" id="plugin-picker-title" style="font-size:1.15rem; font-weight:900; color:#38bdf8;">🎸 Select Insert Effect</div>
+                <button class="btn-close-modal" onclick="closePluginPickerModal()" style="background:#dc2626; border:1px solid #f87171; color:#ffffff; font-size:0.95rem; font-weight:900; border-radius:8px; padding:10px 20px; min-height:48px; cursor:pointer;">✕ CLOSE PICKER</button>
+            </div>
+            <div class="plugin-picker-list" id="plugin-picker-list" style="flex:1; display:flex; flex-direction:column; overflow:hidden; max-height:none;">
+                <!-- Dynamically rendered category buttons + full-screen plugin grid -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 100% Full-Screen Direct LV2 / MOD-GUI Slot Parameter Control Page -->
+    <div class="modal-overlay" id="slot-modgui-overlay" style="display:none; position:fixed; inset:0; width:100vw; height:100vh; background:#070a0f; z-index:9998; flex-direction:column; overflow:hidden; padding:0;">
+        <div class="dsp-modal" style="width:100vw; height:100vh; max-width:none; max-height:none; background:#0b0f19; border:none; border-radius:0; padding:10px 16px; display:flex; flex-direction:column; box-sizing:border-box; overflow:hidden;">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px; margin-bottom:8px; flex-shrink:0;">
+                <div class="modal-title" id="slot-modgui-title" style="font-size:1.1rem; font-weight:900; color:#38bdf8;">LV2 Module Control</div>
+                <button class="btn-close-modal" onclick="closeSlotModGuiModal()" style="background:#dc2626; border:1px solid #f87171; color:#ffffff; font-size:0.92rem; font-weight:900; border-radius:8px; padding:8px 18px; min-height:46px; cursor:pointer;">✕ BACK TO SLOTS</button>
+            </div>
+            <div id="slot-modgui-body" style="flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0;"></div>
+        </div>
+    </div>
+
+    <!-- 100% Full-Screen MODEP Visual Canvas Page -->
+    <div class="modal-overlay" id="canvas-modal-overlay" onclick="if(event.target===this)closeCanvasModal()" style="display:none; position:fixed; inset:0; width:100vw; height:100vh; background:#070a0f; z-index:9999; align-items:stretch; justify-content:stretch; padding:0;">
+        <div style="background:#111827; width:100vw; height:100vh; display:flex; flex-direction:column; overflow:hidden;">
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; padding:10px 18px; border-bottom:1px solid #1e293b; flex-shrink:0;">
+                <div id="canvas-modal-title" style="font-size:1.05rem; font-weight:900; color:#34d399;">MODEP Modular Canvas</div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <button id="btn-canvas-fit" onclick="toggleCanvasIframeFit()" style="background:#0284c7; border:1px solid #38bdf8; color:#fff; font-size:0.82rem; font-weight:800; border-radius:6px; padding:8px 12px; cursor:pointer;">🔍 FIT: ON</button>
+                    <a id="canvas-modal-newtab" href="#" target="_blank" style="color:#38bdf8; font-size:0.85rem; text-decoration:none; font-weight:800; padding:8px 12px; background:#1e293b; border-radius:6px;">[ POP OUT ↗ ]</a>
+                    <button onclick="closeCanvasModal()" style="background:#dc2626; border:1px solid #f87171; color:#fff; border-radius:8px; font-weight:900; cursor:pointer; padding:8px 18px; min-height:44px;">✕ CLOSE CANVAS</button>
+                </div>
+            </div>
+            <iframe id="canvas-modal-iframe" src="about:blank" style="flex:1; width:100%; height:100%; border:none; background:#0f141c;"></iframe>
+        </div>
+    </div>
+
+
+  <!-- UNIVERSAL MODAL POPUP FOR AUX SENDS (REVERB & DELAY) -->
+  <div id="auxModal" class="modal-overlay" style="display:none;" onclick="closeModalOnOverlay(event)">
+    <div class="modal-dialog-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="auxModalTitle" style="color:#00e5ff; margin:0;">AUX PROCESSOR</h3>
+        <button class="modal-close-btn" onclick="window.closeDspModal()">✕</button>
+      </div>
+      <div id="auxModalBody" class="modal-body" style="padding:15px; color:#fff;">
+        <!-- Dynamic processor parameters or iframe view -->
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

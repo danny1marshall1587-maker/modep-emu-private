@@ -1,0 +1,138 @@
+<div class="mod-pedal euphoria-amp-head" style="width:940px;background:#051410;border:2px solid #065f46;border-radius:14px;padding:12px;color:#ecfdf5;font-family:'Segoe UI',sans-serif;user-select:none;">
+    <!-- Top 4-Page Hardware Selector Bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #047857;">
+        <div style="display:flex;gap:6px;">
+            <button type="button" class="eu-page-tab active" data-eu-tab="0" style="padding:7px 13px;border-radius:8px;font-size:12px;font-weight:800;background:#059669;color:#fff;border:1px solid #34d399;cursor:pointer;">
+                1. '65 BLACKFACE FLUID
+            </button>
+            <button type="button" class="eu-page-tab" data-eu-tab="1" style="padding:7px 13px;border-radius:8px;font-size:12px;font-weight:800;background:#064e3b;color:#a7f3d0;border:1px solid #047857;cursor:pointer;">
+                2. '59 BASSMAN / JMP FLUID
+            </button>
+            <button type="button" class="eu-page-tab" data-eu-tab="2" style="padding:7px 13px;border-radius:8px;font-size:12px;font-weight:800;background:#064e3b;color:#a7f3d0;border:1px solid #047857;cursor:pointer;">
+                3. REVERB &amp; VIBRATO
+            </button>
+            <button type="button" class="eu-page-tab" data-eu-tab="3" style="padding:7px 13px;border-radius:8px;font-size:12px;font-weight:800;background:#064e3b;color:#a7f3d0;border:1px solid #047857;cursor:pointer;">
+                4. POWER &amp; MIXER SEND RACK
+            </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="channel_mode" data-symbol="channel_mode" title="Tap to cycle Clean / Crunch / Jumpered">
+                <span class="eu-sw-label">TOPOLOGY</span>
+                <span class="eu-sw-val" id="eu-val-channel_mode">JUMPERED</span>
+            </div>
+            <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="quality_mode" data-symbol="quality_mode" title="Tap to scale Fluid Oversampling">
+                <span class="eu-sw-label">FLUID OVERSAMPLE</span>
+                <span class="eu-sw-val" id="eu-val-quality_mode">4x STUDIO</span>
+            </div>
+            <div class="mod-footswitch" mod-role="bypass" style="padding:7px 12px;border-radius:8px;background:#059669;color:#fff;font-size:11px;font-weight:800;cursor:pointer;">
+                BYPASS
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 0: '65 FENDER BLACKFACE FLUID VIEW -->
+    <div class="eu-page-view" data-eu-page="0" style="display:block;background:#022c22;border:2px solid #10b981;border-radius:12px;padding:14px;">
+        <div style="background:#061e18;border:2px solid #34d399;border-radius:8px;padding:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div>
+                    <div style="font-size:11px;font-weight:800;color:#34d399;letter-spacing:1px;">CHANNEL 1 &bull; PURE FLUID DYNAMICS '65 CLEAN</div>
+                    <div style="font-size:20px;font-weight:900;font-style:italic;color:#6ee7b7;">Euphoria '65 Twin Fluid Clean</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="bright_sw" data-symbol="bright_sw">
+                        <span class="eu-sw-label">BRIGHT CAP</span>
+                        <span class="eu-sw-val" id="eu-val-bright_sw">120pF ON</span>
+                    </div>
+                    <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="speaker_cab" data-symbol="speaker_cab">
+                        <span class="eu-sw-label">CABINET</span>
+                        <span class="eu-sw-val" id="eu-val-speaker_cab">2x12 C12N</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-around;align-items:center;padding:8px 0;">
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="clean_vol" data-symbol="clean_vol"><div class="knob-rotor"></div></div><div class="eu-k-lbl">CLEAN VOL</div></div>
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="treble" data-symbol="treble"><div class="knob-rotor"></div></div><div class="eu-k-lbl">TREBLE</div></div>
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="mid" data-symbol="mid"><div class="knob-rotor"></div></div><div class="eu-k-lbl">MIDDLE</div></div>
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="bass" data-symbol="bass"><div class="knob-rotor"></div></div><div class="eu-k-lbl">BASS</div></div>
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="master" data-symbol="master"><div class="knob-rotor"></div></div><div class="eu-k-lbl">MASTER</div></div>
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="output_level" data-symbol="output_level"><div class="knob-rotor"></div></div><div class="eu-k-lbl">OUT LEVEL</div></div>
+            </div>
+        </div>
+        <div style="margin-top:10px;padding:12px;border-radius:8px;background:repeating-linear-gradient(0deg,#065f46 0px,#065f46 2px,#022c22 2px,#022c22 5px);border:1px solid #10b981;display:flex;justify-content:space-between;align-items:center;">
+            <span style="background:#061e18;color:#a7f3d0;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:800;border:1px solid #059669;">OBSIDIAN JADE GRILLE &bull; ACOUSTIC FLUID MOMENTUM HYSTERESIS</span>
+        </div>
+    </div>
+
+    <!-- PAGE 1: '59 BASSMAN / '68 JMP FLUID VIEW -->
+    <div class="eu-page-view" data-eu-page="1" style="display:none;background:#14342b;border:2px solid #f59e0b;border-radius:12px;padding:14px;">
+        <div style="background:linear-gradient(180deg,#064e3b 0%,#0f766e 100%);border:2px solid #fbbf24;border-radius:8px;padding:12px;color:#fef3c7;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div>
+                    <div style="font-size:11px;font-weight:900;color:#fbbf24;letter-spacing:1px;">CHANNEL 2 &bull; FLUID DYNAMICS CATHODE FOLLOWER</div>
+                    <div style="font-size:20px;font-weight:900;color:#ffffff;">Euphoria '59 Bassman / '68 JMP Crunch</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="slope_mode" data-symbol="slope_mode">
+                        <span class="eu-sw-label">VOICING SLOPE</span>
+                        <span class="eu-sw-val" id="eu-val-slope_mode">56k TWEED</span>
+                    </div>
+                    <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="power_tubes" data-symbol="power_tubes">
+                        <span class="eu-sw-label">POWER TUBES</span>
+                        <span class="eu-sw-val" id="eu-val-power_tubes">2x 6L6GC</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-around;align-items:center;padding:8px 0;">
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="drive_gain" data-symbol="drive_gain"><div class="knob-rotor"></div></div><div class="eu-k-lbl" style="color:#fde68a;">DRIVE GAIN</div></div>
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="drive_vol" data-symbol="drive_vol"><div class="knob-rotor"></div></div><div class="eu-k-lbl" style="color:#fde68a;">CH2 LEVEL</div></div>
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="presence" data-symbol="presence"><div class="knob-rotor"></div></div><div class="eu-k-lbl" style="color:#fde68a;">PRESENCE</div></div>
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="sag_amount" data-symbol="sag_amount"><div class="knob-rotor"></div></div><div class="eu-k-lbl" style="color:#fde68a;">CHAMBER SAG</div></div>
+                <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="speaker_drive" data-symbol="speaker_drive"><div class="knob-rotor"></div></div><div class="eu-k-lbl" style="color:#fde68a;">CONE DRIVE</div></div>
+            </div>
+        </div>
+        <div style="margin-top:10px;padding:12px;border-radius:8px;background:#042f2e;border:1px solid #14b8a6;display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:#5eead4;font-size:12px;font-weight:800;">CHAMPAGNE GOLD &bull; PURE FLUID MOMENTUM &amp; VISCOUS RESISTANCE</span>
+        </div>
+    </div>
+
+    <!-- PAGE 2: 3-SPRING REVERB & HARMONIC VIBRATO RACK -->
+    <div class="eu-page-view" data-eu-page="2" style="display:none;background:#062d27;border:2px solid #059669;border-radius:12px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div>
+                <div style="font-size:11px;font-weight:800;color:#6ee7b7;letter-spacing:1px;">FLUID-COUPLED SPRING TANK &amp; HARMONIC MODULATOR</div>
+                <div style="font-size:20px;font-weight:900;color:#ffffff;">Accutronics 3-Spring Reverb &amp; Brownface Harmonic Vibrato</div>
+            </div>
+            <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="trem_mode" data-symbol="trem_mode">
+                <span class="eu-sw-label">VIBRATO CIRCUIT</span>
+                <span class="eu-sw-val" id="eu-val-trem_mode">HARMONIC TUBE</span>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:space-around;align-items:center;padding:10px 0;">
+            <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="rev_dwell" data-symbol="rev_dwell"><div class="knob-rotor"></div></div><div class="eu-k-lbl">TUBE DWELL</div></div>
+            <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="rev_mix" data-symbol="rev_mix"><div class="knob-rotor"></div></div><div class="eu-k-lbl">REVERB MIX</div></div>
+            <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="rev_tone" data-symbol="rev_tone"><div class="knob-rotor"></div></div><div class="eu-k-lbl">TANK TONE</div></div>
+            <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="rev_drip" data-symbol="rev_drip"><div class="knob-rotor"></div></div><div class="eu-k-lbl">SPRING DRIP</div></div>
+            <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="trem_speed" data-symbol="trem_speed"><div class="knob-rotor"></div></div><div class="eu-k-lbl">VIB SPEED</div></div>
+            <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="trem_depth" data-symbol="trem_depth"><div class="knob-rotor"></div></div><div class="eu-k-lbl">INTENSITY</div></div>
+        </div>
+    </div>
+
+    <!-- PAGE 3: NOISE GATE & MIXER AUX SEND INFO -->
+    <div class="eu-page-view" data-eu-page="3" style="display:none;background:#0c1e19;border:2px solid #10b981;border-radius:12px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div>
+                <div style="font-size:11px;font-weight:800;color:#6ee7b7;letter-spacing:1px;">STAGE NOISE SUPPRESSOR &amp; MIXER AUX DELAY INTEGRATION</div>
+                <div style="font-size:18px;font-weight:900;color:#ffffff;">Studio Noise Suppressor Lab &amp; Aux Send 3&ndash;4 Tape Delay Info</div>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:space-around;align-items:center;padding:10px 0;">
+            <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="gate_enable" data-symbol="gate_enable"><span class="eu-sw-label">INPUT GATE</span><span class="eu-sw-val" id="eu-val-gate_enable">ON</span></div>
+            <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="denoise_enable" data-symbol="denoise_enable"><span class="eu-sw-label">SPECTRAL DENOISE</span><span class="eu-sw-val" id="eu-val-denoise_enable">ON</span></div>
+            <div class="eu-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="dehum_enable" data-symbol="dehum_enable"><span class="eu-sw-label">MAINS DE-HUM</span><span class="eu-sw-val" id="eu-val-dehum_enable">ON</span></div>
+            <div class="eu-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="noise_lab_amount" data-symbol="noise_lab_amount"><div class="knob-rotor"></div></div><div class="eu-k-lbl">SUPPRESS AMT</div></div>
+        </div>
+        <div style="margin-top:8px;padding:10px;background:#051410;border:1px solid #059669;border-radius:8px;font-size:12px;color:#a7f3d0;">
+            <strong>Euphoria Fluid Dynamics Edition:</strong> Pure fluid wave modeling removes high-frequency digital ringing and harsh intermodulation. In the Live Mixer, use <strong>Aux Send 3 &amp; 4</strong> for 15/30 IPS Tape Slapback &amp; Ping-Pong Delay. In the Desktop Standalone app (`EuphoriaAmp-Standalone.exe`), Page 4 provides the full 6-knob Studio Tape Delay Rack.
+        </div>
+    </div>
+</div>

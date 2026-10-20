@@ -1,0 +1,174 @@
+@prefix lv2:   <http://lv2plug.in/ns/lv2core#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix doap:  <http://usefulinc.com/ns/doap#> .
+@prefix atom:  <http://lv2plug.in/ns/ext/atom#> .
+@prefix midi:  <http://lv2plug.in/ns/ext/midi#> .
+@prefix urid:  <http://lv2plug.in/ns/ext/urid#> .
+@prefix mod:   <http://moddevices.com/ns#> .
+@prefix modgui: <http://moddevices.com/ns/modgui#> .
+
+<http://cyber-audio.co.uk/plugins/cyber-evans-drummer-pro>
+    a lv2:Plugin , lv2:InstrumentPlugin ;
+    doap:name "Evans Drummer Pro" ;
+    doap:license <http://usefulinc.com/doap/licenses/proprietary> ;
+    mod:brand "CyberAudio" ;
+    mod:label "Evans Drummer Pro" ;
+    rdfs:comment "Smart Virtual Session Drummer that listens to live guitar transients, accents, and dynamics to improvise, follow song structures, and drive external drum samplers via MIDI." ;
+    lv2:requiredFeature urid:map ;
+    rdfs:seeAlso <modgui.ttl> ;
+
+    modgui:monitoredOutputs [ lv2:symbol "detected_bpm" ] ,
+                            [ lv2:symbol "current_section" ] ,
+                            [ lv2:symbol "energy_level" ] ;
+
+    lv2:port [
+        a lv2:AudioPort , lv2:InputPort ;
+        lv2:index 0 ; lv2:symbol "audio_in" ; lv2:name "Guitar In" ;
+    ] , [
+        a lv2:AudioPort , lv2:OutputPort ;
+        lv2:index 1 ; lv2:symbol "audio_thru" ; lv2:name "Thru" ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 2 ; lv2:symbol "bypass" ; lv2:name "Bypass" ;
+        lv2:default 1.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+        lv2:designation lv2:enabled ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 3 ; lv2:symbol "style" ; lv2:name "Drum Style" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 17.0 ;
+        lv2:portProperty lv2:enumeration , lv2:integer ;
+        lv2:scalePoint [ rdfs:label "Classic Rock" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Pop / Modern Rock" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Funk / Syncopated" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Blues Shuffle" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Motown / R&B" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Jazz / Swing" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Bossa / Latin" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Country Train" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Reggae One Drop" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Half-Time Heavy" ; rdf:value 9 ] ;
+        lv2:scalePoint [ rdfs:label "Indie Folk / Strum" ; rdf:value 10 ] ;
+        lv2:scalePoint [ rdfs:label "Folk Rock 6/8 Ballad" ; rdf:value 11 ] ;
+        lv2:scalePoint [ rdfs:label "Acoustic Fingerstyle" ; rdf:value 12 ] ;
+        lv2:scalePoint [ rdfs:label "Grunge / Alt 90s" ; rdf:value 13 ] ;
+        lv2:scalePoint [ rdfs:label "Southern Rock Boogie" ; rdf:value 14 ] ;
+        lv2:scalePoint [ rdfs:label "Punk / Energetic Drive" ; rdf:value 15 ] ;
+        lv2:scalePoint [ rdfs:label "AI Hybrid / Adaptive Brain" ; rdf:value 16 ] ;
+        lv2:scalePoint [ rdfs:label "Guitar-Driven Improv (Live Syncopated Mirror)" ; rdf:value 17 ] ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 4 ; lv2:symbol "bpm_override" ; lv2:name "BPM (0=Auto)" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 220.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 5 ; lv2:symbol "accent_sens" ; lv2:name "Accent Sens" ;
+        lv2:default 5.0 ; lv2:minimum 0.0 ; lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 6 ; lv2:symbol "ghost_density" ; lv2:name "Ghost Notes" ;
+        lv2:default 3.0 ; lv2:minimum 0.0 ; lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 7 ; lv2:symbol "fill_density" ; lv2:name "Fill Frequency" ;
+        lv2:default 5.0 ; lv2:minimum 0.0 ; lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 8 ; lv2:symbol "groove" ; lv2:name "Groove / Swing" ;
+        lv2:default 4.0 ; lv2:minimum 0.0 ; lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 9 ; lv2:symbol "overall_velocity" ; lv2:name "Master Dynamics" ;
+        lv2:default 7.0 ; lv2:minimum 0.0 ; lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 10 ; lv2:symbol "open_hh_thresh" ; lv2:name "Hi-Hat Splash Sens" ;
+        lv2:default 6.0 ; lv2:minimum 0.0 ; lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 11 ; lv2:symbol "crash_on_chorus" ; lv2:name "Crash On Section Hit" ;
+        lv2:default 1.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 12 ; lv2:symbol "record_song" ; lv2:name "Learn Song Roadmap" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 13 ; lv2:symbol "mute" ; lv2:name "Mute Drums" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 14 ; lv2:symbol "adventurous" ; lv2:name "Adventurous / Jam Mode" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:OutputPort ;
+        lv2:index 15 ; lv2:symbol "detected_bpm" ; lv2:name "Tracked BPM" ;
+        lv2:default 120.0 ; lv2:minimum 50.0 ; lv2:maximum 240.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:OutputPort ;
+        lv2:index 16 ; lv2:symbol "current_section" ; lv2:name "Current Section (0=V, 1=C, 2=B)" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 3.0 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:OutputPort ;
+        lv2:index 17 ; lv2:symbol "energy_level" ; lv2:name "Song Energy Meter" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 18 ; lv2:symbol "strum_only_mode" ; lv2:name "Strum-Only Transient Gate" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 19 ; lv2:symbol "kit_master_vol" ; lv2:name "Kit Volume (MIDI CC7)" ;
+        lv2:default 100.0 ; lv2:minimum 0.0 ; lv2:maximum 127.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 20 ; lv2:symbol "stop_crash" ; lv2:name "Stop Here / Ring Out" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 21 ; lv2:symbol "fill_now" ; lv2:name "Fill Here" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 22 ; lv2:symbol "manual_chorus" ; lv2:name "Chorus / Verse Switch" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a atom:AtomPort , lv2:InputPort ;
+        lv2:index 23 ; lv2:symbol "control" ; lv2:name "Control / In" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+    ] , [
+        a atom:AtomPort , lv2:OutputPort ;
+        lv2:index 24 ; lv2:symbol "midi_out" ; lv2:name "MIDI Drum Out" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 25 ; lv2:symbol "tap_tempo" ; lv2:name "Tap Tempo" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 26 ; lv2:symbol "silence_gate" ; lv2:name "Auto-Stop Gate (s)" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 27 ; lv2:symbol "reset_listen" ; lv2:name "Reset / New Song" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 28 ; lv2:symbol "start_play" ; lv2:name "Start Playback" ;
+        lv2:default 0.0 ; lv2:minimum 0.0 ; lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] .

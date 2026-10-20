@@ -1,0 +1,585 @@
+/* ==========================================================================
+   Cyber Strobe & Peak Tuner System — MOD-UI & MODEP
+   Pure Pitch-Black OLED Chassis with Dynamic Neon Lights & Strobe Rings
+   ========================================================================== */
+
+:root {
+    --tuner-theme-color: #00ff66;
+    --tuner-theme-glow: rgba(0, 255, 102, 0.55);
+    --tuner-theme-dim: rgba(0, 255, 102, 0.18);
+    --tuner-bg-black: #000000;
+    --tuner-panel-black: #080808;
+    --tuner-border-dark: #222222;
+    --tuner-text-white: #ffffff;
+    --tuner-text-muted: #888888;
+}
+
+/* Top Header Bar Tuner Button (In #pedalboard-info .actions) */
+header button.js-tuner, #mod-tuner-top-btn {
+    display: inline-block !important;
+    background-image: url(../img/icons/25/tuner.png) !important;
+    background-position: 10px 50% !important;
+    background-size: 20px 20px !important;
+    background-repeat: no-repeat !important;
+    padding: 0 14px 0 36px !important;
+    height: 45px !important;
+    line-height: 45px !important;
+    border: none !important;
+    background-color: transparent !important;
+    color: #ffffff !important;
+    opacity: 0.75;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 11px;
+    margin-right: 4px;
+    vertical-align: middle;
+    user-select: none;
+}
+
+header button.js-tuner:hover, #mod-tuner-top-btn:hover,
+header button.js-tuner.active, #mod-tuner-top-btn.active {
+    opacity: 1 !important;
+    background-color: #000000 !important;
+    color: var(--tuner-theme-color) !important;
+    text-shadow: 0 0 8px var(--tuner-theme-glow);
+    box-shadow: inset 0 -2px 0 var(--tuner-theme-color);
+}
+
+/* Main Menu Top/Bottom Bar Icon */
+#main-menu #mod-tuner-icon {
+    display: inline-block !important;
+    background-image: url(../img/icons/25/tuner.png) !important;
+    background-position: 50% 8px !important;
+    background-size: 24px 24px !important;
+    background-repeat: no-repeat !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
+    line-height: 72px !important;
+}
+
+#main-menu #mod-tuner-icon:hover,
+#main-menu #mod-tuner-icon.active {
+    color: var(--tuner-theme-color) !important;
+    background-color: #000000 !important;
+}
+
+/* Dimmed backdrop overlay */
+#mod-tuner-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 99998;
+}
+
+/* Modal Window Container — PURE PITCH BLACK (HIDDEN INITIALLY) */
+#mod-tuner-window {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 880px;
+    max-width: 95vw;
+    height: 630px;
+    max-height: 94vh;
+    background: #000000 !important;
+    border-radius: 20px;
+    border: 2px solid var(--tuner-border-dark);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.98), 
+                0 0 25px rgba(0, 0, 0, 0.9), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    z-index: 99999;
+    flex-direction: column;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    color: var(--tuner-text-white);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Header */
+.cyber-tuner-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 22px;
+    background: #060606;
+    border-bottom: 1px solid var(--tuner-border-dark);
+}
+
+.cyber-tuner-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cyber-tuner-brand {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--tuner-theme-color);
+    text-transform: uppercase;
+    text-shadow: 0 0 10px var(--tuner-theme-glow);
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.cyber-tuner-name {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #e5e5e5;
+}
+
+.cyber-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cyber-device-select {
+    background: #0d0d0d;
+    border: 1px solid #333333;
+    color: var(--tuner-theme-color);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 195px;
+    max-width: 250px;
+    height: 28px;
+    outline: none;
+    cursor: pointer;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+    transition: all 0.2s ease;
+}
+
+.cyber-device-select:hover {
+    border-color: var(--tuner-theme-color);
+    color: #ffffff;
+    box-shadow: 0 0 6px var(--tuner-theme-glow);
+}
+
+.cyber-device-select:focus {
+    border-color: var(--tuner-theme-color);
+    box-shadow: 0 0 8px var(--tuner-theme-glow);
+}
+
+.cyber-device-select optgroup {
+    background: #181818;
+    color: #888888;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 6px;
+}
+
+.cyber-device-select option {
+    background: #101010;
+    color: #f1f5f9;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 8px;
+}
+
+/* MIDI Assignment & Mode Buttons */
+.cyber-midi-learn-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #0e0e0e;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    padding: 4px 9px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 700;
+    color: #cccccc;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.cyber-midi-learn-btn:hover {
+    border-color: var(--tuner-theme-color);
+    color: #ffffff;
+}
+
+.cyber-midi-learn-btn.learning {
+    border-color: #ffaa00;
+    background: rgba(255, 170, 0, 0.15);
+    color: #ffaa00;
+    animation: midi-pulse 1s infinite alternate;
+}
+
+.cyber-midi-learn-btn.mapped {
+    border-color: var(--tuner-theme-color);
+    color: var(--tuner-theme-color);
+    background: rgba(0, 255, 102, 0.08);
+}
+
+.cyber-midi-mode-btn {
+    display: flex;
+    align-items: center;
+    background: #0e0e0e;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.cyber-midi-mode-btn:hover {
+    border-color: #888888;
+    color: #ffffff;
+}
+
+.cyber-midi-mode-text {
+    color: var(--tuner-theme-color);
+    margin-left: 3px;
+    font-weight: 900;
+}
+
+@keyframes midi-pulse {
+    from { box-shadow: 0 0 4px rgba(255, 170, 0, 0.4); }
+    to { box-shadow: 0 0 14px rgba(255, 170, 0, 0.9); }
+}
+
+.cyber-tuner-close {
+    background: #111111;
+    border: 1px solid #2a2a2a;
+    color: #888888;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+    transition: all 0.15s ease;
+}
+
+.cyber-tuner-close:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #f87171;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+}
+
+/* Main Display Area — PURE BLACK */
+.cyber-tuner-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 15px;
+    position: relative;
+    background: #000000 !important;
+    overflow: hidden;
+}
+
+/* Big Note Display */
+.cyber-note-container {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    margin-bottom: 2px;
+    position: relative;
+}
+
+.cyber-note-name {
+    font-size: 72px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -2px;
+    color: var(--tuner-theme-color);
+    text-shadow: 0 0 30px var(--tuner-theme-glow), 0 0 60px var(--tuner-theme-dim);
+    min-width: 85px;
+    text-align: center;
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.cyber-note-accidental {
+    font-size: 38px;
+    font-weight: 900;
+    color: var(--tuner-theme-color);
+    margin-left: 2px;
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.cyber-note-octave {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--tuner-text-muted);
+    margin-left: 6px;
+}
+
+/* Cents and Frequency stats */
+.cyber-stats-row {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tuner-text-muted);
+    margin-bottom: 8px;
+}
+
+.cyber-cents-badge {
+    padding: 3px 12px;
+    border-radius: 12px;
+    background: #0a0a0a;
+    border: 1px solid var(--tuner-border-dark);
+    color: #cccccc;
+    transition: all 0.2s ease;
+}
+
+.cyber-cents-badge.in-tune {
+    background: #051408;
+    border-color: var(--tuner-theme-color);
+    color: var(--tuner-theme-color);
+    box-shadow: 0 0 14px var(--tuner-theme-dim);
+}
+
+/* Real-Time Input Signal Level VU Bar */
+.cyber-signal-meter-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 440px;
+    max-width: 90%;
+    margin-bottom: 8px;
+}
+
+.cyber-signal-label {
+    font-size: 9px;
+    font-weight: 900;
+    color: var(--tuner-text-muted);
+    letter-spacing: 1px;
+}
+
+.cyber-signal-bar-track {
+    flex: 1;
+    height: 6px;
+    background: #111111;
+    border-radius: 3px;
+    border: 1px solid #222222;
+    overflow: hidden;
+    position: relative;
+}
+
+.cyber-signal-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--tuner-theme-color), #f59e0b, #ef4444);
+    box-shadow: 0 0 8px var(--tuner-theme-glow);
+    transition: width 0.05s linear;
+}
+
+.cyber-signal-db {
+    font-size: 10px;
+    font-weight: 700;
+    color: #888888;
+    min-width: 45px;
+    text-align: right;
+}
+
+/* Canvas Display */
+.cyber-canvas-wrapper {
+    position: relative;
+    width: 480px;
+    height: 230px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000000;
+}
+
+#cyber-tuner-canvas {
+    width: 480px;
+    height: 230px;
+    background: #000000;
+    display: block;
+}
+
+/* Controls Footer */
+.cyber-tuner-footer {
+    background: #060606;
+    border-top: 1px solid var(--tuner-border-dark);
+    padding: 10px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.cyber-control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cyber-control-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--tuner-text-muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* View Mode Segmented Switch */
+.cyber-view-switcher {
+    display: flex;
+    background: #0a0a0a;
+    border-radius: 8px;
+    border: 1px solid #222222;
+    overflow: hidden;
+}
+
+.cyber-view-btn {
+    padding: 5px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #888888;
+    background: transparent;
+    border: none;
+    transition: all 0.15s ease;
+}
+
+.cyber-view-btn.active {
+    background: var(--tuner-theme-color);
+    color: #000000;
+    font-weight: 900;
+    box-shadow: 0 0 12px var(--tuner-theme-glow);
+}
+
+/* Theme Color Picker */
+.cyber-color-palette {
+    display: flex;
+    gap: 6px;
+}
+
+.cyber-color-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.cyber-color-dot:hover {
+    transform: scale(1.25);
+}
+
+.cyber-color-dot.active {
+    border-color: #ffffff;
+    box-shadow: 0 0 10px #ffffff;
+    transform: scale(1.15);
+}
+
+/* Stepper Controls (Gain & Ref Pitch) */
+.cyber-stepper {
+    display: flex;
+    align-items: center;
+    background: #0a0a0a;
+    border-radius: 6px;
+    border: 1px solid #262626;
+    overflow: hidden;
+}
+
+.cyber-step-btn {
+    background: #141414;
+    border: none;
+    color: #cccccc;
+    padding: 3px 9px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.cyber-step-btn:hover {
+    background: #2a2a2a;
+    color: #ffffff;
+}
+
+.cyber-stepper-val {
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--tuner-text-white);
+    min-width: 52px;
+    text-align: center;
+}
+
+/* Sweetened Dropdown */
+.cyber-select {
+    background: #0a0a0a;
+    border: 1px solid #262626;
+    color: #f8fafc;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+}
+
+.cyber-select:hover {
+    border-color: var(--tuner-theme-color);
+}
+
+/* Mute Toggle */
+.cyber-mute-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 4px 10px;
+    background: #0a0a0a;
+    border-radius: 6px;
+    border: 1px solid #262626;
+    transition: all 0.15s ease;
+}
+
+.cyber-mute-toggle.active {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.cyber-mute-led {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #333333;
+    transition: all 0.15s ease;
+}
+
+.cyber-mute-toggle.active .cyber-mute-led {
+    background: #ef4444;
+    box-shadow: 0 0 10px #ef4444;
+}
+
+.cyber-mute-text {
+    font-size: 10px;
+    font-weight: 800;
+    color: #e5e5e5;
+}

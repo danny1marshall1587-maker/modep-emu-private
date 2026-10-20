@@ -1,0 +1,95 @@
+/* ==========================================================================
+   Euphoria Amp (Pure Fluid Dynamics '65 Blackface + '59 Bassman/JMP)
+   Boutique Emerald & Gold Styling
+   ========================================================================== */
+
+.euphoria-amp-head {
+    width: 940px !important;
+    background: #041a14 !important;
+    border: 3px solid #059669 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9), inset 0 2px 4px rgba(52, 211, 153, 0.35) !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
+    user-select: none !important;
+}
+
+.eu-mod-switch-pill {
+    min-width: 66px;
+    min-height: 36px;
+    background: #064e3b;
+    border: 1.5px solid #047857;
+    border-radius: 6px;
+    color: #a7f3d0;
+    font-size: 8.5px;
+    font-weight: 900;
+    padding: 6px 10px;
+    cursor: pointer;
+    touch-action: manipulation;
+    white-space: nowrap;
+}
+
+.eu-mod-switch-pill.active {
+    background: #059669;
+    border-color: #6ee7b7;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.55);
+}
+
+.eu-knob-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 60px;
+}
+
+.eu-k-lbl {
+    font-size: 9px;
+    font-weight: 900;
+    color: #a7f3d0;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.eu-sw-label {
+    display: block;
+    font-size: 7.5px;
+    color: #6ee7b7;
+    text-transform: uppercase;
+}
+
+.eu-sw-val {
+    display: block;
+    font-size: 10px;
+    font-weight: 900;
+    color: #ffffff;
+}
+
+/* 44x44px knobs adhering to Rule 31 */
+.euphoria-amp-head .mini-dial.custom-knob-dial {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle at 40% 40%, #064e3b 0%, #022c22 70%, #011c15 100%) !important;
+    border: 2px solid #34d399 !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.85), inset 0 1px 2px rgba(110, 231, 183, 0.4) !important;
+    position: relative !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+}
+
+.euphoria-amp-head .knob-rotor {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 3.5px !important;
+    height: 18px !important;
+    background: #fbbf24 !important;
+    border-radius: 2px !important;
+    transform-origin: 50% 100% !important;
+    transform: translate(-50%, -100%) rotate(0deg) !important;
+    pointer-events: none !important;
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.9) !important;
+}

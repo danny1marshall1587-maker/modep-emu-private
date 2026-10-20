@@ -1,0 +1,277 @@
+﻿/* Cyber System & Hardware Settings Manager Styling */
+.cyber-sys-modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    display: none;
+}
+
+.cyber-sys-window {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 620px;
+    max-width: 94vw;
+    background: #141a21;
+    border: 2px solid #00b4d8;
+    border-radius: 8px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 180, 216, 0.3);
+    z-index: 10001;
+    font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif;
+    color: #e0e6ed;
+    display: none;
+    overflow: hidden;
+}
+
+/* Header */
+.cyber-sys-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, #0b131a, #162433);
+    padding: 12px 18px;
+    border-bottom: 1px solid #1f364d;
+}
+
+.cyber-sys-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #90e0ef;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cyber-sys-close-btn {
+    background: none;
+    border: none;
+    color: #90e0ef;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+.cyber-sys-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Tabs */
+.cyber-sys-tabs {
+    display: flex;
+    background: #0d1217;
+    border-bottom: 1px solid #1f364d;
+}
+
+.cyber-sys-tab-btn {
+    flex: 1;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    color: #8fa0b3;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.cyber-sys-tab-btn.active {
+    color: #00b4d8;
+    background: #141a21;
+    border-bottom: 2px solid #00b4d8;
+}
+
+/* Content Area */
+.cyber-sys-body {
+    padding: 16px 20px;
+    max-height: 480px;
+    overflow-y: auto;
+}
+
+.cyber-sys-tab-pane {
+    display: none;
+}
+.cyber-sys-tab-pane.active {
+    display: block;
+}
+
+/* Form Groups */
+.cyber-sys-group {
+    margin-bottom: 18px;
+}
+
+.cyber-sys-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #90e0ef;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cyber-sys-input, .cyber-sys-select {
+    width: 100%;
+    padding: 9px 12px;
+    background: #090d12;
+    border: 1px solid #23374d;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+    box-sizing: border-box;
+    outline: none;
+}
+.cyber-sys-input:focus, .cyber-sys-select:focus {
+    border-color: #00b4d8;
+    box-shadow: 0 0 6px rgba(0, 180, 216, 0.4);
+}
+
+/* Buffer Size Buttons */
+.cyber-sys-btn-grid {
+    display: flex;
+    gap: 8px;
+}
+
+.cyber-sys-option-btn {
+    flex: 1;
+    padding: 10px 6px;
+    background: #090d12;
+    border: 1px solid #23374d;
+    border-radius: 4px;
+    color: #cfd9e5;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.cyber-sys-option-btn:hover {
+    border-color: #0077b6;
+    background: #111a24;
+}
+
+.cyber-sys-option-btn.selected {
+    background: #0077b6;
+    border-color: #00b4d8;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(0, 180, 216, 0.4);
+}
+
+.cyber-sys-option-sub {
+    display: block;
+    font-size: 9px;
+    font-weight: normal;
+    color: #8fa0b3;
+    margin-top: 3px;
+}
+.cyber-sys-option-btn.selected .cyber-sys-option-sub {
+    color: #caf0f8;
+}
+
+/* Action Buttons */
+.cyber-sys-action-btn {
+    padding: 9px 18px;
+    background: linear-gradient(180deg, #0096c7, #0077b6);
+    border: 1px solid #48cae4;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+}
+.cyber-sys-action-btn:hover {
+    background: linear-gradient(180deg, #48cae4, #0096c7);
+}
+
+.cyber-sys-warn-btn {
+    background: linear-gradient(180deg, #d90429, #9b001a);
+    border-color: #ef233c;
+}
+.cyber-sys-warn-btn:hover {
+    background: linear-gradient(180deg, #ef233c, #d90429);
+}
+
+/* Wi-Fi Network List */
+.cyber-sys-wifi-list {
+    max-height: 180px;
+    overflow-y: auto;
+    background: #090d12;
+    border: 1px solid #23374d;
+    border-radius: 4px;
+    margin-bottom: 12px;
+}
+
+.cyber-sys-wifi-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid #141d26;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 13px;
+}
+.cyber-sys-wifi-item:hover {
+    background: #162433;
+}
+.cyber-sys-wifi-item.selected {
+    background: #003049;
+    border-left: 3px solid #00b4d8;
+}
+
+/* Status Box */
+.cyber-sys-status-box {
+    background: #0a1117;
+    border-left: 3px solid #00b4d8;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: #a0b2c6;
+}
+.cyber-sys-status-val {
+    color: #caf0f8;
+    font-weight: bold;
+}
+
+
+/* Top Header Bar Hardware & Wi-Fi Button (In #pedalboard-info .actions) */
+header button.js-sys-mgr, #mod-sys-mgr-btn {
+    display: inline-block !important;
+    background: #0f2027 !important;
+    border: 1px solid #00b4d8 !important;
+    color: #90e0ef !important;
+    border-radius: 4px !important;
+    padding: 0 12px !important;
+    height: 32px !important;
+    line-height: 30px !important;
+    margin-right: 8px !important;
+    cursor: pointer !important;
+    font-weight: bold !important;
+    font-size: 11px !important;
+    vertical-align: middle !important;
+    transition: all 0.2s ease !important;
+    user-select: none !important;
+}
+
+header button.js-sys-mgr:hover, #mod-sys-mgr-btn:hover {
+    background: #00b4d8 !important;
+    color: #0b131a !important;
+    box-shadow: 0 0 10px rgba(0, 180, 216, 0.5) !important;
+}
+
+header button.js-sys-mgr.active, #mod-sys-mgr-btn.active {
+    background: #0077b6 !important;
+    color: #ffffff !important;
+    border-color: #90e0ef !important;
+    box-shadow: 0 0 12px rgba(0, 180, 216, 0.7) !important;
+}

@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MOD-GUI Host</title>
+<link rel="stylesheet" href="/css/pedals.css"/>
+<link rel="stylesheet" href="/resources/pedals/default.css"/>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at center, #111827 0%, #070a10 100%);
+    color: #f8fafc; font-family: system-ui, -apple-system, sans-serif;
+    overflow: hidden; user-select: none; -webkit-user-select: none;
+  }
+  #stage-viewport {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  #pedal-stage {
+    display: flex; align-items: center; justify-content: center;
+    transform-origin: center center;
+    position: relative;
+  }
+
+  /* =========================================================================
+     ENLARGED TOUCHSCREEN HIT TARGETS FOR ALL MOD-GUI & CYBER SWITCHES/KNOBS
+     ========================================================================= */
+  .custom-toggle-switch,
+  .mod-switch,
+  .mod-footswitch,
+  [mod-role="bypass"],
+  [mod-widget="switch"],
+  [mod-widget="custom-select"] {
+    min-width: 68px !important;
+    min-height: 68px !important;
+    padding: 8px !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+    position: relative !important;
+    z-index: 30 !important;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  /* Invisible 16px touch-cushion around every switch so fat-finger taps never miss */
+  .custom-toggle-switch::after,
+  .mod-switch::after,
+  .mod-footswitch::after,
+  [mod-role="bypass"]::after {
+    content: "" !important;
+    position: absolute !important;
+    top: -16px !important; bottom: -16px !important;
+    left: -16px !important; right: -16px !important;
+    background: rgba(56, 189, 248, 0.01) !important;
+    border-radius: 14px !important;
+    z-index: 35 !important;
+  }
+  .custom-toggle-switch .switch-slot {
+    width: 34px !important;
+    height: 34px !important;
+    border: 2.5px solid #94a3b8 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 0 12px rgba(0,0,0,0.8) !important;
+    transition: transform 0.08s ease, border-color 0.1s ease !important;
+  }
+  .custom-toggle-switch.on .switch-slot {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.75) !important;
+  }
+  /* Enlarge mini-dials & switch-pills on Custom Cyber Amps for tablet touchscreens */
+  .mini-dial {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    cursor: ns-resize !important;
+    touch-action: none !important;
+    position: relative !important;
+    z-index: 30 !important;
+  }
+  .mini-dial::before,
+  .custom-knob-dial::before {
+    content: "" !important;
+    position: absolute !important;
+    top: -10px !important; bottom: -10px !important;
+    left: -10px !important; right: -10px !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+  }
+  [class*="-mod-switch-pill"] {
+    min-height: 36px !important;
+    min-width: 58px !important;
+    padding: 6px 12px !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+    position: relative !important;
+    z-index: 32 !important;
+  }
+  /* Interactive Floating Touch Parameter Fine-Tune Bar HUD */
+  #touch-param-hud {
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(9, 13, 22, 0.98);
+    border: 2px solid #38bdf8;
+    border-radius: 14px;
+    padding: 6px 12px;
+    color: #f8fafc;
+    font-size: 0.88rem;
+    font-weight: 900;
+    letter-spacing: 0.6px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.9), 0 0 18px rgba(56, 189, 248, 0.35);
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.14s ease;
+    white-space: nowrap;
+    font-family: system-ui, -apple-system, monospace;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 96vw;
+  }
+  #touch-param-hud.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .hud-step-btn {
+    min-width: 38px;
+    min-height: 36px;
+    background: #1e293b;
+    border: 1.5px solid #38bdf8;
+    color: #f8fafc;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    touch-action: manipulation;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+  }
+  .hud-step-btn:active {
+    background: #0284c7;
+  }
+  #hud-fine-slider {
+    width: 170px;
+    height: 32px;
+    accent-color: #38bdf8;
+    cursor: pointer;
+    touch-action: none;
+  }
+  /* Universal 3D Brushed Metal Rotary Dial Fallback for ALL MOD-GUI Knobs */
+  .mod-knob {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 54px !important;
+    min-height: 54px !important;
+    cursor: ns-resize !important;
+    touch-action: none !important;
+    user-select: none !important;
+    position: relative !important;
+    z-index: 25 !important;
+  }
+  .mod-knob-image {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    display: block !important;
+    position: relative !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle at 35% 35%, #475569 0%, #1e293b 55%, #090d16 100%) !important;
+    border: 2.5px solid #d4af37 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.85), inset 0 2px 4px rgba(255,255,255,0.2) !important;
+    cursor: ns-resize !important;
+    touch-action: none !important;
+    transform-origin: center center !important;
+    transition: transform 0.04s ease-out;
+  }
+  .mod-knob-image::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 4px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 4px !important;
+    height: 15px !important;
+    background: #ffaa00 !important;
+    border-radius: 2px !important;
+    box-shadow: 0 0 6px #ffaa00 !important;
+  }
+  .mod-knob-image[style*="background-image"]:not([style*="none"])::after {
+    display: none !important;
+  }
+  .mod-knob-title {
+    font-size: 8px !important;
+    font-weight: 800 !important;
+    color: #ffd480 !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
+    margin-top: 3px !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9) !important;
+    max-width: 58px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .custom-knob-dial,
+  .mod-knob,
+  [mod-role="input-control-port"] {
+    touch-action: none !important;
+    cursor: ns-resize !important;
+  }
+</style>
+<script src="/js/lib/jquery-1.9.1.min.js"></script>
+<script src="/js/lib/mustache.js"></script>
+<script>
+  var SITEURL = "", STATIC_URL = "", VERSION = "1.13";
+  window.SAMPLERATE = 48000;
+  var SAMPLERATE = 48000;
+  function desktop() { return null; }
+</script>
+<script src="/js/common.js"></script>
+<script src="/js/modgui.js"></script>
+</head>
+<body>
+<div id="touch-param-hud"></div>
+<div id="stage-viewport">
+  <div id="pedal-stage">
+    <div style="color:#94a3b8; font-weight:800; font-size:1rem;">Loading Effect Module...</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var qs = new URLSearchParams(window.location.search);
+  var uri = qs.get("uri") || "";
+  var initBypassed = qs.get("bypassed") === "1";
+  var initParams = {};
+  try { initParams = JSON.parse(qs.get("params") || "{}"); } catch(e) {}
+
+  var currentGui = null;
+  var currentEffectData = null;
+  var portRangesMap = {};
+  var portValuesMap = Object.assign({}, initParams);
+  var isBypassed = initBypassed;
+  var suppressOutbound = false;
+  var renderedOk = false;
+  var hudHideTimer = null;
+
+  function applyHudParamValue(sym, nextVal) {
+    var r = portRangesMap[sym] || { min: 0, max: 10, def: 5, name: sym };
+    var num = parseFloat(nextVal);
+    if (isNaN(num)) return;
+    if (num < r.min) num = r.min;
+    if (num > r.max) num = r.max;
+    if (r.integer) num = Math.round(num);
+    syncCustomDomControl(sym, num);
+    if (currentGui && typeof currentGui.setPortValue === "function") {
+      try { currentGui.setPortValue(sym, num, "from-js"); } catch(err) {}
+    }
+    notifyParentParam(sym, num);
+  }
+
+  window._hudStepParam = function(sym, dir) {
+    var r = portRangesMap[sym] || { min: 0, max: 10, def: 5 };
+    var cur = (portValuesMap[sym] !== undefined) ? parseFloat(portValuesMap[sym]) : r.def;
+    var span = (r.max - r.min) || 10;
+    var step = r.integer ? 1 : (span * 0.04);
+    applyHudParamValue(sym, cur + dir * step);
+  };
+
+  window._hudSliderInput = function(sym, val) {
+    applyHudParamValue(sym, val);
+  };
+
+  window._hudResetParam = function(sym) {
+    var r = portRangesMap[sym] || { min: 0, max: 10, def: 5 };
+    applyHudParamValue(sym, (r.def !== undefined) ? r.def : (r.min + r.max) * 0.5);
+  };
+
+  window._hudClose = function() {
+    var hud = document.getElementById("touch-param-hud");
+    if (hud) hud.classList.remove("visible");
+    if (hudHideTimer) clearTimeout(hudHideTimer);
+  };
+
+  function showTouchParamHud(sym, val) {
+    var hud = document.getElementById("touch-param-hud");
+    if (!hud || !sym) return;
+    var r = portRangesMap[sym] || { min: 0, max: 10, def: 5, name: sym };
+    var label = (r.name || sym).toUpperCase();
+    var num = parseFloat(val);
+    var dec = r.integer ? 0 : ((r.max - r.min) <= 2 ? 2 : 1);
+    var valText = isNaN(num) ? String(val) : num.toFixed(dec);
+    var isToggleOrList = false;
+    if (Array.isArray(r.scalePoints) && r.scalePoints.length > 0) {
+      isToggleOrList = true;
+      var sp = r.scalePoints.find(function(s) { return Math.abs(Number(s.value) - num) < 0.01; });
+      if (sp && sp.label) valText = sp.label;
+    } else if (r.toggled || (r.min === 0 && r.max === 1 && r.integer)) {
+      isToggleOrList = true;
+      valText = (num >= 0.5) ? "ON" : "OFF";
+    }
+
+    if (hud._activeSym === sym && !isToggleOrList && document.getElementById("hud-val-text")) {
+      document.getElementById("hud-val-text").textContent = valText;
+      var sl = document.getElementById("hud-fine-slider");
+      if (sl && document.activeElement !== sl) sl.value = num;
+    } else {
+      hud._activeSym = sym;
+      var stepAttr = r.integer ? 1 : (((r.max - r.min) <= 2) ? 0.01 : 0.1);
+      if (isToggleOrList) {
+        hud.innerHTML = '<span style="color:#94a3b8;">' + label + ':</span> <span id="hud-val-text" style="color:#fde68a; margin-left:4px;">' + valText + '</span>' +
+          '<button class="hud-step-btn" onclick="window._hudClose()" style="min-width:32px; border-color:#475569; margin-left:6px;">✕</button>';
+      } else {
+        hud.innerHTML =
+          '<span style="color:#38bdf8; font-size:0.82rem;">🎛️ ' + label + ':</span>' +
+          '<span id="hud-val-text" style="color:#fde68a; min-width:44px; text-align:right; font-family:monospace;">' + valText + '</span>' +
+          '<button class="hud-step-btn" onclick="window._hudStepParam(\'' + sym + '\', -1)">−</button>' +
+          '<input type="range" id="hud-fine-slider" min="' + r.min + '" max="' + r.max + '" step="' + stepAttr + '" value="' + (isNaN(num) ? r.def : num) + '" oninput="window._hudSliderInput(\'' + sym + '\', this.value)">' +
+          '<button class="hud-step-btn" onclick="window._hudStepParam(\'' + sym + '\', 1)">+</button>' +
+          '<button class="hud-step-btn" onclick="window._hudResetParam(\'' + sym + '\')" style="font-size:0.72rem; color:#93c5fd;">DEF</button>' +
+          '<button class="hud-step-btn" onclick="window._hudClose()" style="min-width:32px; border-color:#475569; color:#cbd5e1;">✕</button>';
+      }
+    }
+    hud.classList.add("visible");
+    if (hudHideTimer) clearTimeout(hudHideTimer);
+    hudHideTimer = setTimeout(function() {
+      hud.classList.remove("visible");
+    }, 3800);
+  }
+
+  function notifyParentParam(sym, val) {
+    if (suppressOutbound || !sym) return;
+    var num = parseFloat(val);
+    if (isNaN(num)) return;
+    portValuesMap[sym] = num;
+    showTouchParamHud(sym, num);
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "modgui_param_change", symbol: sym, value: num }, "*");
+    }
+  }
+
+  function fitPedalToStage() {
+    var vp = document.getElementById("stage-viewport");
+    var stage = document.getElementById("pedal-stage");
+    if (!vp || !stage || !stage.firstElementChild) return;
+    stage.style.transform = "scale(1)";
+    var el = stage.firstElementChild;
+    var rect = el.getBoundingClientRect();
+    var w = rect.width || el.offsetWidth || 420;
+    var h = rect.height || el.offsetHeight || 340;
+    var vw = vp.clientWidth - 20;
+    var vh = vp.clientHeight - 20;
+    if (w > 20 && h > 20 && vw > 50 && vh > 50) {
+      var scale = Math.min(vw / w, vh / h, 1.95);
+      if (scale < 0.35) scale = 0.35;
+      stage.style.transform = "scale(" + scale.toFixed(3) + ")";
+    }
+  }
+  window.addEventListener("resize", fitPedalToStage);
+
+  function syncCustomDomControl(sym, val) {
+    var num = parseFloat(val);
+    if (isNaN(num)) return;
+    portValuesMap[sym] = num;
+    var r = portRangesMap[sym] || { min: 0, max: 10, def: 5 };
+    // Sync any custom toggle switch (.custom-toggle-switch[data-symbol] or [class*="-mod-switch-pill"][data-symbol])
+    var swList = document.querySelectorAll('.custom-toggle-switch[data-symbol="' + sym + '"], [class*="-mod-switch-pill"][data-symbol="' + sym + '"], [mod-port-symbol="' + sym + '"].mod-switch, [mod-port-symbol="' + sym + '"].mod-footswitch');
+    for (var i = 0; i < swList.length; i++) {
+      var sw = swList[i];
+      var isOn = num >= ((r.min + r.max) * 0.5);
+      sw.classList.toggle("on", isOn);
+      sw.classList.toggle("active", isOn);
+      sw.classList.toggle("off", !isOn);
+    }
+    // Sync any custom rotary dial (.custom-knob-dial[data-symbol] or .mini-dial[data-symbol])
+    var kdList = document.querySelectorAll('.custom-knob-dial[data-symbol="' + sym + '"], .mini-dial[data-symbol="' + sym + '"]');
+    for (var j = 0; j < kdList.length; j++) {
+      var kd = kdList[j];
+      var pct = (r.max > r.min) ? ((num - r.min) / (r.max - r.min)) : 0.5;
+      if (pct < 0) pct = 0;
+      if (pct > 1) pct = 1;
+      var deg = -135 + pct * 270;
+      // Rotate child .knob-rotor if present so we never double-rotate custom Cyber Amp dials
+      var rotor = kd.querySelector(".knob-rotor");
+      if (rotor) {
+        kd.style.transform = "";
+        rotor.style.transform = "rotate(" + deg.toFixed(1) + "deg)";
+      } else {
+        kd.style.transform = "rotate(" + deg.toFixed(1) + "deg)";
+      }
+      var vLbl = document.getElementById("fallback-val-" + sym);
+      if (vLbl) vLbl.innerText = num.toFixed((r.max - r.min) <= 2 ? 2 : 1);
+    }
+  }
+
+  // Delegated listener for custom Cyber Amp script.js files that call .val(v).trigger('change') on [mod-port-symbol]
+  if (window.$) {
+    $(document).on("change", "[mod-port-symbol]", function(ev) {
+      if (suppressOutbound) return;
+      var sym = $(this).attr("mod-port-symbol");
+      var v = parseFloat($(this).val());
+      if (sym && !isNaN(v)) {
+        syncCustomDomControl(sym, v);
+        notifyParentParam(sym, v);
+      }
+    });
+  }
+
+  // Universal Touch Enhancer for all Custom Cyber Plugins & Standard MOD-GUIs
+  function bindUniversalCyberTouchControls() {
+    var lastSwitchTapMs = 0;
+
+    // 1. Custom Toggle Switches (.custom-toggle-switch[data-symbol] & [class*="-mod-switch-pill"][data-symbol])
+    var customSwitches = document.querySelectorAll('.custom-toggle-switch[data-symbol], [class*="-mod-switch-pill"][data-symbol]');
+    customSwitches.forEach(function(sw) {
+      if (sw._touchBound) return;
+      sw._touchBound = true;
+      var sym = sw.getAttribute("data-symbol");
+      var r = portRangesMap[sym] || { min: 0, max: 1, def: 0 };
+      if (portValuesMap[sym] !== undefined) {
+        syncCustomDomControl(sym, portValuesMap[sym]);
+      }
+      var toggleFn = function(ev) {
+        var now = Date.now();
+        if (now - lastSwitchTapMs < 180) return;
+        lastSwitchTapMs = now;
+        ev.preventDefault();
+        ev.stopPropagation();
+        var cur = (portValuesMap[sym] !== undefined) ? portValuesMap[sym] : ((sw.classList.contains("on") || sw.classList.contains("active")) ? r.max : r.min);
+        var mid = (r.min + r.max) * 0.5;
+        var nextVal = (cur >= mid) ? r.min : r.max;
+        syncCustomDomControl(sym, nextVal);
+        if (currentGui && typeof currentGui.setPortValue === "function") {
+          try { currentGui.setPortValue(sym, nextVal, "from-js"); } catch(err) {}
+        }
+        notifyParentParam(sym, nextVal);
+      };
+      sw.addEventListener("pointerdown", toggleFn, { passive: false });
+      sw.addEventListener("click", toggleFn, { passive: false });
+    });
+
+    // 2. Standard MOD-GUI Switches & Footswitches ([mod-port-symbol] or [mod-role="bypass"])
+    var modSwitches = document.querySelectorAll('[mod-widget="switch"][mod-port-symbol], .mod-footswitch[mod-port-symbol], [mod-role="bypass"]');
+    modSwitches.forEach(function(msw) {
+      if (msw._touchEnhBound) return;
+      msw._touchEnhBound = true;
+      msw.addEventListener("pointerdown", function(ev) {
+        var now = Date.now();
+        if (now - lastSwitchTapMs < 180) return;
+        lastSwitchTapMs = now;
+        var sym = msw.getAttribute("mod-port-symbol") || (msw.getAttribute("mod-role") === "bypass" ? ":bypass" : "");
+        if (!sym) return;
+        setTimeout(function() {
+          if (sym === ":bypass") {
+            isBypassed = !isBypassed;
+            notifyParentParam(":bypass", isBypassed ? 1 : 0);
+          } else if (portValuesMap[sym] !== undefined) {
+            notifyParentParam(sym, portValuesMap[sym]);
+          }
+        }, 30);
+      });
+    });
+
+    // 3. Custom Rotary Knobs (.custom-knob-dial[data-symbol] & .mini-dial[data-symbol]) — Full Touch & Mouse Drag Support!
+    var customKnobs = document.querySelectorAll(".custom-knob-dial[data-symbol], .mini-dial[data-symbol]");
+    customKnobs.forEach(function(kd) {
+      if (kd._touchBound) return;
+      kd._touchBound = true;
+      var sym = kd.getAttribute("data-symbol");
+      var r = portRangesMap[sym] || { min: 0, max: 10, def: 5 };
+      if (portValuesMap[sym] === undefined) portValuesMap[sym] = r.def;
+      syncCustomDomControl(sym, portValuesMap[sym]);
+
+      var dragging = false, startY = 0, startVal = portValuesMap[sym];
+      var onStart = function(clientY, ev) {
+        dragging = true;
+        startY = clientY;
+        startVal = (portValuesMap[sym] !== undefined) ? parseFloat(portValuesMap[sym]) : r.def;
+        showTouchParamHud(sym, startVal);
+        if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      };
+      var onMove = function(clientY, ev) {
+        if (!dragging) return;
+        if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+        var dy = startY - clientY;
+        var span = (r.max - r.min) || 10;
+        var next = startVal + (dy / 130.0) * span;
+        if (next < r.min) next = r.min;
+        if (next > r.max) next = r.max;
+        if (r.integer) next = Math.round(next);
+        syncCustomDomControl(sym, next);
+        if (currentGui && typeof currentGui.setPortValue === "function") {
+          try { currentGui.setPortValue(sym, next, "from-js"); } catch(err) {}
+        }
+        notifyParentParam(sym, next);
+      };
+      var onEnd = function() { dragging = false; };
+
+      kd.addEventListener("pointerdown", function(e) {
+        var now = performance.now();
+        if ((now - (kd._lastTapTime || 0)) < 320) {
+          kd._lastTapTime = 0;
+          dragging = false;
+          var defVal = (r.def !== undefined) ? parseFloat(r.def) : (r.min + r.max) * 0.5;
+          if (r.integer) defVal = Math.round(defVal);
+          syncCustomDomControl(sym, defVal);
+          if (currentGui && typeof currentGui.setPortValue === "function") {
+            try { currentGui.setPortValue(sym, defVal, "from-js"); } catch(err) {}
+          }
+          notifyParentParam(sym, defVal);
+          e.preventDefault(); e.stopPropagation();
+          return;
+        }
+        kd._lastTapTime = now;
+        if (kd.setPointerCapture) { try { kd.setPointerCapture(e.pointerId); } catch(err) {} }
+        onStart(e.clientY, e);
+      }, { passive: false });
+      kd.addEventListener("pointermove", function(e) { onMove(e.clientY, e); }, { passive: false });
+      kd.addEventListener("pointerup", onEnd);
+      kd.addEventListener("pointercancel", onEnd);
+    });
+
+    // 4. Standard MOD-GUI Rotary Knobs & Sliders — 1:1 Touch Drag, 3D Metal Dial Rotation & Double-Tap Reset!
+    var stdPorts = document.querySelectorAll('.mod-knob, [mod-role="input-control-port"][mod-port-symbol]');
+    stdPorts.forEach(function(el) {
+      if (el._knobDragBound) return;
+      var wtype = (el.getAttribute("mod-widget") || "").toLowerCase();
+      if (wtype === "switch" || wtype === "bypass" || el.classList.contains("mod-switch") || el.classList.contains("mod-footswitch")) return;
+      el._knobDragBound = true;
+
+      var sym = el.getAttribute("mod-port-symbol") || $(el).attr("mod-port-symbol") || $(el).find("[mod-port-symbol]").attr("mod-port-symbol");
+      if (!sym) return;
+
+      var r = portRangesMap[sym] || { min: 0, max: 10, def: 5 };
+      var imgEl = el.querySelector(".mod-knob-image") || el;
+
+      function updateKnobDialRotation(v) {
+        var min = (r.min !== undefined) ? r.min : 0;
+        var max = (r.max !== undefined) ? r.max : 10;
+        var span = (max - min) || 1;
+        var norm = Math.max(0, Math.min(1, (v - min) / span));
+        var deg = -135 + (norm * 270);
+        if (imgEl && (!imgEl.style.backgroundImage || imgEl.style.backgroundImage === "none")) {
+          imgEl.style.transform = "rotate(" + deg.toFixed(1) + "deg)";
+        }
+      }
+
+      var initVal = (portValuesMap[sym] !== undefined) ? parseFloat(portValuesMap[sym]) : r.def;
+      updateKnobDialRotation(initVal);
+
+      var dragging = false, startY = 0, startVal = initVal;
+
+      el.addEventListener("pointerdown", function(e) {
+        var now = performance.now();
+        if ((now - (el._lastTapTime || 0)) < 320) {
+          el._lastTapTime = 0;
+          dragging = false;
+          var defVal = (r.def !== undefined) ? parseFloat(r.def) : (r.min + r.max) * 0.5;
+          if (r.integer) defVal = Math.round(defVal);
+          portValuesMap[sym] = defVal;
+          updateKnobDialRotation(defVal);
+          syncCustomDomControl(sym, defVal);
+          if (currentGui && typeof currentGui.setPortValue === "function") {
+            try { currentGui.setPortValue(sym, defVal, "from-js"); } catch(err) {}
+          }
+          notifyParentParam(sym, defVal);
+          e.preventDefault(); e.stopPropagation();
+          return;
+        }
+        el._lastTapTime = now;
+        dragging = true;
+        startY = e.clientY;
+        startVal = (portValuesMap[sym] !== undefined) ? parseFloat(portValuesMap[sym]) : r.def;
+        showTouchParamHud(sym, startVal);
+        if (el.setPointerCapture) { try { el.setPointerCapture(e.pointerId); } catch(err) {} }
+        e.preventDefault(); e.stopPropagation();
+      }, { passive: false });
+
+      el.addEventListener("pointermove", function(e) {
+        if (!dragging) return;
+        e.preventDefault(); e.stopPropagation();
+        var dy = startY - e.clientY;
+        var span = (r.max - r.min) || 10;
+        var next = startVal + (dy / 140.0) * span;
+        if (next < r.min) next = r.min;
+        if (next > r.max) next = r.max;
+        if (r.integer) next = Math.round(next);
+        portValuesMap[sym] = next;
+        updateKnobDialRotation(next);
+        syncCustomDomControl(sym, next);
+        if (currentGui && typeof currentGui.setPortValue === "function") {
+          try { currentGui.setPortValue(sym, next, "from-js"); } catch(err) {}
+        }
+        notifyParentParam(sym, next);
+      }, { passive: false });
+
+      var onEnd = function(e) {
+        if (dragging) {
+          dragging = false;
+          if (el.releasePointerCapture && e && e.pointerId) { try { el.releasePointerCapture(e.pointerId); } catch(err) {} }
+        }
+      };
+      el.addEventListener("pointerup", onEnd);
+      el.addEventListener("pointercancel", onEnd);
+    });
+  }
+
+  // 60FPS Cyber Chromatic & Strobe Tuner Stage (Pre-Mute Zero-Crossing Pitch Telemetry)
+  var tunerRafId = null;
+  var tunerRefA4 = 440.0;
+  var tunerMuted = false;
+  var strobePhase = 0;
+
+  function getActiveParentChannel() {
+    var chParam = qs.get("ch");
+    if (chParam !== null && !isNaN(parseInt(chParam, 10))) return parseInt(chParam, 10);
+    try {
+      if (window.parent && window.parent.currentDspTarget !== undefined) {
+        var t = String(window.parent.currentDspTarget).replace("ch-", "");
+        var n = parseInt(t, 10);
+        if (!isNaN(n) && n >= 0 && n < 8) return n;
+      }
+    } catch (e) {}
+    return 0;
+  }
+
+  window.toggleCyberTunerMute = function() {
+    tunerMuted = !tunerMuted;
+    var ch = getActiveParentChannel();
+    var btn = document.getElementById("cyber-tuner-mute-btn");
+    if (btn) {
+      btn.style.background = tunerMuted ? "#dc2626" : "#1e293b";
+      btn.style.borderColor = tunerMuted ? "#f87171" : "#475569";
+      btn.innerText = tunerMuted ? "🔇 TUNER MUTE: ON (SILENT TUNING)" : "🔊 TUNER MUTE: OFF (LIVE AUDIO)";
+    }
+    try {
+      if (window.parent && window.parent.meterWs && window.parent.meterWs.readyState === 1) {
+        window.parent.meterWs.send(JSON.stringify({
+          type: "dsp_param",
+          action: "dsp_param",
+          channel: ch,
+          param: "tunerMute",
+          value: tunerMuted ? 1 : 0
+        }));
+      }
+    } catch (e) {}
+  };
+
+  window.shiftTunerRefPitch = function(delta) {
+    tunerRefA4 = Math.max(430, Math.min(448, tunerRefA4 + delta));
+    var el = document.getElementById("cyber-tuner-a4-val");
+    if (el) el.innerText = "A4 = " + tunerRefA4.toFixed(0) + " Hz";
+  };
+
+  function renderCyberTunerStage(info) {
+    if (tunerRafId) cancelAnimationFrame(tunerRafId);
+    var stage = document.getElementById("pedal-stage");
+    var ch = getActiveParentChannel();
+    stage.innerHTML =
+      '<div style="background:linear-gradient(180deg, #090d16 0%, #05080f 100%); border:3px solid #38bdf8; border-radius:20px; padding:20px 28px; width:760px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.92); display:flex; flex-direction:column; gap:14px; align-items:center; color:#f8fafc; font-family:system-ui, sans-serif;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; width:100%; border-bottom:1.5px solid #1e293b; padding-bottom:10px;">' +
+          '<div>' +
+            '<div style="font-size:1.15rem; font-weight:900; color:#38bdf8; letter-spacing:1.5px;">🎯 CYBER STROBE &amp; CHROMATIC TUNER (CH ' + (ch + 1) + ')</div>' +
+            '<div style="font-size:0.7rem; color:#94a3b8; font-family:monospace;">60FPS ZERO-CROSSING FUNDAMENTAL TRACKER • PRE-MUTE SIGNAL TAP</div>' +
+          '</div>' +
+          '<div style="display:flex; gap:8px; align-items:center;">' +
+            '<button onclick="shiftTunerRefPitch(-1)" style="min-height:36px; padding:0 10px; background:#0f172a; color:#38bdf8; border:1px solid #334155; border-radius:6px; font-weight:900; cursor:pointer;">-</button>' +
+            '<span id="cyber-tuner-a4-val" style="font-family:monospace; font-size:0.82rem; font-weight:900; color:#fde68a; min-width:86px; text-align:center;">A4 = 440 Hz</span>' +
+            '<button onclick="shiftTunerRefPitch(1)" style="min-height:36px; padding:0 10px; background:#0f172a; color:#38bdf8; border:1px solid #334155; border-radius:6px; font-weight:900; cursor:pointer;">+</button>' +
+          '</div>' +
+        '</div>' +
+        '<canvas id="cyber-tuner-strobe-canvas" width="680" height="84" style="width:100%; height:84px; background:#03060c; border:1.5px solid #1e293b; border-radius:10px;"></canvas>' +
+        '<div style="display:flex; align-items:center; justify-content:space-around; width:100%; padding:6px 0;">' +
+          '<div style="text-align:center; min-width:140px;">' +
+            '<div style="font-size:0.68rem; color:#64748b; font-weight:800;">DETECTED PITCH</div>' +
+            '<div id="cyber-tuner-hz" style="font-size:1.55rem; font-weight:900; font-family:monospace; color:#38bdf8;">--.- Hz</div>' +
+          '</div>' +
+          '<div id="cyber-tuner-note-box" style="width:148px; height:124px; border-radius:16px; background:#0f172a; border:3px solid #334155; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:inset 0 4px 20px rgba(0,0,0,0.8);">' +
+            '<div id="cyber-tuner-note" style="font-size:3.8rem; font-weight:900; font-family:monospace; line-height:1; color:#f8fafc;">--</div>' +
+            '<div id="cyber-tuner-lock-lbl" style="font-size:0.68rem; font-weight:900; color:#64748b; margin-top:4px; letter-spacing:1px;">PLAY A NOTE</div>' +
+          '</div>' +
+          '<div style="text-align:center; min-width:140px;">' +
+            '<div style="font-size:0.68rem; color:#64748b; font-weight:800;">CENTS DEVIATION</div>' +
+            '<div id="cyber-tuner-cents" style="font-size:1.55rem; font-weight:900; font-family:monospace; color:#fde68a;">0.0 ct</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="width:100%; display:flex; justify-content:between; gap:12px; align-items:center;">' +
+          '<button id="cyber-tuner-mute-btn" onclick="toggleCyberTunerMute()" style="flex:1; min-height:46px; border-radius:10px; background:#1e293b; border:2px solid #475569; color:#fff; font-size:0.88rem; font-weight:900; cursor:pointer; letter-spacing:0.5px;">🔊 TUNER MUTE: OFF (TAP FOR SILENT TUNING)</button>' +
+        '</div>' +
+      '</div>';
+
+    var noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    var cvs = document.getElementById("cyber-tuner-strobe-canvas");
+    var ctx = cvs ? cvs.getContext("2d") : null;
+    var smoothHz = 0;
+
+    function stepTuner() {
+      var activeCh = getActiveParentChannel();
+      var rawHz = 0;
+      try {
+        if (window.parent && Array.isArray(window.parent.livePitchHz)) {
+          rawHz = Number(window.parent.livePitchHz[activeCh]) || 0;
+        }
+      } catch (e) {}
+
+      if (rawHz >= 25.0 && rawHz <= 1400.0) {
+        smoothHz = (smoothHz <= 0) ? rawHz : (smoothHz * 0.78 + rawHz * 0.22);
+      } else {
+        smoothHz *= 0.85;
+        if (smoothHz < 22.0) smoothHz = 0;
+      }
+
+      var hzEl = document.getElementById("cyber-tuner-hz");
+      var noteEl = document.getElementById("cyber-tuner-note");
+      var centsEl = document.getElementById("cyber-tuner-cents");
+      var lockEl = document.getElementById("cyber-tuner-lock-lbl");
+      var boxEl = document.getElementById("cyber-tuner-note-box");
+
+      var cents = 0;
+      var inTune = false;
+      var hasSignal = smoothHz >= 25.0;
+
+      if (hasSignal) {
+        var midiFloat = 69.0 + 12.0 * (Math.log(smoothHz / tunerRefA4) / Math.LN2);
+        var midiNearest = Math.round(midiFloat);
+        cents = (midiFloat - midiNearest) * 100.0;
+        var noteIdx = ((midiNearest % 12) + 12) % 12;
+        var octave = Math.floor(midiNearest / 12) - 1;
+        var noteStr = noteNames[noteIdx] + octave;
+        inTune = Math.abs(cents) <= 2.5;
+
+        if (hzEl) hzEl.innerText = smoothHz.toFixed(1) + " Hz";
+        if (noteEl) {
+          noteEl.innerText = noteStr;
+          noteEl.style.color = inTune ? "#10b981" : (Math.abs(cents) <= 10 ? "#fde68a" : "#f87171");
+        }
+        if (centsEl) {
+          centsEl.innerText = (cents >= 0 ? "+" : "") + cents.toFixed(1) + " ct";
+          centsEl.style.color = inTune ? "#10b981" : (Math.abs(cents) <= 10 ? "#fde68a" : "#f87171");
+        }
+        if (lockEl) {
+          lockEl.innerText = inTune ? "★ IN TUNE ★" : (cents < 0 ? "♭ FLAT (TUNE UP)" : "♯ SHARP (TUNE DOWN)");
+          lockEl.style.color = inTune ? "#10b981" : "#fbbf24";
+        }
+        if (boxEl) {
+          boxEl.style.borderColor = inTune ? "#10b981" : (Math.abs(cents) <= 10 ? "#f59e0b" : "#ef4444");
+          boxEl.style.boxShadow = inTune ? "0 0 28px rgba(16,185,129,0.45)" : "inset 0 4px 20px rgba(0,0,0,0.8)";
+        }
+      } else {
+        if (hzEl) hzEl.innerText = "--.- Hz";
+        if (noteEl) { noteEl.innerText = "--"; noteEl.style.color = "#64748b"; }
+        if (centsEl) { centsEl.innerText = "0.0 ct"; centsEl.style.color = "#64748b"; }
+        if (lockEl) { lockEl.innerText = "PLAY A NOTE"; lockEl.style.color = "#64748b"; }
+        if (boxEl) { boxEl.style.borderColor = "#334155"; boxEl.style.boxShadow = "none"; }
+      }
+
+      if (ctx && cvs) {
+        var w = cvs.width, h = cvs.height;
+        ctx.clearRect(0, 0, w, h);
+        // Strobe bands
+        if (hasSignal) {
+          strobePhase += cents * 0.14;
+        }
+        var stripeW = 28;
+        var offset = ((strobePhase % (stripeW * 2)) + stripeW * 2) % (stripeW * 2);
+        ctx.fillStyle = hasSignal ? (inTune ? "rgba(16,185,129,0.28)" : "rgba(56,189,248,0.22)") : "rgba(30,41,59,0.25)";
+        for (var x = -stripeW * 2 + offset; x < w; x += stripeW * 2) {
+          ctx.fillRect(x, 6, stripeW, 30);
+        }
+        // Center target line
+        ctx.strokeStyle = inTune ? "#10b981" : "#f8fafc";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.5, 0);
+        ctx.lineTo(w * 0.5, h);
+        ctx.stroke();
+
+        // Bottom Cent Meter Bar (-50 to +50)
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(20, 46, w - 40, 26);
+        if (hasSignal) {
+          var norm = Math.max(-50, Math.min(50, cents)) / 50.0;
+          var needleX = (w * 0.5) + norm * ((w - 60) * 0.5);
+          ctx.fillStyle = inTune ? "#10b981" : (Math.abs(cents) <= 10 ? "#fbbf24" : "#ef4444");
+          ctx.fillRect(Math.min(w * 0.5, needleX), 48, Math.abs(needleX - w * 0.5), 22);
+          ctx.beginPath();
+          ctx.arc(needleX, 59, 9, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      tunerRafId = requestAnimationFrame(stepTuner);
+    }
+    tunerRafId = requestAnimationFrame(stepTuner);
+    setTimeout(fitPedalToStage, 40);
+  }
+
+  // Curated Model / IR / ScalePoints List Selector Dock for NAM, IR Reverbs, and Evans Bass Pro
+    var BUILTIN_FILE_LISTS = {
+    nam: [{"name": "M160 MIDDLE - T 4, I 2, M 5.nam", "label": "M160 MIDDLE - T 4, I 2, M 5", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/M160 MIDDLE - T 4, I 2, M 5.nam"}, {"name": "M160 MIDDLE - T 5, I 3, M 9.nam", "label": "M160 MIDDLE - T 5, I 3, M 9", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/M160 MIDDLE - T 5, I 3, M 9.nam"}, {"name": "M160 MIDDLE - T 6, I 11, M 12.nam", "label": "M160 MIDDLE - T 6, I 11, M 12", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/M160 MIDDLE - T 6, I 11, M 12.nam"}, {"name": "MD 421 CAP_CENTER - T 6, I 11, M 12.nam", "label": "MD 421 CAP_CENTER - T 6, I 11, M 12", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/MD 421 CAP_CENTER - T 6, I 11, M 12.nam"}, {"name": "MD 421 EDGE - T 6, I 11, M 12.nam", "label": "MD 421 EDGE - T 6, I 11, M 12", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/MD 421 EDGE - T 6, I 11, M 12.nam"}, {"name": "MD 421 MIDDLE - T 6, I 11, M 12.nam", "label": "MD 421 MIDDLE - T 6, I 11, M 12", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/MD 421 MIDDLE - T 6, I 11, M 12.nam"}, {"name": "MD 421 OFF AXIS + 45 DEGREES - T 6, I 11, M 12.nam", "label": "MD 421 OFF AXIS + 45 DEGREES - T 6, I 11, M 12", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/MD 421 OFF AXIS + 45 DEGREES - T 6, I 11, M 12.nam"}, {"name": "SM57 CAP EDGE - T 4, I 2, M 5.nam", "label": "SM57 CAP EDGE - T 4, I 2, M 5", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/SM57 CAP EDGE - T 4, I 2, M 5.nam"}, {"name": "SM57 CAP EDGE - T 5, I 3, M 9.nam", "label": "SM57 CAP EDGE - T 5, I 3, M 9", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/SM57 CAP EDGE - T 5, I 3, M 9.nam"}, {"name": "SM57 CAP EDGE - T 6, I 11, M 12.nam", "label": "SM57 CAP EDGE - T 6, I 11, M 12", "category": "1960 Fender Tweed Deluxe 5E3", "path": "/var/modep/user-files/NAM Models/1960 Fender Tweed Deluxe 5E3/SM57 CAP EDGE - T 6, I 11, M 12.nam"}, {"name": "64 Fender VibroVerb N Bright CLN.nam", "label": "64 Fender VibroVerb N Bright CLN", "category": "1964 Fender VibroVerb AA763", "path": "/var/modep/user-files/NAM Models/1964 Fender VibroVerb AA763/64 Fender VibroVerb N Bright CLN.nam"}, {"name": "64 Fender VibroVerb V OD.nam", "label": "64 Fender VibroVerb V OD", "category": "1964 Fender VibroVerb AA763", "path": "/var/modep/user-files/NAM Models/1964 Fender VibroVerb AA763/64 Fender VibroVerb V OD.nam"}, {"name": "MRSH JT45RS I Crunch BAL2 CAB.nam", "label": "MRSH JT45RS I Crunch BAL2 CAB", "category": "1964 Marshall JTM-45 Block Logo Radiospares OT - CRUNCH - A2", "path": "/var/modep/user-files/NAM Models/1964 Marshall JTM-45 Block Logo Radiospares OT - CRUNCH - A2/MRSH JT45RS I Crunch BAL2 CAB.nam"}, {"name": "MAGN 10M I Crunch2 BAL CAB.nam", "label": "MAGN 10M I Crunch2 BAL CAB", "category": "1966 Magnatone M10A Crunch - A2", "path": "/var/modep/user-files/NAM Models/1966 Magnatone M10A Crunch - A2/MAGN 10M I Crunch2 BAL CAB.nam"}, {"name": "BNO JT45DR I Crunch BAL CAB3.nam", "label": "BNO JT45DR I Crunch BAL CAB3", "category": "1966 Marshall 1962 Bluesbreaker (JTM45) with G12 Alnico - CRUNCH - A2", "path": "/var/modep/user-files/NAM Models/1966 Marshall 1962 Bluesbreaker (JTM45) with G12 Alnico - CRUNCH - A2/BNO JT45DR I Crunch BAL CAB3.nam"}, {"name": "Fender - Princeton Clean 3 M160.nam", "label": "Fender - Princeton Clean 3 M160", "category": "65 Fender Princeton with Various Mics", "path": "/var/modep/user-files/NAM Models/65 Fender Princeton with Various Mics/Fender - Princeton Clean 3 M160.nam"}, {"name": "Fender - Princeton Clean 3 SM57.nam", "label": "Fender - Princeton Clean 3 SM57", "category": "65 Fender Princeton with Various Mics", "path": "/var/modep/user-files/NAM Models/65 Fender Princeton with Various Mics/Fender - Princeton Clean 3 SM57.nam"}, {"name": "Fender - Princeton Clean 3 SUM M160 + SM57.nam", "label": "Fender - Princeton Clean 3 SUM M160 + SM57", "category": "65 Fender Princeton with Various Mics", "path": "/var/modep/user-files/NAM Models/65 Fender Princeton with Various Mics/Fender - Princeton Clean 3 SUM M160 + SM57.nam"}, {"name": "Fender - Princeton Crunch 7 SUM M160 + SM57.nam", "label": "Fender - Princeton Crunch 7 SUM M160 + SM57", "category": "65 Fender Princeton with Various Mics", "path": "/var/modep/user-files/NAM Models/65 Fender Princeton with Various Mics/Fender - Princeton Crunch 7 SUM M160 + SM57.nam"}, {"name": "Fender - Princeton Crunch Vol 7 M160.nam", "label": "Fender - Princeton Crunch Vol 7 M160", "category": "65 Fender Princeton with Various Mics", "path": "/var/modep/user-files/NAM Models/65 Fender Princeton with Various Mics/Fender - Princeton Crunch Vol 7 M160.nam"}, {"name": "Fender - Princeton Crunch Vol 7 SM57.nam", "label": "Fender - Princeton Crunch Vol 7 SM57", "category": "65 Fender Princeton with Various Mics", "path": "/var/modep/user-files/NAM Models/65 Fender Princeton with Various Mics/Fender - Princeton Crunch Vol 7 SM57.nam"}, {"name": "Fender - Princeton EOB Vol 5 M160.nam", "label": "Fender - Princeton EOB Vol 5 M160", "category": "65 Fender Princeton with Various Mics", "path": "/var/modep/user-files/NAM Models/65 Fender Princeton with Various Mics/Fender - Princeton EOB Vol 5 M160.nam"}, {"name": "Fender - Princeton EOB Vol 5 SM57.nam", "label": "Fender - Princeton EOB Vol 5 SM57", "category": "65 Fender Princeton with Various Mics", "path": "/var/modep/user-files/NAM Models/65 Fender Princeton with Various Mics/Fender - Princeton EOB Vol 5 SM57.nam"}, {"name": "Fender - Princeton EOB Vol 5 SUM M160 + SM57.nam", "label": "Fender - Princeton EOB Vol 5 SUM M160 + SM57", "category": "65 Fender Princeton with Various Mics", "path": "/var/modep/user-files/NAM Models/65 Fender Princeton with Various Mics/Fender - Princeton EOB Vol 5 SUM M160 + SM57.nam"}, {"name": "Clapton's Bassman - Marked Settings (Jumpered).nam", "label": "Clapton's Bassman - Marked Settings (Jumpered)", "category": "Eric Clapton's Fender Bassman 5F6-A", "path": "/var/modep/user-files/NAM Models/Eric Clapton's Fender Bassman 5F6-A/Clapton's Bassman - Marked Settings (Jumpered).nam"}, {"name": "FNDR BFDRI VB Clean BAL2 CAB.nam", "label": "FNDR BFDRI VB Clean BAL2 CAB", "category": "Fender Deluxe Reverb Reissue Iconic Clean A2 (1)", "path": "/var/modep/user-files/NAM Models/Fender Deluxe Reverb Reissue Iconic Clean A2 (1)/FNDR BFDRI VB Clean BAL2 CAB.nam"}, {"name": "FNDR PANO Clean2 BAL 6V6 CAB.nam", "label": "FNDR PANO Clean2 BAL 6V6 CAB", "category": "Fender Pano-Verb", "path": "/var/modep/user-files/NAM Models/Fender Pano-Verb/FNDR PANO Clean2 BAL 6V6 CAB.nam"}, {"name": "FNDR BFPRO VB Clean2 WRM CAB.nam", "label": "FNDR BFPRO VB Clean2 WRM CAB", "category": "Fender Pro Reverb 1967", "path": "/var/modep/user-files/NAM Models/Fender Pro Reverb 1967/FNDR BFPRO VB Clean2 WRM CAB.nam"}, {"name": "Fender Super Reverb_ EQ Flat, Volume 3, AKG 414.nam", "label": "Fender Super Reverb_ EQ Flat, Volume 3, AKG 414", "category": "Fender Super Reverb 1977", "path": "/var/modep/user-files/NAM Models/Fender Super Reverb 1977/Fender Super Reverb_ EQ Flat, Volume 3, AKG 414.nam"}, {"name": "Fender Super Reverb_ EQ Flat, Volume 3, sm57.nam", "label": "Fender Super Reverb_ EQ Flat, Volume 3, sm57", "category": "Fender Super Reverb 1977", "path": "/var/modep/user-files/NAM Models/Fender Super Reverb 1977/Fender Super Reverb_ EQ Flat, Volume 3, sm57.nam"}, {"name": "Fender Super Reverb_ EQ Flat, Volume 3, sm57 and AKG 414.nam", "label": "Fender Super Reverb_ EQ Flat, Volume 3, sm57 and AKG 414", "category": "Fender Super Reverb 1977", "path": "/var/modep/user-files/NAM Models/Fender Super Reverb 1977/Fender Super Reverb_ EQ Flat, Volume 3, sm57 and AKG 414.nam"}, {"name": "64 Fender VibroVerb N Bright CLN.nam", "label": "64 Fender VibroVerb N Bright CLN", "category": "General", "path": "/var/modep/user-files/NAM Models/64 Fender VibroVerb N Bright CLN.nam"}, {"name": "64 Fender VibroVerb V OD.nam", "label": "64 Fender VibroVerb V OD", "category": "General", "path": "/var/modep/user-files/NAM Models/64 Fender VibroVerb V OD.nam"}, {"name": "BNO JT45DR I Crunch BAL CAB3.nam", "label": "BNO JT45DR I Crunch BAL CAB3", "category": "General", "path": "/var/modep/user-files/NAM Models/BNO JT45DR I Crunch BAL CAB3.nam"}, {"name": "Clapton's Bassman - Marked Settings (Jumpered).nam", "label": "Clapton's Bassman - Marked Settings (Jumpered)", "category": "General", "path": "/var/modep/user-files/NAM Models/Clapton's Bassman - Marked Settings (Jumpered).nam"}, {"name": "FNDR BFDRI VB Clean BAL2 CAB.nam", "label": "FNDR BFDRI VB Clean BAL2 CAB", "category": "General", "path": "/var/modep/user-files/NAM Models/FNDR BFDRI VB Clean BAL2 CAB.nam"}, {"name": "FNDR BFPRO VB Clean2 WRM CAB.nam", "label": "FNDR BFPRO VB Clean2 WRM CAB", "category": "General", "path": "/var/modep/user-files/NAM Models/FNDR BFPRO VB Clean2 WRM CAB.nam"}, {"name": "FNDR PANO Clean2 BAL 6V6 CAB.nam", "label": "FNDR PANO Clean2 BAL 6V6 CAB", "category": "General", "path": "/var/modep/user-files/NAM Models/FNDR PANO Clean2 BAL 6V6 CAB.nam"}, {"name": "Fender - Princeton Clean 3 M160.nam", "label": "Fender - Princeton Clean 3 M160", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender - Princeton Clean 3 M160.nam"}, {"name": "Fender - Princeton Clean 3 SM57.nam", "label": "Fender - Princeton Clean 3 SM57", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender - Princeton Clean 3 SM57.nam"}, {"name": "Fender - Princeton Clean 3 SUM M160 + SM57.nam", "label": "Fender - Princeton Clean 3 SUM M160 + SM57", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender - Princeton Clean 3 SUM M160 + SM57.nam"}, {"name": "Fender - Princeton Crunch 7 SUM M160 + SM57.nam", "label": "Fender - Princeton Crunch 7 SUM M160 + SM57", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender - Princeton Crunch 7 SUM M160 + SM57.nam"}, {"name": "Fender - Princeton Crunch Vol 7 M160.nam", "label": "Fender - Princeton Crunch Vol 7 M160", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender - Princeton Crunch Vol 7 M160.nam"}, {"name": "Fender - Princeton Crunch Vol 7 SM57.nam", "label": "Fender - Princeton Crunch Vol 7 SM57", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender - Princeton Crunch Vol 7 SM57.nam"}, {"name": "Fender - Princeton EOB Vol 5 M160.nam", "label": "Fender - Princeton EOB Vol 5 M160", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender - Princeton EOB Vol 5 M160.nam"}, {"name": "Fender - Princeton EOB Vol 5 SM57.nam", "label": "Fender - Princeton EOB Vol 5 SM57", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender - Princeton EOB Vol 5 SM57.nam"}, {"name": "Fender - Princeton EOB Vol 5 SUM M160 + SM57.nam", "label": "Fender - Princeton EOB Vol 5 SUM M160 + SM57", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender - Princeton EOB Vol 5 SUM M160 + SM57.nam"}, {"name": "Fender Super Reverb_ EQ Flat, Volume 3, AKG 414.nam", "label": "Fender Super Reverb_ EQ Flat, Volume 3, AKG 414", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender Super Reverb_ EQ Flat, Volume 3, AKG 414.nam"}, {"name": "Fender Super Reverb_ EQ Flat, Volume 3, sm57.nam", "label": "Fender Super Reverb_ EQ Flat, Volume 3, sm57", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender Super Reverb_ EQ Flat, Volume 3, sm57.nam"}, {"name": "Fender Super Reverb_ EQ Flat, Volume 3, sm57 and AKG 414.nam", "label": "Fender Super Reverb_ EQ Flat, Volume 3, sm57 and AKG 414", "category": "General", "path": "/var/modep/user-files/NAM Models/Fender Super Reverb_ EQ Flat, Volume 3, sm57 and AKG 414.nam"}, {"name": "GBSN G19 IA Crunch BAL CAB.nam", "label": "GBSN G19 IA Crunch BAL CAB", "category": "General", "path": "/var/modep/user-files/NAM Models/GBSN G19 IA Crunch BAL CAB.nam"}, {"name": "George B Ceriatone King Kong  KK Ch2 60s solo 80s.nam", "label": "George B Ceriatone King Kong  KK Ch2 60s solo 80s", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong  KK Ch2 60s solo 80s.nam"}, {"name": "George B Ceriatone King Kong  chan2 60s br sw2 L.nam", "label": "George B Ceriatone King Kong  chan2 60s br sw2 L", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong  chan2 60s br sw2 L.nam"}, {"name": "George B Ceriatone King Kong Channel 1 60s mode.nam", "label": "George B Ceriatone King Kong Channel 1 60s mode", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong Channel 1 60s mode.nam"}, {"name": "George B Ceriatone King Kong Channel 2 80s mode both br sw R.nam", "label": "George B Ceriatone King Kong Channel 2 80s mode both br sw R", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong Channel 2 80s mode both br sw R.nam"}, {"name": "George B Ceriatone King Kong NAM Capture Bogner Blue Chase Tone Secret Pre Deco.nam", "label": "George B Ceriatone King Kong NAM Capture Bogner Blue Chase Tone Secret Pre Deco", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong NAM Capture Bogner Blue Chase Tone Secret Pre Deco.nam"}, {"name": "George B Ceriatone King Kong NAM Capture Boosted peace keeper Chase Tone Secret Pre Deco v2.nam", "label": "George B Ceriatone King Kong NAM Capture Boosted peace keeper Chase Tone Secret Pre Deco v2", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong NAM Capture Boosted peace keeper Chase Tone Secret Pre Deco v2.nam"}, {"name": "George B Ceriatone King Kong NAM Capture Broadcast Chase Tone Secret Pre Deco.nam", "label": "George B Ceriatone King Kong NAM Capture Broadcast Chase Tone Secret Pre Deco", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong NAM Capture Broadcast Chase Tone Secret Pre Deco.nam"}, {"name": "George B Ceriatone King Kong NAM Capture Protein Chase Tone Secret Pre Deco .nam", "label": "George B Ceriatone King Kong NAM Capture Protein Chase Tone Secret Pre Deco ", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong NAM Capture Protein Chase Tone Secret Pre Deco .nam"}, {"name": "George B Ceriatone King Kong NAM Capture Turbo Nonna Chase Tone Secret Pre Deco.nam", "label": "George B Ceriatone King Kong NAM Capture Turbo Nonna Chase Tone Secret Pre Deco", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong NAM Capture Turbo Nonna Chase Tone Secret Pre Deco.nam"}, {"name": "George B Ceriatone King Kong chan2 70s both br sw L.nam", "label": "George B Ceriatone King Kong chan2 70s both br sw L", "category": "General", "path": "/var/modep/user-files/NAM Models/George B Ceriatone King Kong chan2 70s both br sw L.nam"}, {"name": "George B V4 Countess 300eps.nam", "label": "George B V4 Countess 300eps", "category": "General", "path": "/var/modep/user-files/NAM Models/George B V4 Countess 300eps.nam"}, {"name": "Helga B 5150 BlockLetter - Boosted.nam", "label": "Helga B 5150 BlockLetter - Boosted", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 5150 BlockLetter - Boosted.nam"}, {"name": "Helga B 5150 BlockLetter - NoBoost.nam", "label": "Helga B 5150 BlockLetter - NoBoost", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 5150 BlockLetter - NoBoost.nam"}, {"name": "Helga B 6505+ Green ch - MXR Drive.nam", "label": "Helga B 6505+ Green ch - MXR Drive", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6505+ Green ch - MXR Drive.nam"}, {"name": "Helga B 6505+ Green ch - NoBoost.nam", "label": "Helga B 6505+ Green ch - NoBoost", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6505+ Green ch - NoBoost.nam"}, {"name": "Helga B 6505+ Red Ch - NoBoost rock.nam", "label": "Helga B 6505+ Red Ch - NoBoost rock", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6505+ Red Ch - NoBoost rock.nam"}, {"name": "Helga B 6505+ Red ch - MXR Drive.nam", "label": "Helga B 6505+ Red ch - MXR Drive", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6505+ Red ch - MXR Drive.nam"}, {"name": "Helga B 6505+ Red ch - MXR Drive V2.nam", "label": "Helga B 6505+ Red ch - MXR Drive V2", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6505+ Red ch - MXR Drive V2.nam"}, {"name": "Helga B 6505+ Red ch - NoBoost.nam", "label": "Helga B 6505+ Red ch - NoBoost", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6505+ Red ch - NoBoost.nam"}, {"name": "Helga B 6534+ MXR M77.nam", "label": "Helga B 6534+ MXR M77", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6534+ MXR M77.nam"}, {"name": "Helga B 6534+ MXR M77 - Helga Behrens.nam", "label": "Helga B 6534+ MXR M77 - Helga Behrens", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6534+ MXR M77 - Helga Behrens.nam"}, {"name": "Helga B 6534+ No Boost.nam", "label": "Helga B 6534+ No Boost", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6534+ No Boost.nam"}, {"name": "Helga B 6534+ OD808.nam", "label": "Helga B 6534+ OD808", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B 6534+ OD808.nam"}, {"name": "Helga B Boss OS-2.nam", "label": "Helga B Boss OS-2", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B Boss OS-2.nam"}, {"name": "Helga B GCI Jugendstil.nam", "label": "Helga B GCI Jugendstil", "category": "General", "path": "/var/modep/user-files/NAM Models/Helga B GCI Jugendstil.nam"}, {"name": "M160 MIDDLE - T 4, I 2, M 5.nam", "label": "M160 MIDDLE - T 4, I 2, M 5", "category": "General", "path": "/var/modep/user-files/NAM Models/M160 MIDDLE - T 4, I 2, M 5.nam"}, {"name": "M160 MIDDLE - T 5, I 3, M 9.nam", "label": "M160 MIDDLE - T 5, I 3, M 9", "category": "General", "path": "/var/modep/user-files/NAM Models/M160 MIDDLE - T 5, I 3, M 9.nam"}, {"name": "M160 MIDDLE - T 6, I 11, M 12.nam", "label": "M160 MIDDLE - T 6, I 11, M 12", "category": "General", "path": "/var/modep/user-files/NAM Models/M160 MIDDLE - T 6, I 11, M 12.nam"}, {"name": "MAGN 10M I Crunch2 BAL CAB.nam", "label": "MAGN 10M I Crunch2 BAL CAB", "category": "General", "path": "/var/modep/user-files/NAM Models/MAGN 10M I Crunch2 BAL CAB.nam"}, {"name": "MD 421 CAP_CENTER - T 6, I 11, M 12.nam", "label": "MD 421 CAP_CENTER - T 6, I 11, M 12", "category": "General", "path": "/var/modep/user-files/NAM Models/MD 421 CAP_CENTER - T 6, I 11, M 12.nam"}, {"name": "MD 421 EDGE - T 6, I 11, M 12.nam", "label": "MD 421 EDGE - T 6, I 11, M 12", "category": "General", "path": "/var/modep/user-files/NAM Models/MD 421 EDGE - T 6, I 11, M 12.nam"}, {"name": "MD 421 MIDDLE - T 6, I 11, M 12.nam", "label": "MD 421 MIDDLE - T 6, I 11, M 12", "category": "General", "path": "/var/modep/user-files/NAM Models/MD 421 MIDDLE - T 6, I 11, M 12.nam"}, {"name": "MD 421 OFF AXIS + 45 DEGREES - T 6, I 11, M 12.nam", "label": "MD 421 OFF AXIS + 45 DEGREES - T 6, I 11, M 12", "category": "General", "path": "/var/modep/user-files/NAM Models/MD 421 OFF AXIS + 45 DEGREES - T 6, I 11, M 12.nam"}, {"name": "MRSH JT45RS I Crunch BAL2 CAB.nam", "label": "MRSH JT45RS I Crunch BAL2 CAB", "category": "General", "path": "/var/modep/user-files/NAM Models/MRSH JT45RS I Crunch BAL2 CAB.nam"}, {"name": "RR Twin65 BRT 160.nam", "label": "RR Twin65 BRT 160", "category": "General", "path": "/var/modep/user-files/NAM Models/RR Twin65 BRT 160.nam"}, {"name": "RR Twin65 NRM 57.nam", "label": "RR Twin65 NRM 57", "category": "General", "path": "/var/modep/user-files/NAM Models/RR Twin65 NRM 57.nam"}, {"name": "RR Twin65 NRM 87.nam", "label": "RR Twin65 NRM 87", "category": "General", "path": "/var/modep/user-files/NAM Models/RR Twin65 NRM 87.nam"}, {"name": "SM57 CAP EDGE - T 4, I 2, M 5.nam", "label": "SM57 CAP EDGE - T 4, I 2, M 5", "category": "General", "path": "/var/modep/user-files/NAM Models/SM57 CAP EDGE - T 4, I 2, M 5.nam"}, {"name": "SM57 CAP EDGE - T 5, I 3, M 9.nam", "label": "SM57 CAP EDGE - T 5, I 3, M 9", "category": "General", "path": "/var/modep/user-files/NAM Models/SM57 CAP EDGE - T 5, I 3, M 9.nam"}, {"name": "SM57 CAP EDGE - T 6, I 11, M 12.nam", "label": "SM57 CAP EDGE - T 6, I 11, M 12", "category": "General", "path": "/var/modep/user-files/NAM Models/SM57 CAP EDGE - T 6, I 11, M 12.nam"}, {"name": "Silvertone Model 1484 - V10 - Mic Sum.nam", "label": "Silvertone Model 1484 - V10 - Mic Sum", "category": "General", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 - V10 - Mic Sum.nam"}, {"name": "Silvertone Model 1484 - V10 - R121.nam", "label": "Silvertone Model 1484 - V10 - R121", "category": "General", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 - V10 - R121.nam"}, {"name": "Silvertone Model 1484 - V10 - SM57.nam", "label": "Silvertone Model 1484 - V10 - SM57", "category": "General", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 - V10 - SM57.nam"}, {"name": "Silvertone Model 1484 - V4 - Mic Sum.nam", "label": "Silvertone Model 1484 - V4 - Mic Sum", "category": "General", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 - V4 - Mic Sum.nam"}, {"name": "Silvertone Model 1484 - V4 - R121.nam", "label": "Silvertone Model 1484 - V4 - R121", "category": "General", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 - V4 - R121.nam"}, {"name": "Silvertone Model 1484 - V4 - SM57.nam", "label": "Silvertone Model 1484 - V4 - SM57", "category": "General", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 - V4 - SM57.nam"}, {"name": "Silvertone Model 1484 - V6 - Mic Sum.nam", "label": "Silvertone Model 1484 - V6 - Mic Sum", "category": "General", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 - V6 - Mic Sum.nam"}, {"name": "Silvertone Model 1484 - V6 - R121.nam", "label": "Silvertone Model 1484 - V6 - R121", "category": "General", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 - V6 - R121.nam"}, {"name": "Silvertone Model 1484 - V6 - SM57.nam", "label": "Silvertone Model 1484 - V6 - SM57", "category": "General", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 - V6 - SM57.nam"}, {"name": "TK ROY 67 Drive BAL TMY CAB.nam", "label": "TK ROY 67 Drive BAL TMY CAB", "category": "General", "path": "/var/modep/user-files/NAM Models/TK ROY 67 Drive BAL TMY CAB.nam"}, {"name": "bassman crunch.nam", "label": "bassman crunch", "category": "General", "path": "/var/modep/user-files/NAM Models/bassman crunch.nam"}, {"name": "bassman full bore.nam", "label": "bassman full bore", "category": "General", "path": "/var/modep/user-files/NAM Models/bassman full bore.nam"}, {"name": "bassman full bore v2 400epochs.nam", "label": "bassman full bore v2 400epochs", "category": "General", "path": "/var/modep/user-files/NAM Models/bassman full bore v2 400epochs.nam"}, {"name": "clean prefered setting.nam", "label": "clean prefered setting", "category": "General", "path": "/var/modep/user-files/NAM Models/clean prefered setting.nam"}, {"name": "clean prefered stting baked in eq.nam", "label": "clean prefered stting baked in eq", "category": "General", "path": "/var/modep/user-files/NAM Models/clean prefered stting baked in eq.nam"}, {"name": "mandolin ezac colab.nam", "label": "mandolin ezac colab", "category": "General", "path": "/var/modep/user-files/NAM Models/mandolin ezac colab.nam"}, {"name": "marshall dsl edge of crunch 1000epochs.nam", "label": "marshall dsl edge of crunch 1000epochs", "category": "General", "path": "/var/modep/user-files/NAM Models/marshall dsl edge of crunch 1000epochs.nam"}, {"name": "marshall dsl20 clean 1000epochs.nam", "label": "marshall dsl20 clean 1000epochs", "category": "General", "path": "/var/modep/user-files/NAM Models/marshall dsl20 clean 1000epochs.nam"}, {"name": "marshall dsl20 ultra gain rock monster 1000epochs.nam", "label": "marshall dsl20 ultra gain rock monster 1000epochs", "category": "General", "path": "/var/modep/user-files/NAM Models/marshall dsl20 ultra gain rock monster 1000epochs.nam"}, {"name": "martin d45 -1.nam", "label": "martin d45 -1", "category": "General", "path": "/var/modep/user-files/NAM Models/martin d45 -1.nam"}, {"name": "martin d45 colab.nam", "label": "martin d45 colab", "category": "General", "path": "/var/modep/user-files/NAM Models/martin d45 colab.nam"}, {"name": "most fender blackface baked eq.nam", "label": "most fender blackface baked eq", "category": "General", "path": "/var/modep/user-files/NAM Models/most fender blackface baked eq.nam"}, {"name": "most fender with expremnetal opamp21 and comp added.nam", "label": "most fender with expremnetal opamp21 and comp added", "category": "General", "path": "/var/modep/user-files/NAM Models/most fender with expremnetal opamp21 and comp added.nam"}, {"name": "most fenderish blackface.nam", "label": "most fenderish blackface", "category": "General", "path": "/var/modep/user-files/NAM Models/most fenderish blackface.nam"}, {"name": "most fenderish blackface expriment with dimention D.nam", "label": "most fenderish blackface expriment with dimention D", "category": "General", "path": "/var/modep/user-files/NAM Models/most fenderish blackface expriment with dimention D.nam"}, {"name": "GBSN G19 IA Crunch BAL CAB.nam", "label": "GBSN G19 IA Crunch BAL CAB", "category": "Gibson GA-19 RVT Falcon 1962 - CRUNCH - A2", "path": "/var/modep/user-files/NAM Models/Gibson GA-19 RVT Falcon 1962 - CRUNCH - A2/GBSN G19 IA Crunch BAL CAB.nam"}, {"name": "marshall dsl edge of crunch 1000epochs.nam", "label": "marshall dsl edge of crunch 1000epochs", "category": "MARSHALL DSL20 PACK", "path": "/var/modep/user-files/NAM Models/MARSHALL DSL20 PACK/marshall dsl edge of crunch 1000epochs.nam"}, {"name": "marshall dsl20 clean 1000epochs.nam", "label": "marshall dsl20 clean 1000epochs", "category": "MARSHALL DSL20 PACK", "path": "/var/modep/user-files/NAM Models/MARSHALL DSL20 PACK/marshall dsl20 clean 1000epochs.nam"}, {"name": "marshall dsl20 ultra gain rock monster 1000epochs.nam", "label": "marshall dsl20 ultra gain rock monster 1000epochs", "category": "MARSHALL DSL20 PACK", "path": "/var/modep/user-files/NAM Models/MARSHALL DSL20 PACK/marshall dsl20 ultra gain rock monster 1000epochs.nam"}, {"name": "RR Twin65 BRT 160.nam", "label": "RR Twin65 BRT 160", "category": "RR Twin65", "path": "/var/modep/user-files/NAM Models/RR Twin65/RR Twin65 BRT 160.nam"}, {"name": "RR Twin65 NRM 57.nam", "label": "RR Twin65 NRM 57", "category": "RR Twin65", "path": "/var/modep/user-files/NAM Models/RR Twin65/RR Twin65 NRM 57.nam"}, {"name": "RR Twin65 NRM 87.nam", "label": "RR Twin65 NRM 87", "category": "RR Twin65", "path": "/var/modep/user-files/NAM Models/RR Twin65/RR Twin65 NRM 87.nam"}, {"name": "Silvertone Model 1484 - V10 - Mic Sum.nam", "label": "Silvertone Model 1484 - V10 - Mic Sum", "category": "Silvertone Model 1484 Twin Twelve - Vintage Mid 60s", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 Twin Twelve - Vintage Mid 60s/Silvertone Model 1484 - V10 - Mic Sum.nam"}, {"name": "Silvertone Model 1484 - V10 - R121.nam", "label": "Silvertone Model 1484 - V10 - R121", "category": "Silvertone Model 1484 Twin Twelve - Vintage Mid 60s", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 Twin Twelve - Vintage Mid 60s/Silvertone Model 1484 - V10 - R121.nam"}, {"name": "Silvertone Model 1484 - V10 - SM57.nam", "label": "Silvertone Model 1484 - V10 - SM57", "category": "Silvertone Model 1484 Twin Twelve - Vintage Mid 60s", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 Twin Twelve - Vintage Mid 60s/Silvertone Model 1484 - V10 - SM57.nam"}, {"name": "Silvertone Model 1484 - V4 - Mic Sum.nam", "label": "Silvertone Model 1484 - V4 - Mic Sum", "category": "Silvertone Model 1484 Twin Twelve - Vintage Mid 60s", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 Twin Twelve - Vintage Mid 60s/Silvertone Model 1484 - V4 - Mic Sum.nam"}, {"name": "Silvertone Model 1484 - V4 - R121.nam", "label": "Silvertone Model 1484 - V4 - R121", "category": "Silvertone Model 1484 Twin Twelve - Vintage Mid 60s", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 Twin Twelve - Vintage Mid 60s/Silvertone Model 1484 - V4 - R121.nam"}, {"name": "Silvertone Model 1484 - V4 - SM57.nam", "label": "Silvertone Model 1484 - V4 - SM57", "category": "Silvertone Model 1484 Twin Twelve - Vintage Mid 60s", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 Twin Twelve - Vintage Mid 60s/Silvertone Model 1484 - V4 - SM57.nam"}, {"name": "Silvertone Model 1484 - V6 - Mic Sum.nam", "label": "Silvertone Model 1484 - V6 - Mic Sum", "category": "Silvertone Model 1484 Twin Twelve - Vintage Mid 60s", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 Twin Twelve - Vintage Mid 60s/Silvertone Model 1484 - V6 - Mic Sum.nam"}, {"name": "Silvertone Model 1484 - V6 - R121.nam", "label": "Silvertone Model 1484 - V6 - R121", "category": "Silvertone Model 1484 Twin Twelve - Vintage Mid 60s", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 Twin Twelve - Vintage Mid 60s/Silvertone Model 1484 - V6 - R121.nam"}, {"name": "Silvertone Model 1484 - V6 - SM57.nam", "label": "Silvertone Model 1484 - V6 - SM57", "category": "Silvertone Model 1484 Twin Twelve - Vintage Mid 60s", "path": "/var/modep/user-files/NAM Models/Silvertone Model 1484 Twin Twelve - Vintage Mid 60s/Silvertone Model 1484 - V6 - SM57.nam"}, {"name": "TK ROY 67 Drive BAL TMY CAB.nam", "label": "TK ROY 67 Drive BAL TMY CAB", "category": "Tone King Royalist MKIII Drive", "path": "/var/modep/user-files/NAM Models/Tone King Royalist MKIII Drive/TK ROY 67 Drive BAL TMY CAB.nam"}, {"name": "tw40_blues_deluxe_deerinkstudios.json", "label": "tw40_blues_deluxe_deerinkstudios", "category": "deer ink studios", "path": "/var/modep/lv2/rt-neural-generic.lv2/models/deer ink studios/tw40_blues_deluxe_deerinkstudios.json"}, {"name": "tw40_blues_solo_deerinkstudios.json", "label": "tw40_blues_solo_deerinkstudios", "category": "deer ink studios", "path": "/var/modep/lv2/rt-neural-generic.lv2/models/deer ink studios/tw40_blues_solo_deerinkstudios.json"}, {"name": "tw40_british_lead_deerinkstudios.json", "label": "tw40_british_lead_deerinkstudios", "category": "deer ink studios", "path": "/var/modep/lv2/rt-neural-generic.lv2/models/deer ink studios/tw40_british_lead_deerinkstudios.json"}, {"name": "tw40_british_rhythm_deerinkstudios.json", "label": "tw40_british_rhythm_deerinkstudios", "category": "deer ink studios", "path": "/var/modep/lv2/rt-neural-generic.lv2/models/deer ink studios/tw40_british_rhythm_deerinkstudios.json"}, {"name": "tw40_california_clean_deerinkstudios.json", "label": "tw40_california_clean_deerinkstudios", "category": "deer ink studios", "path": "/var/modep/lv2/rt-neural-generic.lv2/models/deer ink studios/tw40_california_clean_deerinkstudios.json"}, {"name": "tw40_california_crunch_deerinkstudios.json", "label": "tw40_california_crunch_deerinkstudios", "category": "deer ink studios", "path": "/var/modep/lv2/rt-neural-generic.lv2/models/deer ink studios/tw40_california_crunch_deerinkstudios.json"}, {"name": "patchstorage.json", "label": "patchstorage", "category": "neural_amp_modeler.lv2", "path": "/var/modep/lv2/neural_amp_modeler.lv2/patchstorage.json"}, {"name": "patchstorage.json", "label": "patchstorage", "category": "neural_amp_modeler.lv2.bak", "path": "/var/modep/lv2/neural_amp_modeler.lv2.bak/patchstorage.json"}],
+    ir: [{"name": "Biomedical Sciences Courtyard UC San Diego California.wav", "label": "Biomedical Sciences Courtyard UC San Diego California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/Biomedical Sciences Courtyard UC San Diego California.wav"}, {"name": "Carpenter Center Courtyard UC San Diego California.wav", "label": "Carpenter Center Courtyard UC San Diego California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/Carpenter Center Courtyard UC San Diego California.wav"}, {"name": "Galbraith Hall Walkway UC San Diego California.wav", "label": "Galbraith Hall Walkway UC San Diego California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/Galbraith Hall Walkway UC San Diego California.wav"}, {"name": "Geisel Library Pedestal UC San Diego California.wav", "label": "Geisel Library Pedestal UC San Diego California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/Geisel Library Pedestal UC San Diego California.wav"}, {"name": "Graffiti Hallway UC San Diego California.wav", "label": "Graffiti Hallway UC San Diego California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/Graffiti Hallway UC San Diego California.wav"}, {"name": "Humanities and Social Sciences Courtyard California.wav", "label": "Humanities and Social Sciences Courtyard California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/Humanities and Social Sciences Courtyard California.wav"}, {"name": "Natural Sciences Courtyard UC San Diego California.wav", "label": "Natural Sciences Courtyard UC San Diego California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/Natural Sciences Courtyard UC San Diego California.wav"}, {"name": "Pacific Hall Courtyard UC San Diego California.wav", "label": "Pacific Hall Courtyard UC San Diego California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/Pacific Hall Courtyard UC San Diego California.wav"}, {"name": "Pepper Canyon Hall Courtyard UC San Diego California.wav", "label": "Pepper Canyon Hall Courtyard UC San Diego California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/Pepper Canyon Hall Courtyard UC San Diego California.wav"}, {"name": "San Diego Supercomputer Center Outdoor Patio California.wav", "label": "San Diego Supercomputer Center Outdoor Patio California", "category": "EchoThief/EchoThief/Brutalism", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Brutalism/San Diego Supercomputer Center Outdoor Patio California.wav"}, {"name": "Casa Grande Domes Arizona.wav", "label": "Casa Grande Domes Arizona", "category": "EchoThief/EchoThief/Domes", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Domes/Casa Grande Domes Arizona.wav"}, {"name": "Death Valley Charcoal Kilns California.wav", "label": "Death Valley Charcoal Kilns California", "category": "EchoThief/EchoThief/Domes", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Domes/Death Valley Charcoal Kilns California.wav"}, {"name": "Immaculata Dome University of San Diego California.wav", "label": "Immaculata Dome University of San Diego California", "category": "EchoThief/EchoThief/Domes", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Domes/Immaculata Dome University of San Diego California.wav"}, {"name": "Kroc Rotunda University of San Diego California.wav", "label": "Kroc Rotunda University of San Diego California", "category": "EchoThief/EchoThief/Domes", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Domes/Kroc Rotunda University of San Diego California.wav"}, {"name": "Naumburg Bandshell Central Park New York.wav", "label": "Naumburg Bandshell Central Park New York", "category": "EchoThief/EchoThief/Domes", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Domes/Naumburg Bandshell Central Park New York.wav"}, {"name": "Planetarium San Diego State University California.wav", "label": "Planetarium San Diego State University California", "category": "EchoThief/EchoThief/Domes", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Domes/Planetarium San Diego State University California.wav"}, {"name": "Square Victoria Dome Montreal Quebec.wav", "label": "Square Victoria Dome Montreal Quebec", "category": "EchoThief/EchoThief/Domes", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Domes/Square Victoria Dome Montreal Quebec.wav"}, {"name": "Academic Quadrangle Simon Fraser University Vancouver British Columbia.wav", "label": "Academic Quadrangle Simon Fraser University Vancouver British Columbia", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Academic Quadrangle Simon Fraser University Vancouver British Columbia.wav"}, {"name": "Amaranth Michael Hall Sculpture Bloomfield Hills Michigan.wav", "label": "Amaranth Michael Hall Sculpture Bloomfield Hills Michigan", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Amaranth Michael Hall Sculpture Bloomfield Hills Michigan.wav"}, {"name": "Bar Monsieur Ricard Montreal Quebec.wav", "label": "Bar Monsieur Ricard Montreal Quebec", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Bar Monsieur Ricard Montreal Quebec.wav"}, {"name": "Castillo de los Tres Reyes del Morro Arch Havana.wav", "label": "Castillo de los Tres Reyes del Morro Arch Havana", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Castillo de los Tres Reyes del Morro Arch Havana.wav"}, {"name": "Castillo de los Tres Reyes del Morro Courtyard Havana.wav", "label": "Castillo de los Tres Reyes del Morro Courtyard Havana", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Castillo de los Tres Reyes del Morro Courtyard Havana.wav"}, {"name": "Castillo de los Tres Reyes del Morro Havana.wav", "label": "Castillo de los Tres Reyes del Morro Havana", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Castillo de los Tres Reyes del Morro Havana.wav"}, {"name": "Castillo de los Tres Reyes del Morro Salas de Exposicion Havana.wav", "label": "Castillo de los Tres Reyes del Morro Salas de Exposicion Havana", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Castillo de los Tres Reyes del Morro Salas de Exposicion Havana.wav"}, {"name": "Cedar Creek Winery Cellar Wisconsin.wav", "label": "Cedar Creek Winery Cellar Wisconsin", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Cedar Creek Winery Cellar Wisconsin.wav"}, {"name": "Convocation Mall Simpn Fraser University Vancouver British Columbia.wav", "label": "Convocation Mall Simpn Fraser University Vancouver British Columbia", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Convocation Mall Simpn Fraser University Vancouver British Columbia.wav"}, {"name": "Digital Humanities Center San Diego State University California.wav", "label": "Digital Humanities Center San Diego State University California", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Digital Humanities Center San Diego State University California.wav"}, {"name": "Fortaleza de San Carlos de la Cabana Havana.wav", "label": "Fortaleza de San Carlos de la Cabana Havana", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Fortaleza de San Carlos de la Cabana Havana.wav"}, {"name": "Hartwell Tavern Minute Man National Historical Park Lincoln Massachusetts.wav", "label": "Hartwell Tavern Minute Man National Historical Park Lincoln Massachusetts", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Hartwell Tavern Minute Man National Historical Park Lincoln Massachusetts.wav"}, {"name": "Hawxhurst Mansion Ballroom Newport Rhode Island.wav", "label": "Hawxhurst Mansion Ballroom Newport Rhode Island", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Hawxhurst Mansion Ballroom Newport Rhode Island.wav"}, {"name": "Hepner Hall UC San Diego California.wav", "label": "Hepner Hall UC San Diego California", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Hepner Hall UC San Diego California.wav"}, {"name": "Littlefield Concert Hall Lobby Mills College Oakland California.wav", "label": "Littlefield Concert Hall Lobby Mills College Oakland California", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Littlefield Concert Hall Lobby Mills College Oakland California.wav"}, {"name": "Love Library San Diego State University California.wav", "label": "Love Library San Diego State University California", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Love Library San Diego State University California.wav"}, {"name": "Mapparium Christian Science Publishing Society Boston Massachusetts.wav", "label": "Mapparium Christian Science Publishing Society Boston Massachusetts", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Mapparium Christian Science Publishing Society Boston Massachusetts.wav"}, {"name": "Mills Art Museum Oakland California.wav", "label": "Mills Art Museum Oakland California", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Mills Art Museum Oakland California.wav"}, {"name": "Pabellon Cultural de la Republica Cabo San Lucas Baja California Sur.wav", "label": "Pabellon Cultural de la Republica Cabo San Lucas Baja California Sur", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Pabellon Cultural de la Republica Cabo San Lucas Baja California Sur.wav"}, {"name": "Pabst Brewery Tanks Milwaukee Wisconsin.wav", "label": "Pabst Brewery Tanks Milwaukee Wisconsin", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Pabst Brewery Tanks Milwaukee Wisconsin.wav"}, {"name": "Quadracci Pavilion Milwaukee Art Museum Wisconsin.wav", "label": "Quadracci Pavilion Milwaukee Art Museum Wisconsin", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Quadracci Pavilion Milwaukee Art Museum Wisconsin.wav"}, {"name": "Red Bridge Cedarburg Wisconsin.wav", "label": "Red Bridge Cedarburg Wisconsin", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Red Bridge Cedarburg Wisconsin.wav"}, {"name": "Steinman Foundation Recording Suite Millersville University Pennsylvania.wav", "label": "Steinman Foundation Recording Suite Millersville University Pennsylvania", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Steinman Foundation Recording Suite Millersville University Pennsylvania.wav"}, {"name": "Storage Tank No 7 Cedar Creek Winery Wisconsin.wav", "label": "Storage Tank No 7 Cedar Creek Winery Wisconsin", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Storage Tank No 7 Cedar Creek Winery Wisconsin.wav"}, {"name": "Wangenheim Rare Books Room San Diego Public Library California.wav", "label": "Wangenheim Rare Books Room San Diego Public Library California", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Wangenheim Rare Books Room San Diego Public Library California.wav"}, {"name": "Warren Lecture Hall 2005 UC San Diego California.wav", "label": "Warren Lecture Hall 2005 UC San Diego California", "category": "EchoThief/EchoThief/Miscellaneous", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Miscellaneous/Warren Lecture Hall 2005 UC San Diego California.wav"}, {"name": "Annie's Canyon Trail Slot Encinitas California.wav", "label": "Annie's Canyon Trail Slot Encinitas California", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Annie's Canyon Trail Slot Encinitas California.wav"}, {"name": "Byron Glacier Alaska.wav", "label": "Byron Glacier Alaska", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Byron Glacier Alaska.wav"}, {"name": "Cliff of the Dawn Cancun Quintana Roo.wav", "label": "Cliff of the Dawn Cancun Quintana Roo", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Cliff of the Dawn Cancun Quintana Roo.wav"}, {"name": "Cliff of the Dawn Isla Mujeres Quintana Roo.wav", "label": "Cliff of the Dawn Isla Mujeres Quintana Roo", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Cliff of the Dawn Isla Mujeres Quintana Roo.wav"}, {"name": "DevilsPunchbowl.wav", "label": "DevilsPunchbowl", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/DevilsPunchbowl.wav"}, {"name": "DivorceBeach.wav", "label": "DivorceBeach", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/DivorceBeach.wav"}, {"name": "FatMansMisery.wav", "label": "FatMansMisery", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/FatMansMisery.wav"}, {"name": "FatMansSqueeze.wav", "label": "FatMansSqueeze", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/FatMansSqueeze.wav"}, {"name": "Fossil Falls Coso Range California.wav", "label": "Fossil Falls Coso Range California", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Fossil Falls Coso Range California.wav"}, {"name": "Hole in the Rock Phoenix Arizona.wav", "label": "Hole in the Rock Phoenix Arizona", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Hole in the Rock Phoenix Arizona.wav"}, {"name": "Isla Mujeres Cave Quintana Roo.wav", "label": "Isla Mujeres Cave Quintana Roo", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Isla Mujeres Cave Quintana Roo.wav"}, {"name": "Isla Mujeres Small Cave Quintana Roo.wav", "label": "Isla Mujeres Small Cave Quintana Roo", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Isla Mujeres Small Cave Quintana Roo.wav"}, {"name": "Newberry National Volcanic Monument Lava Field Oregon.wav", "label": "Newberry National Volcanic Monument Lava Field Oregon", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Newberry National Volcanic Monument Lava Field Oregon.wav"}, {"name": "Purgatory Chasm Rhode Island.wav", "label": "Purgatory Chasm Rhode Island", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Purgatory Chasm Rhode Island.wav"}, {"name": "Stanley Park Cliffs Vancouver British Columbia.wav", "label": "Stanley Park Cliffs Vancouver British Columbia", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Stanley Park Cliffs Vancouver British Columbia.wav"}, {"name": "Subway Cave Lava Tube Sanctum Lassen National Forest California.wav", "label": "Subway Cave Lava Tube Sanctum Lassen National Forest California", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Subway Cave Lava Tube Sanctum Lassen National Forest California.wav"}, {"name": "Sunset Cliffs Open Ceiling Sea Cave San Diego California.wav", "label": "Sunset Cliffs Open Ceiling Sea Cave San Diego California", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Sunset Cliffs Open Ceiling Sea Cave San Diego California.wav"}, {"name": "The Slot Anza Borrego Desert California.wav", "label": "The Slot Anza Borrego Desert California", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/The Slot Anza Borrego Desert California.wav"}, {"name": "Valley of the Moon Smugglers Cave Jacumba Wilderness California.wav", "label": "Valley of the Moon Smugglers Cave Jacumba Wilderness California", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Valley of the Moon Smugglers Cave Jacumba Wilderness California.wav"}, {"name": "Woodruff Lane Corn Field Marysville California.wav", "label": "Woodruff Lane Corn Field Marysville California", "category": "EchoThief/EchoThief/Nature", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nature/Woodruff Lane Corn Field Marysville California.wav"}, {"name": "B-39 Black Widow Submarine Aft Torpedo Room.wav", "label": "B-39 Black Widow Submarine Aft Torpedo Room", "category": "EchoThief/EchoThief/Nautical", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nautical/B-39 Black Widow Submarine Aft Torpedo Room.wav"}, {"name": "B-39 Black Widow Submarine Engine Room.wav", "label": "B-39 Black Widow Submarine Engine Room", "category": "EchoThief/EchoThief/Nautical", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nautical/B-39 Black Widow Submarine Engine Room.wav"}, {"name": "Californian Tall Ship Deck.wav", "label": "Californian Tall Ship Deck", "category": "EchoThief/EchoThief/Nautical", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nautical/Californian Tall Ship Deck.wav"}, {"name": "Star of India Orlop.wav", "label": "Star of India Orlop", "category": "EchoThief/EchoThief/Nautical", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nautical/Star of India Orlop.wav"}, {"name": "Steam Ferry Berkeley Main Deck.wav", "label": "Steam Ferry Berkeley Main Deck", "category": "EchoThief/EchoThief/Nautical", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nautical/Steam Ferry Berkeley Main Deck.wav"}, {"name": "USS Dolphin Submarine Control Room.wav", "label": "USS Dolphin Submarine Control Room", "category": "EchoThief/EchoThief/Nautical", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Nautical/USS Dolphin Submarine Control Room.wav"}, {"name": "Cranbrook Art Museum Bloomfield Hills Michigan.wav", "label": "Cranbrook Art Museum Bloomfield Hills Michigan", "category": "EchoThief/EchoThief/Recreation", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Recreation/Cranbrook Art Museum Bloomfield Hills Michigan.wav"}, {"name": "Hale Holistic Yoga Studio San Diego California.wav", "label": "Hale Holistic Yoga Studio San Diego California", "category": "EchoThief/EchoThief/Recreation", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Recreation/Hale Holistic Yoga Studio San Diego California.wav"}, {"name": "International Velodrome at Bloomer Park Rochester Hills Michigan.wav", "label": "International Velodrome at Bloomer Park Rochester Hills Michigan", "category": "EchoThief/EchoThief/Recreation", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Recreation/International Velodrome at Bloomer Park Rochester Hills Michigan.wav"}, {"name": "Natatorium UC San Diego California.wav", "label": "Natatorium UC San Diego California", "category": "EchoThief/EchoThief/Recreation", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Recreation/Natatorium UC San Diego California.wav"}, {"name": "Outback Rock Climbing Center UC San Diego California.wav", "label": "Outback Rock Climbing Center UC San Diego California", "category": "EchoThief/EchoThief/Recreation", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Recreation/Outback Rock Climbing Center UC San Diego California.wav"}, {"name": "Racquetball Court UC San Diego California.wav", "label": "Racquetball Court UC San Diego California", "category": "EchoThief/EchoThief/Recreation", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Recreation/Racquetball Court UC San Diego California.wav"}, {"name": "Seward Waterfront Park Stone Shelter Alaska.wav", "label": "Seward Waterfront Park Stone Shelter Alaska", "category": "EchoThief/EchoThief/Recreation", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Recreation/Seward Waterfront Park Stone Shelter Alaska.wav"}, {"name": "Sleeping Giant State Park Observation Tower Hamden Connecticut.wav", "label": "Sleeping Giant State Park Observation Tower Hamden Connecticut", "category": "EchoThief/EchoThief/Recreation", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Recreation/Sleeping Giant State Park Observation Tower Hamden Connecticut.wav"}, {"name": "First Church of Christ Scientist Original Edifice Boston Massachusetts.wav", "label": "First Church of Christ Scientist Original Edifice Boston Massachusetts", "category": "EchoThief/EchoThief/Sanctuaries", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Sanctuaries/First Church of Christ Scientist Original Edifice Boston Massachusetts.wav"}, {"name": "Founders Chapel University of San Diego California.wav", "label": "Founders Chapel University of San Diego California", "category": "EchoThief/EchoThief/Sanctuaries", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Sanctuaries/Founders Chapel University of San Diego California.wav"}, {"name": "Immaculata Dome University of San Diego California.wav", "label": "Immaculata Dome University of San Diego California", "category": "EchoThief/EchoThief/Sanctuaries", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Sanctuaries/Immaculata Dome University of San Diego California.wav"}, {"name": "Saint Martin of Tours Parish La Mesa California.wav", "label": "Saint Martin of Tours Parish La Mesa California", "category": "EchoThief/EchoThief/Sanctuaries", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Sanctuaries/Saint Martin of Tours Parish La Mesa California.wav"}, {"name": "St Paul's Cathedral San Diego California.wav", "label": "St Paul's Cathedral San Diego California", "category": "EchoThief/EchoThief/Sanctuaries", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Sanctuaries/St Paul's Cathedral San Diego California.wav"}, {"name": "3000 C Street Garage Stairwell Anchorage Alaska.wav", "label": "3000 C Street Garage Stairwell Anchorage Alaska", "category": "EchoThief/EchoThief/Stairwells", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Stairwells/3000 C Street Garage Stairwell Anchorage Alaska.wav"}, {"name": "CCRMA Stairwell Stanford University California.wav", "label": "CCRMA Stairwell Stanford University California", "category": "EchoThief/EchoThief/Stairwells", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Stairwells/CCRMA Stairwell Stanford University California.wav"}, {"name": "Conrad Prebys Music Center North Stairwell UC San Diego California.wav", "label": "Conrad Prebys Music Center North Stairwell UC San Diego California", "category": "EchoThief/EchoThief/Stairwells", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Stairwells/Conrad Prebys Music Center North Stairwell UC San Diego California.wav"}, {"name": "Exercise and Nutrition Sciences Stairwell San Diego State University California.wav", "label": "Exercise and Nutrition Sciences Stairwell San Diego State University California", "category": "EchoThief/EchoThief/Stairwells", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Stairwells/Exercise and Nutrition Sciences Stairwell San Diego State University California.wav"}, {"name": "San Diego Convention Center Steps California.wav", "label": "San Diego Convention Center Steps California", "category": "EchoThief/EchoThief/Stairwells", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Stairwells/San Diego Convention Center Steps California.wav"}, {"name": "Simon Fraser University Transportation Centre Burnaby British Columbia.wav", "label": "Simon Fraser University Transportation Centre Burnaby British Columbia", "category": "EchoThief/EchoThief/Stairwells", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Stairwells/Simon Fraser University Transportation Centre Burnaby British Columbia.wav"}, {"name": "Strathcona Stairwell McGill University Montreal Quebec.wav", "label": "Strathcona Stairwell McGill University Montreal Quebec", "category": "EchoThief/EchoThief/Stairwells", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Stairwells/Strathcona Stairwell McGill University Montreal Quebec.wav"}, {"name": "Batcave Griffith Park Los Angeles California.wav", "label": "Batcave Griffith Park Los Angeles California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Batcave Griffith Park Los Angeles California.wav"}, {"name": "Battery Benson Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Battery Benson Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Battery Benson Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Battery Brannan Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Battery Brannan Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Battery Brannan Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Battery Powell Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Battery Powell Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Battery Powell Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Battery Quarles Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Battery Quarles Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Battery Quarles Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Battery Randol Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Battery Randol Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Battery Randol Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Battery Tolles Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Battery Tolles Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Battery Tolles Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Cathedral Room Shasta Lake Caverns California.wav", "label": "Cathedral Room Shasta Lake Caverns California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Cathedral Room Shasta Lake Caverns California.wav"}, {"name": "Discovery Room Shasta Lake Caverns California.wav", "label": "Discovery Room Shasta Lake Caverns California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Discovery Room Shasta Lake Caverns California.wav"}, {"name": "Harbor Entrance Command Post Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Harbor Entrance Command Post Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Harbor Entrance Command Post Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Lake Mead Aqueduct Nevada.wav", "label": "Lake Mead Aqueduct Nevada", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Lake Mead Aqueduct Nevada.wav"}, {"name": "Lake Merritt BART Station Oakland California.wav", "label": "Lake Merritt BART Station Oakland California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Lake Merritt BART Station Oakland California.wav"}, {"name": "Lawrence Welk Cave Hidden Meadows California.wav", "label": "Lawrence Welk Cave Hidden Meadows California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Lawrence Welk Cave Hidden Meadows California.wav"}, {"name": "Meadowbrook Tunnel Storm Drain Poway California.wav", "label": "Meadowbrook Tunnel Storm Drain Poway California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Meadowbrook Tunnel Storm Drain Poway California.wav"}, {"name": "Music Concourse Garage Golden Gate Park San Francisco California.wav", "label": "Music Concourse Garage Golden Gate Park San Francisco California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Music Concourse Garage Golden Gate Park San Francisco California.wav"}, {"name": "Nancy Lake State Recreation Area Tunnel Alaska.wav", "label": "Nancy Lake State Recreation Area Tunnel Alaska", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Nancy Lake State Recreation Area Tunnel Alaska.wav"}, {"name": "Pillbox Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Pillbox Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Pillbox Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Port Townsend Skatepark Washington.wav", "label": "Port Townsend Skatepark Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Port Townsend Skatepark Washington.wav"}, {"name": "Portage Creek Tunnel Alaska.wav", "label": "Portage Creek Tunnel Alaska", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Portage Creek Tunnel Alaska.wav"}, {"name": "Qasgiq Semisubterranean Longhouse Anchorage Alaska.wav", "label": "Qasgiq Semisubterranean Longhouse Anchorage Alaska", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Qasgiq Semisubterranean Longhouse Anchorage Alaska.wav"}, {"name": "Salton Sea Drainage Pipe California.wav", "label": "Salton Sea Drainage Pipe California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Salton Sea Drainage Pipe California.wav"}, {"name": "San Diego Civic Center Plaza Parking Garage Basement 3 California.wav", "label": "San Diego Civic Center Plaza Parking Garage Basement 3 California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/San Diego Civic Center Plaza Parking Garage Basement 3 California.wav"}, {"name": "Switzer Canyon Tunnel San Diego California.wav", "label": "Switzer Canyon Tunnel San Diego California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Switzer Canyon Tunnel San Diego California.wav"}, {"name": "Tamarack Beach Drainage Pipe Carlsbad California.wav", "label": "Tamarack Beach Drainage Pipe Carlsbad California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Tamarack Beach Drainage Pipe Carlsbad California.wav"}, {"name": "Tijuana Aqueduct Tunnel Baja California.wav", "label": "Tijuana Aqueduct Tunnel Baja California", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Tijuana Aqueduct Tunnel Baja California.wav"}, {"name": "Tony Knowles Coastal Trail Tunnel Anchorage Alaska.wav", "label": "Tony Knowles Coastal Trail Tunnel Anchorage Alaska", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Tony Knowles Coastal Trail Tunnel Anchorage Alaska.wav"}, {"name": "Tunnel Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Tunnel Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Tunnel Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Tunnel to Heaven Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Tunnel to Heaven Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Tunnel to Heaven Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "Tunnel to Hell Fort Worden Historical State Park Port Townsend Washington.wav", "label": "Tunnel to Hell Fort Worden Historical State Park Port Townsend Washington", "category": "EchoThief/EchoThief/Underground", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underground/Tunnel to Hell Fort Worden Historical State Park Port Townsend Washington.wav"}, {"name": "5 Underpass Commercial Avenue San Diego California.wav", "label": "5 Underpass Commercial Avenue San Diego California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/5 Underpass Commercial Avenue San Diego California.wav"}, {"name": "5 Underpass Valencia California.wav", "label": "5 Underpass Valencia California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/5 Underpass Valencia California.wav"}, {"name": "Arroyo Ensenada Underpass Baja Californa.wav", "label": "Arroyo Ensenada Underpass Baja Californa", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Arroyo Ensenada Underpass Baja Californa.wav"}, {"name": "Art and Anne McDaniel Bridge Underpass San Diego California.wav", "label": "Art and Anne McDaniel Bridge Underpass San Diego California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Art and Anne McDaniel Bridge Underpass San Diego California.wav"}, {"name": "Avenue 52 Underpass Los Angeles River California.wav", "label": "Avenue 52 Underpass Los Angeles River California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Avenue 52 Underpass Los Angeles River California.wav"}, {"name": "Avenue 60 Underpass Los Angeles River California.wav", "label": "Avenue 60 Underpass Los Angeles River California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Avenue 60 Underpass Los Angeles River California.wav"}, {"name": "Boulevard Rosemont Underpass Montreal Quebec.wav", "label": "Boulevard Rosemont Underpass Montreal Quebec", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Boulevard Rosemont Underpass Montreal Quebec.wav"}, {"name": "Cariboo Road Underpass Gaglardi Way Burnabee British Columbia.wav", "label": "Cariboo Road Underpass Gaglardi Way Burnabee British Columbia", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Cariboo Road Underpass Gaglardi Way Burnabee British Columbia.wav"}, {"name": "Cleft Ridge Span Prospect Park Brooklyn New York.wav", "label": "Cleft Ridge Span Prospect Park Brooklyn New York", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Cleft Ridge Span Prospect Park Brooklyn New York.wav"}, {"name": "Dipway Arch Central Park New York.wav", "label": "Dipway Arch Central Park New York", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Dipway Arch Central Park New York.wav"}, {"name": "Echo Bridge Newton Upper Falls Massachusetts.wav", "label": "Echo Bridge Newton Upper Falls Massachusetts", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Echo Bridge Newton Upper Falls Massachusetts.wav"}, {"name": "Fremont Troll Seattle Washington.wav", "label": "Fremont Troll Seattle Washington", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Fremont Troll Seattle Washington.wav"}, {"name": "Hopkins Drive Underpass UC San Diego California.wav", "label": "Hopkins Drive Underpass UC San Diego California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Hopkins Drive Underpass UC San Diego California.wav"}, {"name": "JFK Underpass Golden Gate Park San Francisco California.wav", "label": "JFK Underpass Golden Gate Park San Francisco California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/JFK Underpass Golden Gate Park San Francisco California.wav"}, {"name": "Lions Gate Bridge Vancouver British Columbia.wav", "label": "Lions Gate Bridge Vancouver British Columbia", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Lions Gate Bridge Vancouver British Columbia.wav"}, {"name": "Old South Bridge UnderpassConcord Massachusetts.wav", "label": "Old South Bridge UnderpassConcord Massachusetts", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Old South Bridge UnderpassConcord Massachusetts.wav"}, {"name": "River Mountains Loop Trail Aqueduct Lake Mead California.wav", "label": "River Mountains Loop Trail Aqueduct Lake Mead California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/River Mountains Loop Trail Aqueduct Lake Mead California.wav"}, {"name": "Stanley Park Causeway Vancouver British Columbia.wav", "label": "Stanley Park Causeway Vancouver British Columbia", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Stanley Park Causeway Vancouver British Columbia.wav"}, {"name": "Stanley Park Drive Underpass Vancouver British Columbia.wav", "label": "Stanley Park Drive Underpass Vancouver British Columbia", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Stanley Park Drive Underpass Vancouver British Columbia.wav"}, {"name": "Switzer Street Underpass East Harbor Drive San Diego California.wav", "label": "Switzer Street Underpass East Harbor Drive San Diego California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Switzer Street Underpass East Harbor Drive San Diego California.wav"}, {"name": "Telephone Wash Underpass San Bernardino County California.wav", "label": "Telephone Wash Underpass San Bernardino County California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Telephone Wash Underpass San Bernardino County California.wav"}, {"name": "Walkway Underpass East Campus Drive San Diego State University California.wav", "label": "Walkway Underpass East Campus Drive San Diego State University California", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Walkway Underpass East Campus Drive San Diego State University California.wav"}, {"name": "Waterplace Park Providence Rhode Island.wav", "label": "Waterplace Park Providence Rhode Island", "category": "EchoThief/EchoThief/Underpasses", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Underpasses/Waterplace Park Providence Rhode Island.wav"}, {"name": "City Heights Performance Annex San Diego California.wav", "label": "City Heights Performance Annex San Diego California", "category": "EchoThief/EchoThief/Venues", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Venues/City Heights Performance Annex San Diego California.wav"}, {"name": "Conrad Prebys Concert Hall Seat F111 UC San Diego California.wav", "label": "Conrad Prebys Concert Hall Seat F111 UC San Diego California", "category": "EchoThief/EchoThief/Venues", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Venues/Conrad Prebys Concert Hall Seat F111 UC San Diego California.wav"}, {"name": "Mills Greek Theater Oakland California.wav", "label": "Mills Greek Theater Oakland California", "category": "EchoThief/EchoThief/Venues", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Venues/Mills Greek Theater Oakland California.wav"}, {"name": "Naumburg Bandshell Central Park New York.wav", "label": "Naumburg Bandshell Central Park New York", "category": "EchoThief/EchoThief/Venues", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Venues/Naumburg Bandshell Central Park New York.wav"}, {"name": "Orpheum Theatre Omaha Grand Tier D8 Nebraska.wav", "label": "Orpheum Theatre Omaha Grand Tier D8 Nebraska", "category": "EchoThief/EchoThief/Venues", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Venues/Orpheum Theatre Omaha Grand Tier D8 Nebraska.wav"}, {"name": "Space 4 Art Gallery San Diego California.wav", "label": "Space 4 Art Gallery San Diego California", "category": "EchoThief/EchoThief/Venues", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Venues/Space 4 Art Gallery San Diego California.wav"}, {"name": "Steinman Hall Millersville University Pennsylvania.wav", "label": "Steinman Hall Millersville University Pennsylvania", "category": "EchoThief/EchoThief/Venues", "path": "/var/modep/user-files/Reverb IRs/EchoThief/EchoThief/Venues/Steinman Hall Millersville University Pennsylvania.wav"}, {"name": "IR_AKG_BX25_1,5s.wav", "label": "IR AKG BX25 1,5s", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_AKG_BX25_1,5s.wav"}, {"name": "IR_AKG_BX25_1,5s_16x_stretch.wav", "label": "IR AKG BX25 1,5s 16x stretch", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_AKG_BX25_1,5s_16x_stretch.wav"}, {"name": "IR_AKG_BX25_1,5s_64x_stretch.wav", "label": "IR AKG BX25 1,5s 64x stretch", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_AKG_BX25_1,5s_64x_stretch.wav"}, {"name": "IR_AKG_BX25_1,5s_8x_stretch.wav", "label": "IR AKG BX25 1,5s 8x stretch", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_AKG_BX25_1,5s_8x_stretch.wav"}, {"name": "IR_AKG_BX25_1,5s_dark.wav", "label": "IR AKG BX25 1,5s dark", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_AKG_BX25_1,5s_dark.wav"}, {"name": "IR_AKG_BX25_2,5s.wav", "label": "IR AKG BX25 2,5s", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_AKG_BX25_2,5s.wav"}, {"name": "IR_AKG_BX25_2,5s_dark.wav", "label": "IR AKG BX25 2,5s dark", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_AKG_BX25_2,5s_dark.wav"}, {"name": "IR_AKG_BX25_3,5s.wav", "label": "IR AKG BX25 3,5s", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_AKG_BX25_3,5s.wav"}, {"name": "IR_AKG_BX25_3,5s_dark.wav", "label": "IR AKG BX25 3,5s dark", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_AKG_BX25_3,5s_dark.wav"}, {"name": "IR_Dynacord_VRS_reverb_long.wav", "label": "IR Dynacord VRS reverb long", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Dynacord_VRS_reverb_long.wav"}, {"name": "IR_Dynacord_VRS_reverb_medium.wav", "label": "IR Dynacord VRS reverb medium", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Dynacord_VRS_reverb_medium.wav"}, {"name": "IR_Dynacord_VRS_reverb_medium_16x_stretch.wav", "label": "IR Dynacord VRS reverb medium 16x stretch", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Dynacord_VRS_reverb_medium_16x_stretch.wav"}, {"name": "IR_Dynacord_VRS_reverb_medium_32x_stretch.wav", "label": "IR Dynacord VRS reverb medium 32x stretch", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Dynacord_VRS_reverb_medium_32x_stretch.wav"}, {"name": "IR_Dynacord_VRS_reverb_medium_8x_stretch.wav", "label": "IR Dynacord VRS reverb medium 8x stretch", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Dynacord_VRS_reverb_medium_8x_stretch.wav"}, {"name": "IR_Dynacord_VRS_reverb_short.wav", "label": "IR Dynacord VRS reverb short", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Dynacord_VRS_reverb_short.wav"}, {"name": "IR_Korg_GR1.wav", "label": "IR Korg GR1", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Korg_GR1.wav"}, {"name": "IR_Korg_GR1_16x_stretch.wav", "label": "IR Korg GR1 16x stretch", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Korg_GR1_16x_stretch.wav"}, {"name": "IR_Korg_GR1_32x_stretch.wav", "label": "IR Korg GR1 32x stretch", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Korg_GR1_32x_stretch.wav"}, {"name": "IR_Roland_RE201_spring_high-drive.wav", "label": "IR Roland RE201 spring high-drive", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE201_spring_high-drive.wav"}, {"name": "IR_Roland_RE201_spring_low-drive.wav", "label": "IR Roland RE201 spring low-drive", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE201_spring_low-drive.wav"}, {"name": "IR_Roland_RE201_spring_med-drive.wav", "label": "IR Roland RE201 spring med-drive", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE201_spring_med-drive.wav"}, {"name": "IR_Roland_RE201_tape_fast.wav", "label": "IR Roland RE201 tape fast", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE201_tape_fast.wav"}, {"name": "IR_Roland_RE201_tape_slow.wav", "label": "IR Roland RE201 tape slow", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE201_tape_slow.wav"}, {"name": "IR_Roland_RE501_spring_high-drive.wav", "label": "IR Roland RE501 spring high-drive", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE501_spring_high-drive.wav"}, {"name": "IR_Roland_RE501_spring_low-drive.wav", "label": "IR Roland RE501 spring low-drive", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE501_spring_low-drive.wav"}, {"name": "IR_Roland_RE501_spring_med-drive.wav", "label": "IR Roland RE501 spring med-drive", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE501_spring_med-drive.wav"}, {"name": "IR_Roland_RE501_tape_drive_fast.wav", "label": "IR Roland RE501 tape drive fast", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE501_tape_drive_fast.wav"}, {"name": "IR_Roland_RE501_tape_drive_slow.wav", "label": "IR Roland RE501 tape drive slow", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE501_tape_drive_slow.wav"}, {"name": "IR_Roland_RE501_tape_fast.wav", "label": "IR Roland RE501 tape fast", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE501_tape_fast.wav"}, {"name": "IR_Roland_RE501_tape_slow.wav", "label": "IR Roland RE501 tape slow", "category": "General", "path": "/var/modep/user-files/Reverb IRs/IR_Roland_RE501_tape_slow.wav"}, {"name": "emt_140_bright_1.wav", "label": "emt 140 bright 1", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_bright_1.wav"}, {"name": "emt_140_bright_2.wav", "label": "emt 140 bright 2", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_bright_2.wav"}, {"name": "emt_140_bright_4.wav", "label": "emt 140 bright 4", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_bright_4.wav"}, {"name": "emt_140_bright_5.wav", "label": "emt 140 bright 5", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_bright_5.wav"}, {"name": "emt_140_dark_1.wav", "label": "emt 140 dark 1", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_dark_1.wav"}, {"name": "emt_140_dark_2.wav", "label": "emt 140 dark 2", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_dark_2.wav"}, {"name": "emt_140_dark_3.wav", "label": "emt 140 dark 3", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_dark_3.wav"}, {"name": "emt_140_dark_4.wav", "label": "emt 140 dark 4", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_dark_4.wav"}, {"name": "emt_140_medium_1.wav", "label": "emt 140 medium 1", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_medium_1.wav"}, {"name": "emt_140_medium_2.wav", "label": "emt 140 medium 2", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_medium_2.wav"}, {"name": "emt_140_medium_3.wav", "label": "emt 140 medium 3", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_medium_3.wav"}, {"name": "emt_140_medium_4.wav", "label": "emt 140 medium 4", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_medium_4.wav"}, {"name": "emt_140_medium_5.wav", "label": "emt 140 medium 5", "category": "General", "path": "/var/modep/user-files/Reverb IRs/emt_140_medium_5.wav"}, {"name": "forward-audio_AliceInBones.wav", "label": "forward-audio AliceInBones", "category": "cabsim-IR-loader.lv2", "path": "/var/modep/lv2/cabsim-IR-loader.lv2/forward-audio_AliceInBones.wav"}]
+  };
+
+  window.selectModguiScalePoint = function(sym, val, btnEl) {
+    var num = parseFloat(val);
+    portValuesMap[sym] = num;
+    syncCustomDomControl(sym, num);
+    if (currentGui && typeof currentGui.setPortValue === "function") {
+      try { currentGui.setPortValue(sym, num, "from-js"); } catch(e) {}
+    }
+    notifyParentParam(sym, num);
+    if (btnEl && btnEl.parentElement) {
+      Array.from(btnEl.parentElement.children).forEach(function(c) {
+        c.style.background = "#1e293b";
+        c.style.borderColor = "#334155";
+      });
+      btnEl.style.background = "#0284c7";
+      btnEl.style.borderColor = "#38bdf8";
+    }
+  };
+
+  window.stepModguiFile = function(listType, delta) {
+    var list = BUILTIN_FILE_LISTS[listType] || BUILTIN_FILE_LISTS.nam;
+    if (!list.length) return;
+    var sel = document.getElementById("modgui-file-select-" + listType);
+    var curIdx = sel ? parseInt(sel.value, 10) : 0;
+    if (isNaN(curIdx) || curIdx < 0) curIdx = 0;
+    var nextIdx = (curIdx + delta + list.length) % list.length;
+    if (sel) sel.value = nextIdx;
+    window.selectModguiModelFile(listType, nextIdx);
+  };
+
+  window.selectModguiModelFile = function(listType, idx, selectEl) {
+    var list = BUILTIN_FILE_LISTS[listType] || BUILTIN_FILE_LISTS.nam;
+    var item = list[idx] || list[0];
+    if (!item) return;
+
+    // Send atom:Path patch_set to plugin (e.g. Neural Amp Modeler)
+    var modelParamUri = "http://github.com/mikeoliphant/neural-amp-modeler-lv2#model";
+    if (currentGui && typeof currentGui.lv2PatchSet === "function") {
+      try { currentGui.lv2PatchSet(modelParamUri, "p", item.path, "from-js"); } catch(e) {}
+    }
+
+    if (item.presetDrive !== undefined) {
+      ["drive", "gain", "input", "Input"].forEach(function(k) {
+        if (portRangesMap[k] !== undefined) {
+          syncCustomDomControl(k, item.presetDrive);
+          notifyParentParam(k, item.presetDrive);
+        }
+      });
+    }
+    if (item.presetTone !== undefined) {
+      ["tone", "filter", "treble", "output", "Output"].forEach(function(k) {
+        if (portRangesMap[k] !== undefined) {
+          syncCustomDomControl(k, item.presetTone);
+          notifyParentParam(k, item.presetTone);
+        }
+      });
+    }
+
+    // Update pedal display badges if present (e.g. NAM Loader custom display)
+    var nameEls = document.querySelectorAll(".nam-model-name, .model-display, [data-role='model-name']");
+    nameEls.forEach(function(el) { el.innerText = item.label || item.name; });
+
+    // Notify parent window (modep-slots.js)
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: "modgui_file_selected",
+        listType: listType,
+        path: item.path,
+        name: item.name,
+        label: item.label
+      }, "*");
+    }
+    notifyParentParam("model_index", idx);
+  };
+
+  function buildListAndFileSelectorsHtml(info) {
+    var lowerUri = (uri || "").toLowerCase();
+    var sections = [];
+    var ports = (info && info.ports && info.ports.control && Array.isArray(info.ports.control.input)) ? info.ports.control.input : [];
+
+    // 1. Check for LV2 scalePoints enumeration ports (e.g., Evans Bass Pro, Cab sims, Voicing selectors)
+    ports.forEach(function(pt) {
+      if (Array.isArray(pt.scalePoints) && pt.scalePoints.length > 0) {
+        var curVal = (portValuesMap[pt.symbol] !== undefined) ? portValuesMap[pt.symbol] : ((pt.ranges && pt.ranges.default) || 0);
+        var btns = pt.scalePoints.map(function(sp) {
+          var active = Math.abs(Number(curVal) - Number(sp.value)) < 0.01;
+          return '<button onclick="selectModguiScalePoint(\'' + pt.symbol + '\',' + sp.value + ', this)" style="min-height:34px; padding:4px 12px; border-radius:6px; font-size:0.74rem; font-weight:900; color:#f8fafc; cursor:pointer; background:' + (active ? '#0284c7' : '#1e293b') + '; border:1.5px solid ' + (active ? '#38bdf8' : '#334155') + ';">' + sp.label + '</button>';
+        }).join("");
+        sections.push(
+          '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#090d16; border:1px solid #334155; border-radius:8px; padding:6px 10px;">' +
+            '<span style="font-size:0.72rem; font-weight:900; color:#fde68a; text-transform:uppercase;">📋 ' + (pt.name || pt.symbol) + ':</span>' +
+            '<div style="display:flex; gap:6px; flex-wrap:wrap;">' + btns + '</div>' +
+          '</div>'
+        );
+      }
+    });
+
+    // 2. Check for NAM / Neural Amp / IR / Cab / Evans Bass Pro model list selectors
+    var hasPathParam = (info && Array.isArray(info.parameters) && info.parameters.some(function(p) { return p.type && p.type.indexOf("Path") >= 0; }));
+    var isNam = lowerUri.indexOf("nam") >= 0 || lowerUri.indexOf("neural") >= 0 || lowerUri.indexOf("aida") >= 0 || lowerUri.indexOf("evans") >= 0;
+    var isIr = lowerUri.indexOf("ir") >= 0 || lowerUri.indexOf("convo") >= 0 || lowerUri.indexOf("cab") >= 0 || lowerUri.indexOf("reverb") >= 0;
+
+        if (hasPathParam || isNam || isIr) {
+      var listType = isIr && !isNam ? "ir" : "nam";
+      var list = BUILTIN_FILE_LISTS[listType] || [];
+      var titleLbl = listType === "ir" ? "📂 IR REVERB & CAB SELECTOR:" : "📂 NEURAL AMP MODEL (.NAM) SELECTOR:";
+
+      // Group by folder / category
+      var grouped = {};
+      list.forEach(function(item, i) {
+        var cat = item.category || "General";
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push({ item: item, idx: i });
+      });
+
+      var optGroupsHtml = Object.keys(grouped).map(function(cat) {
+        var opts = grouped[cat].map(function(entry) {
+          return '<option value="' + entry.idx + '">' + entry.item.label + '</option>';
+        }).join("");
+        return '<optgroup label="📁 ' + cat + '">' + opts + '</optgroup>';
+      }).join("");
+
+      sections.push(
+        '<div style="display:flex; flex-direction:column; gap:6px; width:100%; background:linear-gradient(135deg, #090d16 0%, #060910 100%); border:2px solid #38bdf8; border-radius:10px; padding:8px 12px; box-shadow:0 6px 18px rgba(0,0,0,0.7);">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<span style="font-size:0.78rem; font-weight:900; color:#38bdf8; text-transform:uppercase;">' + titleLbl + '</span>' +
+            '<span style="font-size:0.72rem; font-weight:900; color:#fde68a; background:#0c4a6e; padding:2px 8px; border-radius:4px;">' + list.length + ' FILES ON PI</span>' +
+          '</div>' +
+          '<div style="display:flex; align-items:center; gap:8px;">' +
+            '<button onclick="stepModguiFile(\'' + listType + '\', -1)" style="min-width:58px; min-height:42px; background:#1e293b; border:1.5px solid #38bdf8; color:#fff; border-radius:6px; font-weight:900; font-size:0.88rem; cursor:pointer; touch-action:manipulation;">◀ PREV</button>' +
+            '<select id="modgui-file-select-' + listType + '" onchange="selectModguiModelFile(\'' + listType + '\', this.value, this)" style="flex:1; min-height:42px; background:#0f172a; color:#fde68a; border:1.5px solid #38bdf8; border-radius:6px; padding:4px 10px; font-size:0.86rem; font-weight:800;">' +
+              optGroupsHtml +
+            '</select>' +
+            '<button onclick="stepModguiFile(\'' + listType + '\', 1)" style="min-width:58px; min-height:42px; background:#1e293b; border:1.5px solid #38bdf8; color:#fff; border-radius:6px; font-weight:900; font-size:0.88rem; cursor:pointer; touch-action:manipulation;">NEXT ▶</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    if (!sections.length) return "";
+    return '<div id="cyber-list-dock" style="display:flex; flex-direction:column; gap:6px; width:100%; margin-top:10px;">' + sections.join("") + '</div>';
+  }
+
+  function attachListSelectorsToStage(info) {
+    var existing = document.getElementById("cyber-list-dock");
+    if (existing) existing.remove();
+    var html = buildListAndFileSelectorsHtml(info);
+    if (!html) return;
+    var stage = document.getElementById("pedal-stage");
+    if (stage) {
+      stage.style.flexDirection = "column";
+      stage.style.gap = "10px";
+      stage.insertAdjacentHTML("beforeend", html);
+    }
+  }
+
+  // Fallback Interactive Cyber Pedal/Rack UI if a plugin has no graphical iconTemplate
+  function renderFallbackInteractivePedal(info) {
+    var lowerUri = (uri || "").toLowerCase();
+    if (lowerUri.indexOf("tuner") >= 0 || lowerUri.indexOf("strobe") >= 0) {
+      renderCyberTunerStage(info);
+      return;
+    }
+    var stage = document.getElementById("pedal-stage");
+    var ports = (info && info.ports && info.ports.control && info.ports.control.input) ? info.ports.control.input : [];
+    if (!ports.length) {
+      ports = [
+        { symbol: "drive", name: "Drive / Gain", ranges: { minimum: 0, maximum: 10, default: 5.5 } },
+        { symbol: "tone", name: "Tone / Filter", ranges: { minimum: 0, maximum: 10, default: 5.8 } },
+        { symbol: "mix", name: "Mix / Blend", ranges: { minimum: 0, maximum: 10, default: 5.0 } },
+        { symbol: "level", name: "Output Level", ranges: { minimum: 0, maximum: 10, default: 7.2 } },
+        { symbol: "bright", name: "Bright / Boost", ranges: { minimum: 0, maximum: 1, default: 0 }, properties: ["toggled"] }
+      ];
+    }
+    var controlsHtml = ports.map(function(pt) {
+      var sym = pt.symbol || "param";
+      var min = (pt.ranges && typeof pt.ranges.minimum === "number") ? pt.ranges.minimum : 0;
+      var max = (pt.ranges && typeof pt.ranges.maximum === "number") ? pt.ranges.maximum : 10;
+      var def = (pt.ranges && typeof pt.ranges.default === "number") ? pt.ranges.default : 5;
+      portRangesMap[sym] = { min: min, max: max, def: def, integer: (pt.properties || []).indexOf("integer") >= 0 };
+      var val = (portValuesMap[sym] !== undefined) ? portValuesMap[sym] : def;
+      portValuesMap[sym] = val;
+      if (Array.isArray(pt.scalePoints) && pt.scalePoints.length > 0) {
+        return ""; // Rendered cleanly in the List Selector Dock below
+      }
+      var isSw = (pt.properties || []).indexOf("toggled") >= 0 || (min === 0 && max === 1 && (sym === "bright" || sym === "deep" || sym === "voice" || sym === "mode"));
+      if (isSw) {
+        var on = val >= 0.5;
+        return '<div class="custom-toggle-switch ' + (on ? 'on' : 'off') + '" data-symbol="' + sym + '" style="background:#0f172a; border:2px solid #334155; border-radius:12px; padding:12px 18px !important; min-width:130px !important; min-height:96px !important;">' +
+          '<div class="switch-slot" style="background:' + (on ? '#10b981' : '#1e293b') + ';"></div>' +
+          '<span style="font-size:0.82rem; font-weight:900; color:#f8fafc; margin-top:8px; text-transform:uppercase;">' + (pt.name || sym) + '</span>' +
+        '</div>';
+      }
+      return '<div style="display:flex; flex-direction:column; align-items:center; gap:6px; background:#0f172a; border:1.5px solid #1e293b; border-radius:12px; padding:12px 16px; min-width:118px;">' +
+        '<div class="custom-knob-dial" data-symbol="' + sym + '" style="width:68px; height:68px; border-radius:50%; background:radial-gradient(circle at 35% 35%, #334155, #090d16); border:3px solid #38bdf8; position:relative; display:flex; align-items:flex-start; justify-content:center; padding-top:6px; box-shadow:0 6px 14px rgba(0,0,0,0.7);">' +
+          '<div style="width:4px; height:20px; background:#38bdf8; border-radius:2px;"></div>' +
+        '</div>' +
+        '<span style="font-size:0.78rem; font-weight:900; color:#e2e8f0; text-transform:uppercase; text-align:center;">' + (pt.name || sym) + '</span>' +
+        '<span id="fallback-val-' + sym + '" style="font-size:0.75rem; font-family:monospace; color:#38bdf8; font-weight:800;">' + Number(val).toFixed(1) + '</span>' +
+      '</div>';
+    }).join("");
+
+    var listDockHtml = buildListAndFileSelectorsHtml(info);
+
+    stage.innerHTML =
+      '<div style="background:linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border:3px solid #38bdf8; border-radius:18px; padding:24px 32px; min-width:560px; max-width:920px; box-shadow:0 20px 50px rgba(0,0,0,0.85); display:flex; flex-direction:column; gap:16px; align-items:center;">' +
+        '<div style="display:flex; justify-content:space-between; width:100%; align-items:center; border-bottom:2px solid #334155; padding-bottom:10px;">' +
+          '<span style="font-size:1.3rem; font-weight:900; color:#38bdf8; letter-spacing:1px;">🎸 ' + ((info && info.name) || uri.split("/").pop().toUpperCase()) + '</span>' +
+          '<span style="font-size:0.8rem; font-weight:900; color:#10b981; background:#064e3b; padding:4px 10px; border-radius:6px;">MOD-GUI INTERACTIVE STAGE</span>' +
+        '</div>' +
+        '<div style="display:flex; flex-wrap:wrap; gap:16px; justify-content:center; align-items:center;">' + controlsHtml + '</div>' +
+        listDockHtml +
+      '</div>';
+
+    bindUniversalCyberTouchControls();
+    setTimeout(fitPedalToStage, 40);
+  }
+
+  // Direct Mustache iconTemplate loader if MOD's loadDependencies() stalls or errors
+  function renderDirectIconTemplateOrFallback(info) {
+    var lowerUri = (uri || "").toLowerCase();
+    if (lowerUri.indexOf("tuner") >= 0 || lowerUri.indexOf("strobe") >= 0) {
+      renderCyberTunerStage(info);
+      return;
+    }
+    var escapedUri = encodeURIComponent(uri);
+    $('<link rel="stylesheet" type="text/css">').attr("href", "/effect/stylesheet.css?uri=" + escapedUri).appendTo("head");
+    $.ajax({
+      url: "/effect/file/iconTemplate?uri=" + escapedUri,
+      dataType: "text",
+      timeout: 1800,
+      success: function(tmpl) {
+        if (!tmpl || !tmpl.trim()) {
+          renderFallbackInteractivePedal(info);
+          return;
+        }
+        try {
+          var tData = $.extend({}, info.gui && info.gui.templateData ? info.gui.templateData : {});
+          tData.ns = "?uri=" + escapedUri + "&v=" + VERSION + "_";
+          tData.effect = info;
+          if (info && info.parameters && (!info.effect || !info.effect.parameters)) {
+            if (!info.effect) info.effect = {};
+            info.effect.parameters = info.parameters;
+          }
+          tData.ports = info.ports || {};
+          tData.controls = (info.gui && info.gui.ports) || (info.ports && info.ports.control && info.ports.control.input) || [];
+          if (BUILTIN_FILE_LISTS) {
+            tData.files = BUILTIN_FILE_LISTS;
+          }
+          var html = (window.Mustache && Mustache.render) ? Mustache.render(tmpl, tData) : tmpl;
+          var stage = $("#pedal-stage");
+          stage.empty().html(html);
+          attachListSelectorsToStage(info);
+          Object.keys(portValuesMap).forEach(function(sym) {
+            var v = parseFloat(portValuesMap[sym]);
+            if (!isNaN(v)) syncCustomDomControl(sym, v);
+          });
+          // Load and execute custom plugin javascript (script.js) if present
+          $.ajax({
+            url: "/effect/file/javascript?uri=" + escapedUri,
+            dataType: "text",
+            timeout: 1200,
+            success: function(jsCode) {
+              if (!jsCode || !jsCode.trim()) return;
+              try {
+                var fn = (new Function("return (" + jsCode.trim() + ")"))();
+                if (typeof fn === "function") {
+                  var ctxObj = {
+                    set_port_value: function(s, v) {
+                      syncCustomDomControl(s, v);
+                      notifyParentParam(s, v);
+                    }
+                  };
+                  fn.call(ctxObj, {
+                    type: "start",
+                    icon: stage,
+                    settings: $(),
+                    data: info,
+                    ports: tData.controls,
+                    handle: function() {},
+                    set_port_value: ctxObj.set_port_value
+                  });
+                  Object.keys(portValuesMap).forEach(function(sym) {
+                    var v = parseFloat(portValuesMap[sym]);
+                    if (!isNaN(v)) {
+                      fn.call(ctxObj, {
+                        type: "change",
+                        symbol: sym,
+                        value: v,
+                        icon: stage,
+                        settings: $(),
+                        data: info
+                      });
+                    }
+                  });
+                }
+              } catch (jsErr) {}
+            }
+          });
+          bindUniversalCyberTouchControls();
+          setTimeout(fitPedalToStage, 30);
+          setTimeout(fitPedalToStage, 180);
+        } catch(e) {
+          renderFallbackInteractivePedal(info);
+        }
+      },
+      error: function() {
+        renderFallbackInteractivePedal(info);
+      }
+    });
+  }
+
+  if (!uri) {
+    renderFallbackInteractivePedal({ name: "Select an Effect" });
+    return;
+  }
+
+  if (uri.toLowerCase().indexOf("tuner") >= 0 || uri.toLowerCase().indexOf("strobe") >= 0) {
+    renderCyberTunerStage({ name: "Cyber Strobe Tuner" });
+    return;
+  }
+
+  // Live user file discovery from /effect/files
+  try {
+    fetch("/effect/files").then(function(r) { return r.json(); }).then(function(res) {
+      if (res && res.files) {
+        if (Array.isArray(res.files.nam) && res.files.nam.length) BUILTIN_FILE_LISTS.nam = res.files.nam;
+        if (Array.isArray(res.files.ir) && res.files.ir.length) BUILTIN_FILE_LISTS.ir = res.files.ir;
+        if (currentEffectData) attachListSelectorsToStage(currentEffectData);
+      }
+    }).catch(function() {});
+  } catch(e) {}
+
+  function handleLoadedEffectInfo(info) {
+    if (renderedOk) return;
+    currentEffectData = info;
+    if (info && info.ports && info.ports.control && Array.isArray(info.ports.control.input)) {
+      info.ports.control.input.forEach(function(pt) {
+        var sym = pt.symbol;
+        var min = (pt.ranges && typeof pt.ranges.minimum === "number") ? pt.ranges.minimum : 0;
+        var max = (pt.ranges && typeof pt.ranges.maximum === "number") ? pt.ranges.maximum : 10;
+        var def = (pt.ranges && typeof pt.ranges.default === "number") ? pt.ranges.default : 0;
+        portRangesMap[sym] = {
+          name: pt.name || sym,
+          min: min,
+          max: max,
+          def: def,
+          integer: (pt.properties || []).indexOf("integer") >= 0,
+          toggled: (pt.properties || []).indexOf("toggled") >= 0,
+          scalePoints: Array.isArray(pt.scalePoints) ? pt.scalePoints : null
+        };
+        if (portValuesMap[sym] === undefined) portValuesMap[sym] = def;
+      });
+    }
+
+    // Format Atom:Path parameters (NAM models, IR files) so native MOD-GUI Mustache dropdowns render {{#path}}...{{#files}}
+    var pList = (info && info.effect && Array.isArray(info.effect.parameters)) ? info.effect.parameters : ((info && Array.isArray(info.parameters)) ? info.parameters : null);
+    if (!pList && info && info.ports && Array.isArray(info.ports.atom)) {
+      pList = info.ports.atom;
+    }
+    if (pList) {
+      pList.forEach(function(param) {
+        if (!param) return;
+        var isPath = (param.type && (param.type.indexOf("atom#Path") >= 0 || param.type.indexOf("Path") >= 0)) || param.symbol === "model" || param.symbol === "ir";
+        if (isPath) {
+          param.path = true;
+          var isIr = (param.symbol === "ir" || (param.label && param.label.toLowerCase().indexOf("ir") >= 0));
+          var fileList = (isIr ? (BUILTIN_FILE_LISTS && BUILTIN_FILE_LISTS.ir) : (BUILTIN_FILE_LISTS && BUILTIN_FILE_LISTS.nam)) || [];
+          param.files = fileList.map(function(f) {
+            var fPath = (typeof f === "object" && f.path) ? f.path : f;
+            var bName = (typeof f === "object" && f.label) ? f.label : (typeof fPath === "string" ? fPath.split("/").pop() : "Model");
+            return {
+              path: fPath,
+              basename: bName,
+              selected: false
+            };
+          });
+        }
+      });
+      if (info && !info.parameters) info.parameters = pList;
+      if (info && info.effect && !info.effect.parameters) info.effect.parameters = pList;
+    }
+
+    if (!info || !info.gui || (!info.gui.iconTemplate && !info.gui.settingsTemplate)) {
+      renderedOk = true;
+      renderFallbackInteractivePedal(info);
+      return;
+    }
+
+    var watchdogTimer = setTimeout(function() {
+      if (!renderedOk) {
+        renderedOk = true;
+        renderDirectIconTemplateOrFallback(info);
+      }
+    }, 2500);
+
+    if (typeof GUI !== "function") {
+      renderDirectIconTemplateOrFallback(info);
+      return;
+    }
+
+    try {
+      currentGui = new GUI(info, {
+        change: function(portOrEvent, value) {
+          var sym = null;
+          if (typeof portOrEvent === "string") {
+            sym = portOrEvent;
+          } else if (portOrEvent && portOrEvent.target) {
+            sym = $(portOrEvent.target).attr("mod-port-symbol") || $(portOrEvent.target).data("symbol");
+          }
+          if (sym) {
+            syncCustomDomControl(sym, value);
+            notifyParentParam(sym, value);
+          }
+        },
+        click: function(ev) {
+          if (!ev || !ev.target) return;
+          var sym = $(ev.target).attr("mod-port-symbol") || $(ev.target).closest("[mod-port-symbol]").attr("mod-port-symbol");
+          if (sym && currentGui && currentGui.controls && currentGui.controls[sym]) {
+            notifyParentParam(sym, currentGui.controls[sym].value);
+          }
+        },
+        presetLoad: function(presetUri) {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: "modgui_preset_load", preset: presetUri }, "*");
+          }
+        },
+        patchSet: function(propUri, valuetype, value) {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+              type: "modgui_file_selected",
+              propUri: propUri,
+              valueType: valuetype,
+              path: value,
+              file: value,
+              label: (typeof value === "string") ? value.split("/").pop() : ""
+            }, "*");
+          }
+          if (typeof value === "string") {
+            var shortName = value.split("/").pop().replace(/\.(nam|wav)$/i, "");
+            var nameEls = document.querySelectorAll(".nam-model-name, .model-display, [data-role='model-name']");
+            nameEls.forEach(function(el) { el.innerText = shortName; });
+          }
+        },
+        dragStart: function() { return false; },
+        drag: function() {},
+        dragStop: function() {}
+      });
+
+      currentGui.render(null, function(iconEl, settingsEl) {
+        if (renderedOk) return;
+        renderedOk = true;
+        clearTimeout(watchdogTimer);
+        var stage = $("#pedal-stage");
+        stage.empty();
+        if (iconEl) {
+          stage.append(iconEl);
+        } else if (settingsEl) {
+          stage.append(settingsEl);
+        } else {
+          renderDirectIconTemplateOrFallback(info);
+          return;
+        }
+
+        suppressOutbound = true;
+        try {
+          Object.keys(portValuesMap).forEach(function(sym) {
+            var v = parseFloat(portValuesMap[sym]);
+            if (!isNaN(v)) {
+              try { currentGui.setPortValue(sym, v, "from-js"); } catch(e) {}
+              syncCustomDomControl(sym, v);
+            }
+          });
+          try { currentGui.setPortValue(":bypass", isBypassed ? 1 : 0, "from-js"); } catch(e) {}
+        } finally {
+          suppressOutbound = false;
+        }
+
+        attachListSelectorsToStage(info);
+        bindUniversalCyberTouchControls();
+        setTimeout(fitPedalToStage, 30);
+        setTimeout(fitPedalToStage, 180);
+      });
+    } catch (err) {
+      if (!renderedOk) {
+        renderedOk = true;
+        clearTimeout(watchdogTimer);
+        renderDirectIconTemplateOrFallback(info);
+      }
+    }
+  }
+
+  // Load effect info via native fetch with $.ajax fallback
+  fetch("/effect/get?uri=" + encodeURIComponent(uri))
+    .then(function(r) { return r.json(); })
+    .then(function(info) {
+      handleLoadedEffectInfo(info);
+    })
+    .catch(function() {
+      if (window.$ && typeof $.ajax === "function") {
+        $.ajax({
+          url: "/effect/get?uri=" + encodeURIComponent(uri),
+          dataType: "json",
+          timeout: 2500,
+          success: handleLoadedEffectInfo,
+          error: function() {
+            renderedOk = true;
+            renderFallbackInteractivePedal({ name: uri.split("/").pop() });
+          }
+        });
+      } else {
+        renderedOk = true;
+        renderFallbackInteractivePedal({ name: uri.split("/").pop() });
+      }
+    });
+
+  // Global safety watchdog: NEVER stay stuck on "Loading Effect Module..." past 1200ms
+  setTimeout(function() {
+    if (!renderedOk) {
+      renderedOk = true;
+      renderFallbackInteractivePedal(currentEffectData || { name: uri.split("/").pop() });
+    }
+  }, 1200);
+
+  window.addEventListener("message", function(ev) {
+    var d = ev.data;
+    if (!d || typeof d !== "object") return;
+    if (d.type === "set_param" || d.type === "set_port_value") {
+      var sym = d.symbol;
+      var val = parseFloat(d.value);
+      if (!sym || isNaN(val)) return;
+      suppressOutbound = true;
+      try {
+        portValuesMap[sym] = val;
+        if (currentGui && typeof currentGui.setPortValue === "function") {
+          try { currentGui.setPortValue(sym, val, "from-js"); } catch(e) {}
+        }
+        syncCustomDomControl(sym, val);
+      } finally {
+        suppressOutbound = false;
+      }
+    } else if (d.type === "set_bypass") {
+      isBypassed = !!d.bypassed;
+      suppressOutbound = true;
+      try {
+        if (currentGui && typeof currentGui.setPortValue === "function") {
+          try { currentGui.setPortValue(":bypass", isBypassed ? 1 : 0, "from-js"); } catch(e) {}
+        }
+      } finally {
+        suppressOutbound = false;
+      }
+    } else if (d.type === "set_file") {
+      var listType = d.file_type || (d.file && d.file.endsWith(".wav") ? "ir" : "nam");
+      var list = BUILTIN_FILE_LISTS[listType] || [];
+      var matchIdx = list.findIndex(function(f) { return f.path === d.file || f.name === d.file; });
+      if (matchIdx >= 0) {
+        var sel = document.getElementById("modgui-file-select-" + listType);
+        if (sel) sel.value = matchIdx;
+        window.selectModguiModelFile(listType, matchIdx);
+      } else if (d.file) {
+        var modelParamUri = "http://github.com/mikeoliphant/neural-amp-modeler-lv2#model";
+        if (currentGui && typeof currentGui.lv2PatchSet === "function") {
+          try { currentGui.lv2PatchSet(modelParamUri, "p", d.file, "from-js"); } catch(e) {}
+        }
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

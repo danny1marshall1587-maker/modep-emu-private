@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MODEP Pro Live Mixer</title>
+    <style>
+        :root {
+            --bg-color: #1a1c1e;
+            --panel-bg: #24282c;
+            --channel-bg: #2d3238;
+            --accent-green: #2ecc71;
+            --accent-orange: #f39c12;
+            --accent-red: #e74c3c;
+            --accent-blue: #3498db;
+            --text-main: #ecf0f1;
+            --text-dim: #95a5a6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* Top Navigation Header */
+        header { height: 50px; background: var(--panel-bg); border-bottom: 2px solid #333; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+        .logo-area { display: flex; align-items: center; gap: 12px; font-weight: bold; font-size: 1.1rem; }
+        .badge { background: var(--accent-orange); color: #000; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; font-weight: 800; }
+        .header-controls { display: flex; gap: 10px; }
+        .btn-top { background: #3a4149; border: 1px solid #4f5863; color: white; padding: 6px 14px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+        .btn-top.active { background: var(--accent-blue); border-color: var(--accent-blue); }
+
+        /* Mixer Canvas */
+        .mixer-container { flex: 1; display: flex; overflow-x: auto; padding: 12px; gap: 8px; }
+        .channel-strip { flex: 0 0 115px; background: var(--channel-bg); border-radius: 6px; border: 1px solid #3c434b; display: flex; flex-direction: column; padding: 8px 6px; }
+        .channel-strip.master { flex: 0 0 130px; background: #1f2327; border: 1px solid var(--accent-orange); }
+
+        .ch-header { text-align: center; border-bottom: 2px solid #444; padding-bottom: 4px; margin-bottom: 6px; }
+        .ch-title { font-size: 0.8rem; font-weight: bold; color: var(--accent-orange); text-transform: uppercase; }
+        .ch-sub { font-size: 0.65rem; color: var(--text-dim); }
+
+        /* DSP Blocks indicators */
+        .dsp-badges { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 8px; }
+        .dsp-pill { font-size: 0.6rem; text-align: center; background: #1c2024; padding: 2px 0; border-radius: 3px; border: 1px solid #333; color: var(--text-dim); font-weight: 600; }
+        .dsp-pill.active { background: #1e3a29; border-color: var(--accent-green); color: var(--accent-green); }
+
+        /* Fader & Meter Section */
+        .fader-section { flex: 1; display: flex; justify-content: center; gap: 8px; position: relative; margin: 10px 0; }
+        .meter-ladder { width: 12px; background: #111; border-radius: 2px; display: flex; flex-direction: column-reverse; overflow: hidden; }
+        .meter-bar { width: 100%; height: 75%; background: linear-gradient(to top, var(--accent-green) 60%, var(--accent-orange) 85%, var(--accent-red) 100%); transition: height 0.05s ease-out; }
+
+        .fader-track { width: 40px; position: relative; display: flex; justify-content: center; }
+        input[type=range].fader-slider {
+            -webkit-appearance: none;
+            width: 180px;
+            height: 40px;
+            background: transparent;
+            transform: rotate(-90deg);
+            transform-origin: center;
+            position: absolute;
+            top: 70px;
+            cursor: pointer;
+        }
+        input[type=range].fader-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 32px;
+            height: 24px;
+            background: #ecf0f1;
+            border: 2px solid #7f8c8d;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+        }
+
+        /* Channel Buttons */
+        .btn-group { display: flex; flex-direction: column; gap: 5px; margin-top: auto; }
+        .btn-strip { border: none; border-radius: 4px; padding: 6px 0; font-size: 0.75rem; font-weight: bold; cursor: pointer; color: white; text-align: center; }
+        .btn-mute { background: #444; }
+        .btn-mute.active { background: var(--accent-red); }
+        .btn-solo { background: #444; }
+        .btn-solo.active { background: var(--accent-orange); color: #000; }
+        .btn-amm { background: #2c3e50; font-size: 0.65rem; border: 1px solid #34495e; }
+        .btn-amm.active { background: var(--accent-blue); border-color: var(--accent-blue); }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-area">
+            <span>MODEP LIVE MIXER</span>
+            <span class="badge">UMC1820</span>
+        </div>
+        <div class="header-controls">
+            <button class="btn-top active" id="btn-amm-master">AMM DUGAN: ON</button>
+            <button class="btn-top" id="btn-fb-master">FEEDBACK DESTROYER: ACTIVE</button>
+            <button class="btn-top" onclick="window.location.href='/daw'">OPEN MULTI-TRACK DAW</button>
+        </div>
+    </header>
+
+    <div class="mixer-container">
+        <!-- Input Channels 1-8 -->
+        <script>
+            const channelNames = ["Vocal 1", "Guitar", "Bass", "Kick", "Snare", "Overhead", "Keys L", "Keys R"];
+            for (let i = 0; i < 8; i++) {
+                document.write(`
+                <div class="channel-strip">
+                    <div class="ch-header">
+                        <div class="ch-title">CH ${i+1}</div>
+                        <div class="ch-sub">${channelNames[i]}</div>
+                    </div>
+                    <div class="dsp-badges">
+                        <div class="dsp-pill active">GATE</div>
+                        <div class="dsp-pill active">1176</div>
+                        <div class="dsp-pill active">EQ</div>
+                        <div class="dsp-pill active">COMP</div>
+                        <div class="dsp-pill active">DS</div>
+                        <div class="dsp-pill active">FB-X</div>
+                    </div>
+                    <div class="fader-section">
+                        <div class="meter-ladder">
+                            <div class="meter-bar" id="meter-${i}"></div>
+                        </div>
+                        <div class="fader-track">
+                            <input type="range" class="fader-slider" min="0" max="1.5" step="0.01" value="1.0" oninput="updateFader(${i}, this.value)">
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-strip btn-amm active" onclick="this.classList.toggle('active')">AMM ON</button>
+                        <button class="btn-strip btn-solo" onclick="this.classList.toggle('active')">SOLO</button>
+                        <button class="btn-strip btn-mute" onclick="this.classList.toggle('active')">MUTE</button>
+                    </div>
+                </div>
+                `);
+            }
+        </script>
+
+        <!-- Master Section -->
+        <div class="channel-strip master">
+            <div class="ch-header">
+                <div class="ch-title" style="color:var(--accent-green)">MASTER</div>
+                <div class="ch-sub">Main PA L/R</div>
+            </div>
+            <div class="dsp-badges">
+                <div class="dsp-pill active" style="grid-column: span 2;">ROOM EQ</div>
+                <div class="dsp-pill active" style="grid-column: span 2;">LIMITER</div>
+            </div>
+            <div class="fader-section">
+                <div class="meter-ladder" style="margin-right:2px;">
+                    <div class="meter-bar" id="meter-master-l" style="height:65%;"></div>
+                </div>
+                <div class="meter-ladder">
+                    <div class="meter-bar" id="meter-master-r" style="height:65%;"></div>
+                </div>
+                <div class="fader-track">
+                    <input type="range" class="fader-slider" min="0" max="1.5" step="0.01" value="1.0" oninput="updateMaster(this.value)">
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn-strip" style="background:#555">MONITORS</button>
+                <button class="btn-strip btn-mute" onclick="this.classList.toggle('active')">MUTE ALL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateFader(ch, val) {
+            console.log("Channel " + ch + " fader: " + val);
+            // In live setup: WebSocket send to OSC bridge
+        }
+        function updateMaster(val) {
+            console.log("Master fader: " + val);
+        }
+        // Simulated meter animation
+        setInterval(() => {
+            for (let i = 0; i < 8; i++) {
+                const bar = document.getElementById("meter-" + i);
+                if (bar) {
+                    bar.style.height = (30 + Math.random() * 55) + "%";
+                }
+            }
+        }, 80);
+    </script>
+</body>
+</html>

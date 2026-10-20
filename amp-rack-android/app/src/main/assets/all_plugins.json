@@ -1,0 +1,1142 @@
+{
+  "0": {
+    "name": "Aliasing",
+    "id": 1407,
+    "plugin": 0,
+    "desc": "Simulates aliasing using nyquist frequency modulation. Produces wacky results if the blocks aren't even numbers of samples long.",
+    "library": "libalias_1407.so"
+  },
+  "100": {
+    "name": "Allpass delay line, noninterpolating",
+    "id": 1895,
+    "plugin": 0,
+    "library": "liballpass_1895.so"
+  },
+  "101": {
+    "name": "Allpass delay line, linear interpolation",
+    "id": 1896,
+    "plugin": 1,
+    "library": "liballpass_1895.so"
+  },
+  "102": {
+    "name": "Allpass delay line, cubic spline interpolation",
+    "id": 1897,
+    "plugin": 2,
+    "library": "liballpass_1895.so"
+  },
+  "200": {
+    "name": "Simple amplifier",
+    "id": 1181,
+    "plugin": 0,
+    "library": "libamp_1181.so"
+  },
+  "300": {
+    "name": "AM pitchshifter",
+    "id": 1433,
+    "desc": "This plugin works by running a single write pointer (monotonic) and two read pointers (pitchscaled) over a ringbuffer.",
+    "plugin": 0,
+    "library": "libam_pitchshift_1433.so"
+  },
+  "400": {
+    "name": "C* AmpVTS - Idealised guitar amplification",
+    "id": 2592,
+    "plugin": 0,
+    "desc": "Tracing the circuit stages of an idealised [resp. idolised] tube amplifier, this plugin aims to present a recreation of those features of traditional guitar amplification electronics that have proved musically useful, and to provide them with the most musical rather than the most authentic ranges of adjustment and character.",
+    "library": "libAmp.so"
+  },
+  "500": {
+    "name": "Autotalent",
+    "id": 4262,
+    "plugin": 0,
+    "desc": "real-time pitch correction plugin. You specify the notes that a singer is allowed to hit, and Autotalent makes sure that they do.",
+    "library": "libautotalent.so"
+  },
+  "600": {
+    "name": "Bode frequency shifter",
+    "id": 1431,
+    "plugin": 0,
+    "desc": "A Bode/Moog Frequency Shifter is a popular analogue synth module, it works by shifting all the frequencies of an input signal up or down by a specified frequency. This version shifts in both directions at the same time as its almost no extra work and its often useful to have both directions.",
+    "library": "libbode_shifter_1431.so"
+  },
+  "700": {
+    "name": "Bode frequency shifter (CV)",
+    "id": 1432,
+    "plugin": 0,
+    "desc": "Bode/Moog Frequency Shifter",
+    "library": "libbode_shifter_cv_1432.so"
+  },
+  "800": {
+    "name": "C* CabinetIII - Simplistic loudspeaker cabinet emulation",
+    "id": 2601,
+    "desc": "A loudspeaker cabinet emulation implemented as two sets of 31st-order IIR filters precomputed (using Prony's method) for fs of 44.1\u200aand 48\u200akHz",
+    "plugin": 0,
+    "library": "libCabIII.so"
+  },
+  "1000": {
+    "name": "C* CabinetIV - Idealised loudspeaker cabinet",
+    "id": 2606,
+    "plugin": 0,
+    "desc": "This plugin applies an acoustic instrument body modeling technique to recreate the linear frequency response of an electric guitar amplifier's speaker cabinet. A selection of several hundred frequency response approximations of recordings from classic cabinets was narrowed down to a handful of idealised tones.",
+    "library": "libCabIV.so"
+  },
+  "1100": {
+    "name": "Chebyshev distortion",
+    "id": 1430,
+    "plugin": 0,
+    "desc": "This is an interesting distortion effect that is seeded from incoming signal envelope. As the level of the signal rises more and more harmonics will for added to the output signal",
+    "library": "libchebstortion_1430.so"
+  },
+  "1200": {
+    "name": "C* ChorusI - Mono chorus/flanger",
+    "id": 1767,
+    "plugin": 0,
+    "desc": "A standard mono chorus with optional feedback. The parameter range suits subtle effects as well as all-out flanging.",
+    "library": "libChorus.so"
+  },
+  "1500": {
+    "name": "Comb Filter",
+    "id": 1190,
+    "plugin": 0,
+    "library": "libcomb_1190.so"
+  },
+  "1600": {
+    "name": "Comb delay line, noninterpolating",
+    "id": 1889,
+    "plugin": 0,
+    "library": "libcomb_1887.so"
+  },
+  "1601": {
+    "name": "Comb delay line, linear interpolation",
+    "id": 1887,
+    "plugin": 1,
+    "library": "libcomb_1887.so"
+  },
+  "1602": {
+    "name": "Comb delay line, cubic spline interpolation",
+    "id": 1888,
+    "plugin": 2,
+    "library": "libcomb_1887.so"
+  },
+  "1700": {
+    "name": "Comb Splitter",
+    "id": 1411,
+    "plugin": 0,
+    "desc": "Divides the input up into two parts with frequency peaks at f Hz intervals, skewed by f/2 Hz between the two outputs. Mixing the two outputs will get you exactly the input signal.",
+    "library": "libcomb_splitter_1411.so"
+  },
+  "1800": {
+    "name": "C* Compress - Compressor and saturating limiter",
+    "id": 1772,
+    "desc": "This compressor has originally been designed to create more vocal-like sustain for the electric guitar without sacrificing its brightly percussive character",
+    "plugin": 0,
+    "library": "libCompress.so"
+  },
+  "1801": {
+    "name": "C* CompressX2 - Stereo compressor and saturating limiter",
+    "id": 2598,
+    "desc": "This stereo version of Compress applies uniform compression to both channels in proportion to their combined power.",
+    "plugin": 1,
+    "library": "libCompress.so"
+  },
+  "2000": {
+    "name": "Constant Signal Generator",
+    "id": 1909,
+    "plugin": 0,
+    "desc": "This plugin add an output DC offset at the given amplitude to the input signal. It has no real use other than for debugging and in modular synths",
+    "library": "libconst_1909.so"
+  },
+  "2100": {
+    "name": "Crossover distortion",
+    "id": 1404,
+    "desc": "This is a simulation of the distortion that happens in class B and AB power amps when the signal crosses 0. For class B simulations the smooth value should be set to about 0.3 +/- 0.2 and for AB it should be set to near 1.0.",
+    "plugin": 0,
+    "library": "libcrossover_dist_1404.so"
+  },
+  "2200": {
+    "name": "crydsp",
+    "id": 4062,
+    "desc": "Guitarix Simulator pedal",
+    "plugin": 0,
+    "library": "libcrybaby.so"
+  },
+  "2400": {
+    "name": "DC Offset Remover",
+    "id": 1207,
+    "plugin": 0,
+    "desc": "Simply removes the DC (0 Hz) component from an audio signal, uses a high pass filter, so has some side effects, but they should be minimal.",
+    "library": "libdc_remove_1207.so"
+  },
+  "2500": {
+    "name": "Exponential signal decay",
+    "id": 1886,
+    "plugin": 0,
+    "desc": "",
+    "library": "libdecay_1886.so"
+  },
+  "2600": {
+    "name": "Decimator",
+    "desc": "Decimates (reduces the effective sample rate), and reduces the bit depth of the input signal, allows non integer values for smooth transitions between clean and lofi signals.",
+    "id": 1202,
+    "plugin": 0,
+    "library": "libdecimator_1202.so"
+  },
+  "2700": {
+    "name": "Declipper",
+    "id": 1195,
+    "plugin": 0,
+    "desc": "Removes nasty clicks from input signals, not very kind to them though.",
+    "library": "libdeclip_1195.so"
+  },
+  "2800": {
+    "name": "Simple delay line, noninterpolating",
+    "id": 1898,
+    "plugin": 0,
+    "library": "libdelay_1898.so"
+  },
+  "2801": {
+    "name": "Simple delay line, linear interpolation",
+    "id": 1899,
+    "plugin": 1,
+    "library": "libdelay_1898.so"
+  },
+  "2802": {
+    "name": "Simple delay line, cubic spline interpolation",
+    "id": 1900,
+    "plugin": 2,
+    "library": "libdelay_1898.so"
+  },
+  "2900": {
+    "name": "Delayorama",
+    "id": 1402,
+    "plugin": 0,
+    "desc": "Multi tap delay pedal",
+    "library": "libdelayorama_1402.so"
+  },
+  "3000": {
+    "name": "Diode Processor",
+    "id": 1185,
+    "plugin": 0,
+    "desc": "Mangles the signal as if it had been passed through a diode rectifier network.",
+    "library": "libdiode_1185.so"
+  },
+  "3100": {
+    "name": "distdsp",
+    "id": 4061,
+    "plugin": 0,
+    "desc": "Guitarix distortion pedal",
+    "library": "libdistortion.so"
+  },
+  "3200": {
+    "name": "Audio Divider (Suboctave Generator)",
+    "id": 1186,
+    "desc": "Reduces the period of the signal by the factor given, and makes it a square wave in the process. Has some amplitude tracking capability, but not really useful on complex signals.",
+    "plugin": 0,
+    "library": "libdivider_1186.so"
+  },
+  "3300": {
+    "name": "DJ EQ (mono)",
+    "desc": "3 band equalizer",
+    "id": 1907,
+    "plugin": 0,
+    "library": "libdj_eq_1901.so"
+  },
+  "3301": {
+    "name": "DJ EQ",
+    "id": 1901,
+    "desc": "3 band equalizer",
+    "plugin": 1,
+    "library": "libdj_eq_1901.so"
+  },
+  "3400": {
+    "name": "DJ flanger",
+    "id": 1438,
+    "plugin": 0,
+    "desc": "This is a flanger which is more or less typical of DJ mixing desks. ",
+    "library": "libdj_flanger_1438.so"
+  },
+  "3500": {
+    "name": "Dyson compressor",
+    "id": 1403,
+    "plugin": 0,
+    "desc": "High performance compressor",
+    "library": "libdyson_compress_1403.so"
+  },
+  "3600": {
+    "name": "echodsp",
+    "id": 4063,
+    "plugin": 0,
+    "desc": "Guitarix Echo Pedal",
+    "library": "libecho.so"
+  },
+  "3700": {
+    "name": "C* Eq10 - 10-band equaliser",
+    "id": 1773,
+    "desc": "10-band equaliser. A classic octave-band constant-Q second-order filter design, basically a direct digital translation of an analog original.",
+    "plugin": 0,
+    "library": "libEq.so"
+  },
+  "3701": {
+    "name": "C* Eq10X2 - Stereo 10-band equaliser",
+    "id": 2594,
+    "desc": "Stereo 10-band equaliser. The controls of this stereo version of Eq apply to both channels.\u2002",
+    "plugin": 1,
+    "library": "libEq.so"
+  },
+  "3702": {
+    "name": "C* Eq4p - 4-band parametric shelving equaliser",
+    "id": 2608,
+    "desc": "4-band parametric shelving equaliser. Four adjustable biquad filters in series, in vector arithmetic implementation.\u2002 The default setup is an identity filter with a mode configuration of lowshelve, band, band, hishelve, all at zero gain.",
+    "plugin": 2,
+    "library": "libEq.so"
+  },
+  "3703": {
+    "name": "C* EqFA4p - 4-band parametric eq",
+    "id": 2609,
+    "plugin": 3,
+    "desc": "4-band parametric eq. Four Mitra-Regalia peaking equaliser filters in series; a vector arithmetic re-implementation of Fons Adriaensens Parametric1 equaliser with minor differences",
+    "library": "libEq.so"
+  },
+  "3800": {
+    "name": "Fractionally Addressed Delay Line",
+    "id": 1192,
+    "desc": "A fixed ring buffer delay implementation. Has different dynamics to a normal delay, more suitable for certain things. Changes in delay length are generally more pleasing, but delays >2s long have reduced sound quality.",
+    "plugin": 0,
+    "library": "libfad_delay_1192.so"
+  },
+  "3900": {
+    "name": "Fast Lookahead limiter",
+    "id": 1913,
+    "plugin": 0,
+    "desc": "This is a limiter with an attack time of 5ms. It adds just over 5ms of latency to the input signal, but it guarantees that there will be no signals over the limit, and tries to get the minimum amount of distortion",
+    "library": "libfast_lookahead_limiter_1913.so"
+  },
+  "4000": {
+    "name": "Flanger",
+    "id": 1191,
+    "desc": "A digital flanger implementation. Uses a novel zero excursion, controlled bandwidth modulation function, which should make the modulation less repetitive and noticeable. This effect is similar in character to a phaser (see section \\ref{lfoPhaser}). The main difference is that a phaser sounds more regular and stable.",
+    "plugin": 0,
+    "library": "libflanger_1191.so"
+  },
+  "4100": {
+    "name": "Foldover distortion",
+    "id": 1213,
+    "desc": "Uses a sinwave approximation to simulate valve style foldover distortion.",
+    "plugin": 0,
+    "library": "libfoldover_1213.so"
+  },
+  "4200": {
+    "name": "Fast overdrive",
+    "id": 1196,
+    "plugin": 0,
+    "desc": "A simple overdrive. Compresses the extreme peaks to make a sound similar to an overdriven amplifier.",
+    "library": "libfoverdrive_1196.so"
+  },
+  "4400": {
+    "name": "frdsp",
+    "id": 4064,
+    "plugin": 0,
+    "desc": "Guitarix Freeverb Reverb Pedal",
+    "library": "libfreeverb.so"
+  },
+  "4500": {
+    "name": "Frequency tracker",
+    "id": 1418,
+    "desc": "",
+    "plugin": 0,
+    "library": "libfreq_tracker_1418.so"
+  },
+  "4600": {
+    "name": "Gate",
+    "id": 1410,
+    "plugin": 0,
+    "library": "libgate_1410.so"
+  },
+  "4700": {
+    "name": "Giant flange",
+    "id": 1437,
+    "plugin": 0,
+    "desc": "This is a fairly normal flanger but with excessively long delay times.",
+    "library": "libgiant_flange_1437.so"
+  },
+  "4800": {
+    "name": "Gong model",
+    "id": 1424,
+    "plugin": 0,
+    "desc": "A physical model of a metal gong.",
+    "library": "libgong_1424.so"
+  },
+  "4900": {
+    "name": "Gong beater",
+    "id": 1439,
+    "desc": "A plugin to simulator the action of a beater on a gong surface, used to trigger the gong physical model.",
+    "plugin": 0,
+    "library": "libgong_beater_1439.so"
+  },
+  "5000": {
+    "name": "mydsp",
+    "desc": "Guitarix Multi Effect Pedal",
+    "id": 4068,
+    "plugin": 0,
+    "library": "libguitarix-ladspa.so"
+  },
+  "5100": {
+    "name": "Hard Limiter",
+    "id": 1413,
+    "plugin": 0,
+    "desc": "Brick hard limiter with residue mixer.",
+    "library": "libhard_limiter_1413.so"
+  },
+  "5200": {
+    "name": "Harmonic generator",
+    "desc": "Allows you to add harmonics and remove the fundamental from any audio signal.",
+    "id": 1220,
+    "plugin": 0,
+    "library": "libharmonic_gen_1220.so"
+  },
+  "5300": {
+    "name": "Hilbert transformer",
+    "id": 1440,
+    "plugin": 0,
+    "desc": "A Hilbert Transformer phase shifts the input signal by 90degrees. It outputs the 90 degree phase shifted signal and the unshifted signal, both delayed by an equivalent amount",
+    "library": "libhilbert_1440.so"
+  },
+  "5500": {
+    "name": "SWH Impulse convolver",
+    "id": 1885,
+    "desc": "This is a convolver for a set of fairly short impulses.",
+    "plugin": 0,
+    "library": "libimpulse_1885.so"
+  },
+  "5600": {
+    "name": "irdsp",
+    "id": 4065,
+    "plugin": 0,
+    "library": "libimpulseresponse.so"
+  },
+  "5700": {
+    "name": "Inverter",
+    "id": 1429,
+    "plugin": 0,
+    "desc": "A utility plugin that inverts the signal, also (wrongly) known as a 180 degree phase shift.",
+    "library": "libinv_1429.so"
+  },
+  "5900": {
+    "name": ":: Invada :: Compressor - Mono",
+    "id": 3308,
+    "plugin": 0,
+    "desc": "Peak/RMS soft-clipping compressor",
+    "library": "libinv_compressor.so"
+  },
+  "5901": {
+    "name": ":: Invada :: Compressor - Stereo",
+    "id": 3309,
+    "plugin": 1,
+    "desc": "Peak/RMS soft-clipping compressor",
+    "library": "libinv_compressor.so"
+  },
+  "6000": {
+    "name": ":: Invada :: ER Reverb - Mono In",
+    "id": 3311,
+    "desc": "Early reflection based reverb",
+    "plugin": 0,
+    "library": "libinv_erreverb.so"
+  },
+  "6001": {
+    "name": ":: Invada :: ER Reverb - Sum L+R In",
+    "id": 3312,
+    "desc": "Early reflection based reverb",
+    "plugin": 1,
+    "library": "libinv_erreverb.so"
+  },
+  "6100": {
+    "name": ":: Invada :: Filter - Low Pass Mono",
+    "id": 3302,
+    "desc": "Gentle low pass filters",
+    "plugin": 0,
+    "library": "libinv_filter.so"
+  },
+  "6101": {
+    "name": ":: Invada :: Filter - High Pass Mono",
+    "id": 3303,
+    "desc": "Gentle high pass filters",
+    "plugin": 1,
+    "library": "libinv_filter.so"
+  },
+  "6102": {
+    "name": ":: Invada :: Filter - Low Pass Stereo",
+    "id": 3304,
+    "plugin": 2,
+    "library": "libinv_filter.so"
+  },
+  "6103": {
+    "name": ":: Invada :: Filter - High Pass Stereo",
+    "id": 3305,
+    "plugin": 3,
+    "library": "libinv_filter.so"
+  },
+  "6200": {
+    "name": ":: Invada :: Input Module",
+    "id": 3301,
+    "plugin": 0,
+    "desc": "Alter gain, balance, width, phase on a stereo signal",
+    "library": "libinv_input.so"
+  },
+  "6300": {
+    "name": ":: Invada :: Tube - Mono",
+    "id": 3306,
+    "desc": "Valve warmth/distortion simulation",
+    "plugin": 0,
+    "library": "libinv_tube.so"
+  },
+  "6301": {
+    "name": ":: Invada :: Tube - Stereo",
+    "id": 3307,
+    "desc": "Valve warmth/distortion simulation",
+    "plugin": 1,
+    "library": "libinv_tube.so"
+  },
+  "6400": {
+    "name": "Karaoke",
+    "id": 1409,
+    "desc": "Attempts to strip the vocals from a stereo signal.",
+    "plugin": 0,
+    "library": "libkaraoke_1409.so"
+  },
+  "6600": {
+    "name": "Artificial latency",
+    "id": 1914,
+    "desc": "Reports its  delay value as systemic latency. Does nothing else, *this is not a delay*. Can be used to correct for latency between channels.",
+    "plugin": 0,
+    "library": "liblatency_1914.so"
+  },
+  "6700": {
+    "name": "L/C/R Delay",
+    "id": 1436,
+    "plugin": 0,
+    "desc": "This is a left/centre/right delay with feedback",
+    "library": "liblcr_delay_1436.so"
+  },
+  "6900": {
+    "name": "LS Filter",
+    "id": 1908,
+    "plugin": 0,
+    "desc": "This is a filter created for the LinkSampler project - its designed to closely follow the filter used in giga sampler.",
+    "library": "libls_filter_1908.so"
+  },
+  "7000": {
+    "name": "Matrix: MS to Stereo",
+    "id": 1421,
+    "plugin": 0,
+    "desc": "The width of the dematrixed stereo field. 1 will give you normal width, 0 will make it completely mono,  1 will make it narrower and  1 will make it wider.",
+    "library": "libmatrix_ms_st_1421.so"
+  },
+  "7100": {
+    "name": "Matrix Spatialiser",
+    "id": 1422,
+    "desc": "A simple spatializer that lets you control the width of a stereo signal.",
+    "plugin": 0,
+    "library": "libmatrix_spatialiser_1422.so"
+  },
+  "7200": {
+    "name": "Matrix: Stereo to MS",
+    "id": 1420,
+    "plugin": 0,
+    "library": "libmatrix_st_ms_1420.so"
+  },
+  "7300": {
+    "name": "Modulatable delay",
+    "id": 1419,
+    "plugin": 0,
+    "desc": "A delay whose tap can be modulated at audio rate.",
+    "library": "libmod_delay_1419.so"
+  },
+  "7400": {
+    "name": "ampdsp",
+    "id": 4066,
+    "desc": "Guitarix Preamp Pedal",
+    "plugin": 0,
+    "library": "libmonoamp.so"
+  },
+  "7500": {
+    "name": "comprdsp",
+    "id": 4067,
+    "plugin": 0,
+    "desc": "Guitarix Compressor Pedal",
+    "library": "libmonocompressor.so"
+  },
+  "7600": {
+    "name": "Multivoice Chorus",
+    "id": 1201,
+    "dsec": "This is an implementation of a Multivoice (as opposed to Multiscale) chorus algorithm. Its uses a novel, sinc based noise interpolation method to produce a subtle modulation law which makes it possible to get away with larger numbers of voices without the metallic, artificial sound common in chorus effects.",
+    "plugin": 0,
+    "library": "libmultivoice_chorus_1201.so"
+  },
+  "7700": {
+    "name": "C* Noisegate - Attenuating hum and noise",
+    "id": 2602,
+    "desc": "Attenuating hum and noise. This effect plugin attenuates the signal when it is deemed to be background noise.",
+    "plugin": 0,
+    "library": "libNoisegate.so"
+  },
+  "7900": {
+    "name": "LFO Phaser",
+    "id": 1217,
+    "plugin": 0,
+    "library": "libphasers_1217.so"
+  },
+  "7901": {
+    "name": "4 x 4 pole allpass",
+    "id": 1218,
+    "plugin": 1,
+    "library": "libphasers_1217.so"
+  },
+  "7902": {
+    "name": "Auto phaser",
+    "id": 1219,
+    "plugin": 2,
+    "library": "libphasers_1217.so"
+  },
+  "8000": {
+    "name": "C* PhaserII - Mono phaser",
+    "id": 2586,
+    "desc": "Mono phaser. This take on the classic effect features two modulation choices, traditional sine-based periodicity or smoothened fractal oscillation.",
+    "plugin": 0,
+    "library": "libPhaser.so"
+  },
+  "8100": {
+    "name": "Plate reverb",
+    "id": 1423,
+    "desc": "A physical model of a steel plate reverb",
+    "plugin": 0,
+    "library": "libplate_1423.so"
+  },
+  "8200": {
+    "name": "Pointer cast distortion",
+    "id": 1910,
+    "desc": "This distortion is created by treating the floating point representation of the input signal as a 0.32 1's complement fixedpoint integer. Its very unmusical but surpisingly recognisable. I'm not sure that its useful for anything, but it can make interesting noises.",
+    "plugin": 0,
+    "library": "libpointer_cast_1910.so"
+  },
+  "8300": {
+    "name": "valve preamplifier model",
+    "id": 1765,
+    "plugin": 0,
+    "library": "libpreamp.so"
+  },
+  "8400": {
+    "name": "Rate shifter",
+    "id": 1417,
+    "desc": "Stretches or compresses the input with a ringbuffer.",
+    "plugin": 0,
+    "library": "librate_shifter_1417.so"
+  },
+  "8500": {
+    "name": "Retro Flanger",
+    "id": 1208,
+    "desc": "A model of someone flanging the input. Models the tape saturation effects, and frequency smear of a manual flanger. The results are a slightly distorted, but more subtle flanger sound that you get from a normal digital flanger.",
+    "plugin": 0,
+    "library": "libretro_flange_1208.so"
+  },
+  "8600": {
+    "name": "Reverse Delay (5s max)",
+    "desc": "A reverse delay not really modelled on any existing one.  You'll want to set\n         the Crossfade Samples parameter to something reasonably small (but more than 20)\n         for most applications, but you can try larger values if you start getting clicking",
+    "id": 1605,
+    "plugin": 0,
+    "library": "librevdelay_1605.so"
+  },
+  "8700": {
+    "name": "C* JVRev - Stanford-style reverb from STK",
+    "id": 1778,
+    "plugin": 0,
+    "desc": "This is based on some of the famous Stanford CCRMA reverbs (NRev, KipRev) all based on the Chowning/Moorer/Schroeder reverberators, which use networks of simple allpass and comb delay filters.  ",
+    "library": "libReverb.so"
+  },
+  "8701": {
+    "name": "C* Plate - Versatile plate reverb",
+    "id": 1779,
+    "desc": "This is based on some of the famous Stanford CCRMA reverbs (NRev, KipRev) all based on the Chowning/Moorer/Schroeder reverberators, which use networks of simple allpass and comb delay filters.  ",
+    "plugin": 1,
+    "library": "libReverb.so"
+  },
+  "8702": {
+    "name": "C* PlateX2 - Versatile plate reverb, stereo inputs",
+    "id": 1795,
+    "plugin": 2,
+    "desc": "This is based on some of the famous Stanford CCRMA reverbs (NRev, KipRev) all based on the Chowning/Moorer/Schroeder reverberators, which use networks of simple allpass and comb delay filters.  ",
+    "library": "libReverb.so"
+  },
+  "8800": {
+    "name": "Ringmod with two inputs",
+    "id": 1188,
+    "plugin": 0,
+    "desc": "This is a simple 2 input ring modulator. It is important that the modulator input is bounded to (-1, +1), otherwise you will get rubbish on the output.",
+    "library": "libringmod_1188.so"
+  },
+  "8801": {
+    "name": "Ringmod with LFO",
+    "id": 1189,
+    "plugin": 1,
+    "library": "libringmod_1188.so"
+  },
+  "9000": {
+    "name": "RT First Order Allpass",
+    "id": 9010,
+    "desc": "1st-order all-pass (non-inverting)",
+    "plugin": 0,
+    "library": "libRTallpass1.so"
+  },
+  "9100": {
+    "name": "RT 2nd-Order Allpass",
+    "id": 9005,
+    "desc": "2nd-order all-pass (non-inverting)",
+    "plugin": 0,
+    "library": "libRTallpass2.so"
+  },
+  "9200": {
+    "name": "RT mls-based stereo decorrelation",
+    "id": 9011,
+    "plugin": 0,
+    "library": "libRTdecorrmls.so"
+  },
+  "9300": {
+    "name": "RT First Order Highpass",
+    "id": 9016,
+    "plugin": 0,
+    "desc": "1st-order high-pass, -3dB at fc",
+    "library": "libRThighpass1.so"
+  },
+  "9400": {
+    "name": "RT 2nd-order highpass",
+    "id": 9007,
+    "plugin": 0,
+    "desc": "2nd-order high-pass, -3dB at fc",
+    "library": "libRThighpass.so"
+  },
+  "9500": {
+    "name": "RT High Shelf",
+    "id": 9003,
+    "plugin": 0,
+    "desc": "high shelving (unity gain at low frequency)",
+    "library": "libRThighshelf.so"
+  },
+  "9600": {
+    "name": "RT First Order Lowpass",
+    "id": 9015,
+    "plugin": 0,
+    "desc": "1st-order low-pass, -3dB at fc",
+    "library": "libRTlowpass1.so"
+  },
+  "9700": {
+    "name": "RT 2nd-order lowpass",
+    "id": 9006,
+    "plugin": 0,
+    "desc": "2nd-order low-pass, -3dB at fc",
+    "library": "libRTlowpass.so"
+  },
+  "9800": {
+    "name": "RT Low Shelf",
+    "id": 9002,
+    "desc": "low shelving (unity gain at high frequency)",
+    "plugin": 0,
+    "library": "libRTlowshelf.so"
+  },
+  "9900": {
+    "name": "RT LR4 highpass",
+    "id": 9021,
+    "desc": "Linkwitz-Riley 4th-order high-pass, -6dB at fc",
+    "plugin": 0,
+    "library": "libRTlr4hipass.so"
+  },
+  "10000": {
+    "name": "RT LR4 lowpass",
+    "id": 9020,
+    "desc": "Linkwitz-Riley 4th-order low-pass, -6dB at fc",
+    "plugin": 0,
+    "library": "libRTlr4lowpass.so"
+  },
+  "10100": {
+    "name": "RT parametric eq",
+    "id": 9001,
+    "plugin": 0,
+    "library": "libRTparaeq.so"
+  },
+  "10200": {
+    "name": "Barry's Satan Maximiser",
+    "id": 1408,
+    "desc": "Compresses signals with a stupidly short attack and decay, infinite\nratio and hard knee. Not really as a compressor, but good harsh (non-musical)\ndistortion.",
+    "plugin": 0,
+    "library": "libsatan_maximiser_1408.so"
+  },
+  "10300": {
+    "name": "C* Saturate - Various static nonlinearities, 8x oversampled",
+    "id": 1771,
+    "plugin": 0,
+    "desc": "Various static nonlinearities, 8x oversampled. Please note that this plugin embodies a very basic building block of audio DSP, not an elaborate effect that will be pleasing to hear right away.\u2002 To turn saturation into a musically useful effect it is usually combined with some sort of filtering and dynamics modulation",
+    "library": "libSaturate.so"
+  },
+  "10301": {
+    "name": "C* Spice - Not an exciter",
+    "id": 2603,
+    "desc": "Not an exciter. This effect plugin is useful when more bass register definition or more treble presence is called for and generic equalisation does not work without also emphasising noise or raising the signal's total level.\u2002 A common application is refreshing of material that has been subjected to low-fidelity analog transmission",
+    "plugin": 1,
+    "library": "libSaturate.so"
+  },
+  "10302": {
+    "name": "C* SpiceX2 - Not an exciter either",
+    "id": 2607,
+    "desc": "Stereo version of Spice. Bass compression is governed by the sum of both channels",
+    "plugin": 2,
+    "library": "libSaturate.so"
+  },
+  "10400": {
+    "name": "C* Scape - Stereo delay with chromatic resonances",
+    "desc": "Stereo delay with chromatic resonances. A stereo delay with resonant filters and fractally modulated panning. With every beat, the filter resonance frequencies are retuned to random steps on an equal-tempered chromatic scale",
+    "id": 2588,
+    "plugin": 0,
+    "library": "libScape.so"
+  },
+  "10500": {
+    "name": "Wave shaper",
+    "id": 1187,
+    "desc": "This plugin reshapes the wave by an exponential function.",
+    "plugin": 0,
+    "library": "libshaper_1187.so"
+  },
+  "10600": {
+    "name": "Signal sifter",
+    "id": 1210,
+    "desc": "Sorts and mixes blocks of the input signal to give a bumpy ramp effect.",
+    "plugin": 0,
+    "library": "libsifter_1210.so"
+  },
+  "10700": {
+    "name": "Sine + cosine oscillator",
+    "desc": "This is a simple oscillator that outputs sinewaves with a 90 degree phase shift between them.",
+    "id": 1881,
+    "plugin": 0,
+    "library": "libsin_cos_1881.so"
+  },
+  "10800": {
+    "name": "Single band parametric",
+    "id": 1203,
+    "desc": "A single band of a parametric filter.",
+    "plugin": 0,
+    "library": "libsingle_para_1203.so"
+  },
+  "11000": {
+    "name": "Sinus wavewrapper",
+    "id": 1198,
+    "plugin": 0,
+    "desc": "Produces an unusual distortion effect, for a more amp like tone, see the valve saturation plugin",
+    "library": "libsinus_wavewrapper_1198.so"
+  },
+  "11100": {
+    "name": "Smooth Decimator",
+    "id": 1414,
+    "plugin": 0,
+    "library": "libsmooth_decimate_1414.so"
+  },
+  "11200": {
+    "name": "Mono to Stereo splitter",
+    "id": 1406,
+    "plugin": 0,
+    "library": "libsplit_1406.so"
+  },
+  "11300": {
+    "name": "Step Demuxer",
+    "id": 1212,
+    "plugin": 0,
+    "desc": "Inputs up to 8 signals and switches between them on the output when the signal on the clock input goes high.",
+    "library": "libstep_muxer_1212.so"
+  },
+  "11400": {
+    "name": "Surround matrix encoder",
+    "id": 1401,
+    "desc": "It allows you to encode four channels of sound into a stereo compatible stream that will be decoded by a decoder into Left, Right, Center and Surround signals.",
+    "plugin": 0,
+    "library": "libsurround_encoder_1401.so"
+  },
+  "11500": {
+    "name": "State Variable Filter",
+    "id": 1214,
+    "plugin": 0,
+    "desc": "An oversampled state variable filter with a few tweaks. Quite a nice State Variable Filter, tends to be unstable with high resonance and Q values, but good when kept under control.",
+    "library": "libsvf_1214.so"
+  },
+  "11700": {
+    "name": "TAP AutoPanner",
+    "id": 2146,
+    "plugin": 0,
+    "desc": "The AutoPanner is a very well-known effect; its hardware incarnation originates in the age of voltage controlled synthesizers. Its main use is to liven up synth tracks in the mix.",
+    "library": "libtap_autopan.so"
+  },
+  "11800": {
+    "name": "TAP Chorus/Flanger",
+    "id": 2159,
+    "desc": "This plugin is an implementation capable of creating traditional Chorus and Flanger effects, spiced up a bit to make use of stereo processing. It sounds best on guitar and synth tracks.",
+    "plugin": 0,
+    "library": "libtap_chorusflanger.so"
+  },
+  "11900": {
+    "name": "TAP DeEsser",
+    "desc": "TAP DeEsser is a plugin for attenuating higher pitched frequencies in vocals such as those found in 'ess', 'shh' and 'chh' sounds",
+    "id": 2147,
+    "plugin": 0,
+    "library": "libtap_deesser.so"
+  },
+  "12000": {
+    "name": "TAP Fractal Doubler",
+    "id": 2156,
+    "plugin": 0,
+    "desc": "Originally developed to do vocal doubling, this plugin is suitable for doubling tracks with vocals, acoustic/electric guitars, bass and just about any other instrument on them. The effect is created by applying small changes to the pitch and timing of the incoming signal. ",
+    "library": "libtap_doubler.so"
+  },
+  "12100": {
+    "name": "TAP Stereo Echo",
+    "desc": "This plugin supports conventional mono and stereo delays, ping-pong delays and the Haas effect (also known as Cross Delay Stereo). A relatively simple yet quite effective plugin.",
+    "id": 2143,
+    "plugin": 0,
+    "library": "libtap_echo.so"
+  },
+  "12200": {
+    "desc": "Correctly models the tape motion and some of the smear effect. The way the tape accelerates and decelerates gives a nicer delay effect for many purposes.",
+    "name": "Tape Delay Simulation",
+    "id": 1211,
+    "plugin": 0,
+    "library": "libtape_delay_1211.so"
+  },
+  "12300": {
+    "name": "TAP Equalizer/BW",
+    "desc": "This plugin is an 8-band equalizer with adjustable band center frequencies. It allows you to make precise adjustments to the tonal coloration of your tracks. ",
+    "id": 2151,
+    "plugin": 0,
+    "library": "libtap_eqbw.so"
+  },
+  "12400": {
+    "name": "TAP Equalizer",
+    "id": 2141,
+    "plugin": 0,
+    "desc": "This plugin is an 8-band equalizer with adjustable band center frequencies.",
+    "library": "libtap_eq.so"
+  },
+  "12500": {
+    "name": "TAP Scaling Limiter",
+    "desc": "You want to maximize the loudness of your master tracks. Your drummer has the habit of playing with varying velocity. You want to squeeze high transient spikes down into the bulk of the audio. You want a limiter with transparent sound, but without distortion. This is for you, then. The unique design of this innocent looking plugin results in the ability to achieve signal level limiting without audible artifacts.",
+    "id": 2145,
+    "plugin": 0,
+    "library": "libtap_limiter.so"
+  },
+  "12600": {
+    "name": "TAP Pink/Fractal Noise",
+    "id": 2155,
+    "desc": "It adds pink noise to the incoming signal using a one-dimensional random fractal line generated by the Midpoint Displacement Method, which is a computationally cheap method suitable for generating random fractals.",
+    "plugin": 0,
+    "library": "libtap_pinknoise.so"
+  },
+  "12700": {
+    "name": "TAP Pitch Shifter",
+    "id": 2150,
+    "plugin": 0,
+    "desc": "This plugin gives you the opportunity to change the pitch of individual tracks or full mixes, in the range of plus/minus one octave. Audio length (tempo) is not affected by this plugin, since audio is completely resampled.",
+    "library": "libtap_pitch.so"
+  },
+  "12800": {
+    "name": "TAP Reflector",
+    "id": 2154,
+    "plugin": 0,
+    "desc": "This plugin creates a psychedelic reverse audio effect. Overlapping time intervals of incoming samples are treated as blocks called 'fragments'. Each fragment is reversed in time, and faded in and out while played back to the output, hence creating a nearly constant signal level with the mixture resembling a normal reverse-played track -- with the difference that the audio actually progresses forward, only pieces of it are reversed.",
+    "library": "libtap_reflector.so"
+  },
+  "12900": {
+    "name": "TAP Reverberator",
+    "id": 2142,
+    "plugin": 0,
+    "desc": "TAP Reverberator is unique among reverberators freely available on the Linux platform. It supports creating no less than 43 reverberation effects.",
+    "library": "libtap_reverb.so"
+  },
+  "13000": {
+    "name": "TAP Rotary Speaker",
+    "id": 2149,
+    "plugin": 0,
+    "desc": "This plugin simulates the sound of rotating speakers. Two pairs of rotating speakers are simulated, each pair fixed on a vertical axis, with their horns spreading the sound in opposite directions. ",
+    "library": "libtap_rotspeak.so"
+  },
+  "13100": {
+    "name": "TAP Sigmoid Booster",
+    "id": 2157,
+    "plugin": 0,
+    "desc": "This plugin applies a time-invariant nonlinear amplitude transfer function to the signal. Depending on the signal and the plugin settings, various related effects (compression, soft limiting, emulation of tape saturation, mild distortion) can be achieved.",
+    "library": "libtap_sigmoid.so"
+  },
+  "13200": {
+    "name": "TAP Tremolo",
+    "id": 2144,
+    "plugin": 0,
+    "library": "libtap_tremolo.so"
+  },
+  "13300": {
+    "name": "TAP TubeWarmth",
+    "id": 2158,
+    "plugin": 0,
+    "desc": "TAP TubeWarmth adds the character of vacuum tube amplification to your audio tracks by emulating the sonically desirable nonlinear characteristics of triodes. In addition, this plugin also supports emulating analog tape saturation.",
+    "library": "libtap_tubewarmth.so"
+  },
+  "13400": {
+    "name": "TAP Vibrato",
+    "id": 2148,
+    "desc": "This plugin modulates the pitch of its input signal with a low-frequency sinusoidal signal. It is useful for guitar and synth tracks, and it can also come handy if a strange effect is needed.",
+    "plugin": 0,
+    "library": "libtap_vibrato.so"
+  },
+  "13600": {
+    "name": "C* ToneStack - Classic amplifier tone stack emulation",
+    "id": 2589,
+    "desc": "Classic amplifier tone stack emulation. All models are using the procedural implementation with continuously updated direct form II filters and sample rate independency.",
+    "plugin": 0,
+    "library": "libToneStack.so"
+  },
+  "13700": {
+    "name": "Transient mangler",
+    "id": 1206,
+    "plugin": 0,
+    "library": "libtransient_1206.so"
+  },
+  "13800": {
+    "name": "Triple band parametric with shelves",
+    "id": 1204,
+    "plugin": 0,
+    "desc": "Actually five bands of eq, but the first and last are locked to shelving filters.",
+    "library": "libtriple_para_1204.so"
+  },
+  "13900": {
+    "name": "Valve saturation",
+    "id": 1209,
+    "desc": "A model of valve (tube) distortion, lacking some of the harmonics you would get in a real tube amp, but sounds good nonetheless.",
+    "plugin": 0,
+    "library": "libvalve_1209.so"
+  },
+  "14000": {
+    "name": "Valve rectifier",
+    "id": 1405,
+    "plugin": 0,
+    "library": "libvalve_rect_1405.so"
+  },
+  "14200": {
+    "name": "VLevel (Mono)",
+    "id": 1981,
+    "desc": "VLevel is a tool to amplify the soft parts of music so you don't have to fiddle with the volume control. It looks ahead a few seconds, so it can change the volume gradually without ever clipping. Because the volume is changed gradually, dynamic contrast is preserved.",
+    "plugin": 0,
+    "library": "libvlevel-ladspa.so"
+  },
+  "14201": {
+    "desc": "VLevel is a tool to amplify the soft parts of music so you don't have to fiddle with the volume control. It looks ahead a few seconds, so it can change the volume gradually without ever clipping. Because the volume is changed gradually, dynamic contrast is preserved.",
+    "name": "VLevel (Stereo)",
+    "id": 1982,
+    "plugin": 1,
+    "library": "libvlevel-ladspa.so"
+  },
+  "14300": {
+    "name": "Vocoder",
+    "id": 1337,
+    "plugin": 0,
+    "desc": "Makes a human voice sound synthetic; often used to speak like a robot, with a metallic and monotonous voice.  Using a human voice as the formant and an instrument as the carrier, creates an effect of an instrument speaking.",
+    "library": "libvocoder_1337.so"
+  },
+  "14400": {
+    "name": "Vocoder",
+    "id": 1441,
+    "desc": "Vocoder aims to replace the carrier of your voice with another carrier from another source. Thus, it changes the sound of the voice but not the message when you speak. ",
+    "plugin": 0,
+    "library": "libvocoder.so"
+  },
+  "14500": {
+    "name": "VyNil (Vinyl Effect)",
+    "id": 1905,
+    "plugin": 0,
+    "library": "libvynil_1905.so"
+  },
+  "14600": {
+    "name": "Wave Terrain Oscillator",
+    "id": 1412,
+    "plugin": 0,
+    "desc": "Inputs x and y move the cursor around on a 2D landscape \"wavetable\" that is used to generate the output. The function used is  z = (x - y) * (x - 1) * (x + 1) * (y - 1) * (y + 1).",
+    "library": "libwave_terrain_1412.so"
+  },
+  "14800": {
+    "name": "Crossfade",
+    "id": 1915,
+    "plugin": 0,
+    "desc": "Controls the degree to which the inputs are mixed into the output. A\nvalue of -1 means that the output is just the A input, and a value of 1.0\nmeans that it is just the B input.",
+    "library": "libxfade_1915.so"
+  },
+  "14801": {
+    "name": "Crossfade (4 outs)",
+    "desc": "Controls the degree to which the inputs are mixed into the output. A\nvalue of -1 means that the output is just the A input, and a value of 1.0\nmeans that it is just the B input.",
+    "id": 1917,
+    "plugin": 1,
+    "library": "libxfade_1915.so"
+  },
+  "14900": {
+    "name": "z-1",
+    "id": 1428,
+    "plugin": 0,
+    "desc": "A plugin that implements the $z^{-1}$ function (a single sample delay).",
+    "library": "libzm1_1428.so"
+  },
+  "36000": {
+    "name": "Cyber Organ 9",
+    "id": 9101,
+    "plugin": 0,
+    "desc": "Cyber Audio polyphonic chord-tracking organ with 9 authentic classic organ voicings and single-note protection.",
+    "library": "cyber_organ9.so"
+  },
+  "36100": {
+    "name": "Cyber Mel9",
+    "id": 9102,
+    "plugin": 0,
+    "desc": "Cyber Audio vintage tape replay / mellotron emulator featuring strings, flutes, choir and orchestra sounds.",
+    "library": "cyber_mel9.so"
+  },
+  "36200": {
+    "name": "Cyber Synth9",
+    "id": 9103,
+    "plugin": 0,
+    "desc": "Cyber Audio analog synthesizer guitar pedal emulator with fat polyphonic synth leads and pads.",
+    "library": "cyber_synth9.so"
+  },
+  "36300": {
+    "name": "Cyber String9",
+    "id": 9104,
+    "plugin": 0,
+    "desc": "Cyber Audio symphonic string ensemble machine delivering rich orchestral washes and lush string pads.",
+    "library": "cyber_string9.so"
+  },
+  "36400": {
+    "name": "Cyber Bass9",
+    "id": 9105,
+    "plugin": 0,
+    "desc": "Cyber Audio polyphonic bass synthesizer with sub-octaves, synths and deep upright bass tones.",
+    "library": "cyber_bass9.so"
+  },
+  "36500": {
+    "name": "Cyber Hum Killer PRO",
+    "id": 9106,
+    "plugin": 0,
+    "desc": "Cyber Audio high-precision 8-harmonic mains hum (50Hz/60Hz) & DC suppressor with adaptive notch filtering.",
+    "library": "cyber_hum_killer.so"
+  },
+  "36600": {
+    "name": "Cyber Denoiser PRO",
+    "id": 9107,
+    "plugin": 0,
+    "desc": "Cyber Audio 10-band forensic spectral subtractive denoiser with real-time noise profile learning.",
+    "library": "cyber_denoiser.so"
+  },
+  "36700": {
+    "name": "Smart Fizz Killer",
+    "id": 9108,
+    "plugin": 0,
+    "desc": "Cyber Audio warm boutique harmonic saturator, phase smearer and high-frequency fizz suppressor.",
+    "library": "smart_fizz_killer.so"
+  }
+}

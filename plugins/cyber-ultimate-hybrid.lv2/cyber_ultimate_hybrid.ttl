@@ -1,0 +1,287 @@
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix mod:  <http://moddevices.com/ns/mod#> .
+
+<http://cyber-audio.co.uk/plugins/cyber-ultimate-hybrid>
+    a lv2:Plugin , lv2:SimulatorPlugin ;
+    doap:name "Cyber Ultimate Hybrid ('65 Blackface + '59 Bassman/JMP)" ;
+    doap:license <http://usefulinc.com/doap/licenses/proprietary> ;
+    lv2:minorVersion 1 ;
+    lv2:microVersion 0 ;
+    rdfs:comment "Boutique Dual-Topology Tube Amplifier combining '65 Fender Blackface AB763 glassy cleans and '59 Tweed Bassman 5F6-A / Marshall JMP cathode-follower crunch with parallel channel jumpering, 3-Spring Accutronics Drip Reverb, Brownface 6G Harmonic Tube Vibrato, 6L6/EL34 power section with B+ rail sag, and slimmable 1x-8x Newton-Raphson physics." ;
+    mod:brand "Cyber Audio" ;
+    mod:label "Ultimate Hybrid" ;
+
+    lv2:port [
+        a lv2:AudioPort , lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "in" ;
+        lv2:name "Input" ;
+    ] , [
+        a lv2:AudioPort , lv2:OutputPort ;
+        lv2:index 1 ;
+        lv2:symbol "out" ;
+        lv2:name "Output" ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 2 ;
+        lv2:symbol "bypass" ;
+        lv2:name "Bypass" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation lv2:enabled ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 3 ;
+        lv2:symbol "channel_mode" ;
+        lv2:name "Channel Topology" ;
+        lv2:default 2 ;
+        lv2:minimum 0 ;
+        lv2:maximum 2 ;
+        lv2:portProperty lv2:enumeration , lv2:integer ;
+        lv2:scalePoint [ rdfs:label "'65 Blackface Glassy Clean" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "'59 Bassman / JMP Crunch" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Jumpered Parallel Blend" ; rdf:value 2 ] ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 4 ;
+        lv2:symbol "clean_vol" ;
+        lv2:name "Blackface Clean Vol" ;
+        lv2:default 6.2 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 5 ;
+        lv2:symbol "drive_gain" ;
+        lv2:name "Bassman / JMP Gain" ;
+        lv2:default 5.8 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 6 ;
+        lv2:symbol "drive_vol" ;
+        lv2:name "Bassman / JMP Vol" ;
+        lv2:default 5.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 7 ;
+        lv2:symbol "bass" ;
+        lv2:name "Bass" ;
+        lv2:default 5.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 8 ;
+        lv2:symbol "mid" ;
+        lv2:name "Middle" ;
+        lv2:default 6.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 9 ;
+        lv2:symbol "treble" ;
+        lv2:name "Treble" ;
+        lv2:default 6.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 10 ;
+        lv2:symbol "bright_sw" ;
+        lv2:name "120pF Bright Switch" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 11 ;
+        lv2:symbol "slope_mode" ;
+        lv2:name "Tone Stack Voicing" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:enumeration , lv2:integer ;
+        lv2:scalePoint [ rdfs:label "56k Fender Bassman" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "33k Marshall JMP" ; rdf:value 1 ] ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 12 ;
+        lv2:symbol "power_tubes" ;
+        lv2:name "Power Tubes" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:enumeration , lv2:integer ;
+        lv2:scalePoint [ rdfs:label "2x 6L6GC American" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "2x EL34 British" ; rdf:value 1 ] ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 13 ;
+        lv2:symbol "master" ;
+        lv2:name "Master Volume" ;
+        lv2:default 5.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 14 ;
+        lv2:symbol "presence" ;
+        lv2:name "Presence" ;
+        lv2:default 5.8 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 15 ;
+        lv2:symbol "sag_amount" ;
+        lv2:name "B+ Tube Sag" ;
+        lv2:default 6.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 16 ;
+        lv2:symbol "rev_dwell" ;
+        lv2:name "Spring Dwell (12AT7)" ;
+        lv2:default 5.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 17 ;
+        lv2:symbol "rev_mix" ;
+        lv2:name "Spring Reverb Mix" ;
+        lv2:default 22.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 100.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 18 ;
+        lv2:symbol "rev_tone" ;
+        lv2:name "Spring Reverb Tone" ;
+        lv2:default 6.2 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 19 ;
+        lv2:symbol "rev_drip" ;
+        lv2:name "Spring Drip Dispersion" ;
+        lv2:default 6.8 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 20 ;
+        lv2:symbol "trem_speed" ;
+        lv2:name "Vibrato Speed" ;
+        lv2:default 3.8 ;
+        lv2:minimum 0.5 ;
+        lv2:maximum 12.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 21 ;
+        lv2:symbol "trem_depth" ;
+        lv2:name "Vibrato Intensity" ;
+        lv2:default 28.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 100.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 22 ;
+        lv2:symbol "trem_mode" ;
+        lv2:name "Harmonic Tube Vibrato" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 23 ;
+        lv2:symbol "quality_mode" ;
+        lv2:name "Physics / CPU Scale" ;
+        lv2:default 1 ;
+        lv2:minimum 0 ;
+        lv2:maximum 3 ;
+        lv2:portProperty lv2:enumeration , lv2:integer ;
+        lv2:scalePoint [ rdfs:label "Eco Live (1x Fast)" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Stage (2x Oversample)" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Studio (4x High-Precision)" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Ultra Bounce (8x Pure Physics)" ; rdf:value 3 ] ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 24 ;
+        lv2:symbol "speaker_cab" ;
+        lv2:name "Speaker Cabinet" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 3 ;
+        lv2:portProperty lv2:enumeration , lv2:integer ;
+        lv2:scalePoint [ rdfs:label "2x12 '65 Twin Jensen C12N" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "4x10 '59 Bassman Jensen P10R" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "4x12 '68 Marshall Greenback" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Direct Out / Cab Bypass" ; rdf:value 3 ] ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 25 ;
+        lv2:symbol "speaker_drive" ;
+        lv2:name "Cone Stress / Drive" ;
+        lv2:default 5.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 26 ;
+        lv2:symbol "output_level" ;
+        lv2:name "Output Level" ;
+        lv2:default 7.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 27 ;
+        lv2:symbol "noise_gate" ;
+        lv2:name "Zero Noise Suppressor" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 28 ;
+        lv2:symbol "noise_spectral" ;
+        lv2:name "Spectral De-Noise" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 29 ;
+        lv2:symbol "noise_defizz" ;
+        lv2:name "Dynamic De-Fizz" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled , lv2:integer ;
+    ] , [
+        a lv2:ControlPort , lv2:InputPort ;
+        lv2:index 30 ;
+        lv2:symbol "noise_level" ;
+        lv2:name "Noise Depth" ;
+        lv2:default 5.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 10.0 ;
+    ] .

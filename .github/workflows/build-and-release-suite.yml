@@ -1,0 +1,122 @@
+name: Build and Release Euphoria Amp & Tubular Amp (macOS & Windows)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # =========================================================================
+  # macOS Build Matrix: Apple Silicon (arm64) & Intel (x86_64)
+  # Builds: Standalone (.app), VST3, and AU
+  # =========================================================================
+  build-macos:
+    name: macOS ${{ matrix.arch }} (Standalone + VST3 + AU)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: macos-14
+          - arch: x86_64
+            os: macos-13
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Configure CMake (Euphoria Amp)
+        run: |
+          cmake -S plugins/euphoria-amp-vst -B build-euphoria \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="${{ matrix.arch }}" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+
+      - name: Build Euphoria Amp (All Targets)
+        run: cmake --build build-euphoria --config Release --parallel
+
+      - name: Ad-hoc Sign Binaries
+        run: |
+          find build-euphoria/EuphoriaAmp_artefacts/Release -name "*.app" -o -name "*.vst3" -o -name "*.component" | while read -r item; do
+            echo "Ad-hoc signing: $item"
+            codesign --force --deep --sign - "$item" || true
+          done
+
+      - name: Package macOS Artefacts
+        shell: bash
+        run: |
+          mkdir -p release_euphoria_mac
+          cp -R build-euphoria/EuphoriaAmp_artefacts/Release/* release_euphoria_mac/
+          cd release_euphoria_mac
+          zip -r -y ../EuphoriaAmp-macOS-${{ matrix.arch }}.zip .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EuphoriaAmp-macOS-${{ matrix.arch }}
+          path: EuphoriaAmp-macOS-${{ matrix.arch }}.zip
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || 'v1.0.0' }}
+          name: "Release ${{ github.ref_name || 'v1.0.0' }}"
+          draft: false
+          prerelease: false
+          files: EuphoriaAmp-macOS-${{ matrix.arch }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # =========================================================================
+  # Windows Build: x64
+  # Builds: Standalone (.exe) & VST3
+  # =========================================================================
+  build-windows:
+    name: Windows x64 (Standalone + VST3)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Configure CMake (Euphoria Amp)
+        run: |
+          cmake -S plugins/euphoria-amp-vst -B build-euphoria -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Euphoria Amp (All Targets)
+        run: cmake --build build-euphoria --config Release --parallel
+
+      - name: Package Windows Artefacts
+        shell: bash
+        run: |
+          mkdir -p release_euphoria_win
+          cp -R build-euphoria/EuphoriaAmp_artefacts/Release/* release_euphoria_win/
+          cd release_euphoria_win
+          7z a -tzip ../EuphoriaAmp-Windows-x64.zip .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EuphoriaAmp-Windows-x64
+          path: EuphoriaAmp-Windows-x64.zip
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || 'v1.0.0' }}
+          name: "Release ${{ github.ref_name || 'v1.0.0' }}"
+          draft: false
+          prerelease: false
+          files: EuphoriaAmp-Windows-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

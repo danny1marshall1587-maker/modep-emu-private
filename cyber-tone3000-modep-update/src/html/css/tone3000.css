@@ -1,0 +1,646 @@
+/* ==========================================================================
+   TONE3000 System-Linked Proxy Plugin Interface for MOD Desktop & MODEP
+   Faithfully matched to tone3000-plugin sources (theme.ts, index.css, Faceplate.tsx, ToneBrowser.tsx)
+   ========================================================================== */
+
+/* Top Navigation Bar Button in MOD-UI Header */
+header button.js-tone3000, #mod-tone3000-top-btn {
+    display: inline-block !important;
+    background-image: url(../img/t3k-mark.svg) !important;
+    background-position: 8px 50% !important;
+    background-size: 18px 18px !important;
+    background-repeat: no-repeat !important;
+    padding: 0 14px 0 32px !important;
+    height: 45px !important;
+    line-height: 45px !important;
+    border: none !important;
+    background-color: transparent !important;
+    color: rgba(255, 255, 255, 0.45) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 11px;
+    font-family: Arial, sans-serif;
+    margin-right: 4px;
+    vertical-align: middle;
+    user-select: none;
+}
+
+/* Dynamically Linked State (When TONE3000 pedal is on board) */
+header button.js-tone3000.is-linked, #mod-tone3000-top-btn.is-linked {
+    color: #ffffff !important;
+    opacity: 0.95 !important;
+}
+
+header button.js-tone3000.is-linked:hover, #mod-tone3000-top-btn.is-linked:hover,
+header button.js-tone3000.active, #mod-tone3000-top-btn.active {
+    opacity: 1 !important;
+    background-color: #151517 !important;
+    color: #00d2ff !important;
+    box-shadow: inset 0 -2px 0 #00d2ff;
+}
+
+/* Unlinked State (When no TONE3000 pedal on board) */
+header button.js-tone3000.is-unlinked, #mod-tone3000-top-btn.is-unlinked {
+    color: rgba(255, 255, 255, 0.35) !important;
+    opacity: 0.45 !important;
+}
+
+/* Full-Screen Backdrop & Window Container */
+#mod-tone3000-window {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.88) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    z-index: 100005 !important;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    color: #ffffff;
+    user-select: none;
+}
+
+.t3k-main-app-shell {
+    width: 100%;
+    max-width: 1060px;
+    height: 92vh;
+    max-height: 800px;
+    background-color: #000000;
+    border: 1px solid rgba(84, 84, 88, 0.65);
+    border-radius: 8px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.95), 0 0 40px rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ==========================================================================
+   TOP HEADER (PluginHeader.tsx)
+   Height: 64px, Background: #000000, BorderBottom: 1px solid rgba(84, 84, 88, 0.65)
+   ========================================================================== */
+.t3k-app-header {
+    height: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #000000;
+    padding: 0 24px;
+    border-bottom: 1px solid rgba(84, 84, 88, 0.65);
+}
+
+.t3k-header-brand-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.t3k-brand-img {
+    height: 24px;
+    width: auto;
+    display: block;
+}
+
+.t3k-link-status-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 500;
+    border: 1px solid rgba(84, 84, 88, 0.65);
+    background: #151517;
+    color: #4ade80;
+}
+
+.t3k-link-status-chip.unlinked {
+    color: #facc15;
+    border-color: rgba(234, 179, 8, 0.4);
+}
+
+.t3k-header-nav-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.t3k-nav-pill-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-family: Arial, sans-serif;
+    font-weight: 400;
+    border-radius: 9999px;
+    border: 1px solid rgba(84, 84, 88, 0.65);
+    background-color: transparent;
+    color: rgba(235, 235, 245, 0.60);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.t3k-nav-pill-btn:hover {
+    color: #ffffff;
+    border-color: #ffffff;
+}
+
+.t3k-nav-pill-btn.active {
+    border-color: #ffffff;
+    color: #ffffff;
+    background-color: #1C1C1E;
+}
+
+.t3k-nav-pill-btn.online-tab {
+    border-color: rgba(0, 210, 255, 0.5);
+    color: #00d2ff;
+}
+
+.t3k-nav-pill-btn.online-tab:hover,
+.t3k-nav-pill-btn.online-tab.active {
+    border-color: #00d2ff;
+    background-color: rgba(0, 210, 255, 0.12);
+    color: #ffffff;
+}
+
+.t3k-header-right-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.t3k-header-close-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid rgba(84, 84, 88, 0.65);
+    color: rgba(235, 235, 245, 0.60);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.t3k-header-close-btn:hover {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.2);
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   CENTER WORKSPACE
+   ========================================================================== */
+.t3k-workspace-body {
+    flex: 1;
+    overflow-y: auto;
+    background: #000000;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Signal Chain Panel (ChainView.tsx) */
+.t3k-chain-view-panel {
+    padding: 30px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.t3k-chain-heading-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.t3k-section-title {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(235, 235, 245, 0.40);
+}
+
+.t3k-chain-lane-tiles {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 10px 0;
+}
+
+.t3k-block-tile {
+    width: 170px;
+    height: 120px;
+    background-color: #151517;
+    border: 1px solid rgba(84, 84, 88, 0.65);
+    border-radius: 8px;
+    padding: 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.t3k-block-tile:hover {
+    border-color: #ffffff;
+    background-color: #1C1C1E;
+}
+
+.t3k-block-tile.active-block {
+    border-color: #00d2ff;
+    box-shadow: 0 0 16px rgba(0, 210, 255, 0.15);
+}
+
+.t3k-block-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.t3k-block-badge {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: #00d2ff;
+    letter-spacing: 0.5px;
+}
+
+.t3k-block-power-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 6px #4ade80;
+}
+
+.t3k-block-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.25;
+}
+
+.t3k-block-sub {
+    font-size: 11px;
+    font-family: 'Roboto Mono', monospace;
+    color: rgba(235, 235, 245, 0.60);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.t3k-rail-arrow {
+    color: rgba(84, 84, 88, 0.65);
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   TONE BROWSER SUB-NAVIGATION (Online Cloud vs Downloaded Tones)
+   ========================================================================== */
+.t3k-browser-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+}
+
+.t3k-browser-sub-header {
+    padding: 14px 24px;
+    background: #151517;
+    border-bottom: 1px solid rgba(84, 84, 88, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.t3k-browser-sub-tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.t3k-sub-tab-btn {
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 9999px;
+    border: 1px solid rgba(84, 84, 88, 0.65);
+    background: transparent;
+    color: rgba(235, 235, 245, 0.60);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.t3k-sub-tab-btn:hover {
+    color: #fff;
+    border-color: #fff;
+}
+
+.t3k-sub-tab-btn.active {
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+}
+
+.t3k-sub-tab-btn.online-trigger.active {
+    background: #00d2ff;
+    border-color: #00d2ff;
+    color: #050b14;
+}
+
+.t3k-browser-content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Online Iframe Container */
+.t3k-online-cloud-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.t3k-cloud-notice-bar {
+    padding: 8px 16px;
+    background: #0a111a;
+    border-bottom: 1px solid rgba(0, 210, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.t3k-cloud-notice-bar a {
+    color: #00d2ff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.t3k-embedded-iframe {
+    width: 100%;
+    flex: 1;
+    border: none;
+    background: #000;
+}
+
+/* Tone Cards Grid (My Downloaded Tones) */
+.t3k-tone-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 14px;
+}
+
+.t3k-tone-card {
+    position: relative;
+    width: 100%;
+    border-radius: 12px;
+    background-color: #151517;
+    border: 1px solid rgba(84, 84, 88, 0.35);
+    padding: 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.t3k-tone-card:hover {
+    border-color: #ffffff;
+    background-color: #1C1C1E;
+}
+
+.t3k-tone-card.active-selected {
+    border-color: #00d2ff;
+    box-shadow: 0 0 16px rgba(0, 210, 255, 0.2);
+}
+
+.t3k-card-media-box {
+    width: 84px;
+    height: 84px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background-color: #1C1C1E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.t3k-card-media-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.t3k-card-info-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+}
+
+.t3k-card-title-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.t3k-card-tag-badge {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(235, 235, 245, 0.8);
+    display: inline-block;
+    align-self: flex-start;
+}
+
+.t3k-card-author-line {
+    font-size: 11px;
+    color: rgba(235, 235, 245, 0.50);
+}
+
+.t3k-card-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.t3k-audition-btn {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(84, 84, 88, 0.65);
+    background: transparent;
+    color: #ffffff;
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.t3k-audition-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.t3k-load-pedal-btn {
+    padding: 4px 12px;
+    border-radius: 9999px;
+    border: 1px solid #ffffff;
+    background: #ffffff;
+    color: #000000;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.t3k-load-pedal-btn:hover {
+    background: #e2e8f0;
+}
+
+.t3k-load-pedal-btn.loaded {
+    background: #4ade80;
+    border-color: #4ade80;
+    color: #000000;
+}
+
+/* ==========================================================================
+   AUTHENTIC FACEPLATE (Faceplate.tsx)
+   Height: 108px, Background: #1C1C1E, BorderTop: 1px solid rgba(84, 84, 88, 0.65)
+   ========================================================================== */
+.t3k-app-faceplate {
+    height: 108px;
+    flex-shrink: 0;
+    background-color: #1C1C1E;
+    border-top: 1px solid rgba(84, 84, 88, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 24px;
+    box-sizing: border-box;
+}
+
+.t3k-plate-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.t3k-plate-section-divider {
+    width: 1px;
+    height: 48px;
+    background-color: rgba(84, 84, 88, 0.4);
+}
+
+.t3k-power-toggle-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    border: 1px solid rgba(84, 84, 88, 0.65);
+    background: transparent;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    transition: all 0.15s;
+}
+
+.t3k-power-toggle-btn.off {
+    color: #8D8D93;
+    opacity: 0.5;
+}
+
+.t3k-knob-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+    cursor: grab;
+}
+
+.t3k-knob-unit:active {
+    cursor: grabbing;
+}
+
+.t3k-knob-dial-svg {
+    position: relative;
+    border-radius: 50%;
+    transition: transform 0.05s ease-out;
+}
+
+.t3k-knob-dial-svg.primary {
+    width: 48px;
+    height: 48px;
+}
+
+.t3k-knob-dial-svg.secondary {
+    width: 36px;
+    height: 36px;
+}
+
+.t3k-knob-label-mono {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: rgba(235, 235, 245, 0.60);
+    text-transform: uppercase;
+}
+
+.t3k-knob-val-mono {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* Toast */
+.t3k-app-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #151517;
+    border: 1px solid #ffffff;
+    color: #ffffff;
+    font-size: 13px;
+    padding: 8px 20px;
+    border-radius: 9999px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9);
+    z-index: 100010;
+    display: none;
+}

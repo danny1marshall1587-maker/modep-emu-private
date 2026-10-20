@@ -1,0 +1,322 @@
+/* ==========================================================================
+   Cyber Ultimate Hybrid ('65 Blackface + '59 Bassman/JMP) - Boutique Styling
+   ========================================================================== */
+
+.uh-amp-head {
+    width: 1080px !important;
+    height: 310px !important;
+    background: #14110f !important;
+    background-image:
+        radial-gradient(circle at 50% 45%, rgba(45, 34, 24, 0.7) 0%, rgba(15, 12, 10, 0.98) 100%),
+        repeating-linear-gradient(45deg, rgba(245, 158, 11, 0.025) 0px, rgba(245, 158, 11, 0.025) 2px, transparent 2px, transparent 4px);
+    border: 3px solid #78350f;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9), inset 0 2px 4px rgba(251, 191, 36, 0.35);
+    position: relative;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.uh-tweed-lip {
+    height: 10px;
+    background: linear-gradient(90deg, #1e3a8a 0%, #ca8a04 50%, #92400e 100%);
+    border-bottom: 2px solid #000;
+}
+
+.uh-faceplate {
+    flex: 1;
+    margin: 8px 14px 6px 14px;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 45%, #1c1917 100%);
+    border: 2px solid #d97706;
+    border-radius: 6px;
+    box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+    position: relative;
+}
+
+.uh-left-flank {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 118px;
+}
+
+.uh-jewels-row {
+    display: flex;
+    gap: 8px;
+}
+
+.uh-jewel-holder {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #475569 0%, #0f172a 100%);
+    border: 2px solid #92400e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.uh-jewel.sapphire {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #93c5fd 0%, #2563eb 60%, #1e3a8a 100%);
+    box-shadow: 0 0 10px #3b82f6;
+}
+
+.uh-jewel.amber {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fde68a 0%, #f59e0b 60%, #92400e 100%);
+    box-shadow: 0 0 10px #f59e0b;
+}
+
+.uh-branding {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.uh-brand-title {
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    font-size: 18px;
+    color: #f8fafc;
+    letter-spacing: 1.5px;
+    line-height: 1;
+}
+
+.uh-model-title {
+    font-size: 9px;
+    font-weight: 900;
+    color: #fbbf24;
+    letter-spacing: 1.2px;
+}
+
+.uh-separator {
+    width: 2px;
+    height: 84%;
+    background: linear-gradient(180deg, transparent 0%, #d97706 20%, #78350f 80%, transparent 100%);
+}
+
+.uh-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.uh-sec-header {
+    font-size: 8.5px;
+    font-weight: 900;
+    color: #fbbf24;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(251, 191, 36, 0.35);
+    padding-bottom: 2px;
+}
+
+.uh-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.uh-knob-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 46px;
+}
+
+.uh-dial.custom-knob-dial {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #334155 0%, #1e293b 68%, #0f172a 100%);
+    border: 2px solid #d97706;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.85), inset 0 1px 2px rgba(255, 255, 255, 0.35);
+    position: relative;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.uh-dial-cap {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, #cbd5e1 0%, #94a3b8 70%, #475569 100%);
+    border: 1px solid #1e293b;
+}
+
+.uh-dial .knob-rotor {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3.5px;
+    height: 18px;
+    background: #fbbf24;
+    border-radius: 2px;
+    transform-origin: 50% 100%;
+    transform: translate(-50%, -100%) rotate(0deg);
+    pointer-events: none;
+    box-shadow: 0 0 4px rgba(251, 191, 36, 0.9);
+}
+
+.uh-lbl {
+    font-size: 8px;
+    font-weight: 900;
+    color: #f8fafc;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.uh-ch-btn {
+    min-width: 96px;
+    min-height: 36px;
+    background: #1d4ed8;
+    border: 2px solid #60a5fa;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    padding: 4px 8px;
+    touch-action: manipulation;
+}
+
+.uh-ch-btn.ch-1 { background: #b45309; border-color: #fbbf24; }
+.uh-ch-btn.ch-2 { background: linear-gradient(90deg, #1d4ed8 0%, #b45309 100%); border-color: #fde047; }
+
+.uh-toggle-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Rule 31: [class*="-mod-switch-pill"] >= 36x58px */
+.uh-mod-switch-pill {
+    min-width: 66px;
+    min-height: 36px;
+    background: #1e293b;
+    border: 1.5px solid #475569;
+    border-radius: 6px;
+    color: #cbd5e1;
+    font-size: 8.5px;
+    font-weight: 900;
+    padding: 6px 10px;
+    cursor: pointer;
+    touch-action: manipulation;
+    white-space: nowrap;
+}
+
+.uh-mod-switch-pill.active {
+    background: #d97706;
+    border-color: #fef08a;
+    color: #000000;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.55);
+}
+
+.uh-bottom-deck {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 20px;
+    background: #090d16;
+    border-top: 1px solid #334155;
+}
+
+.uh-deck-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.uh-deck-lbl {
+    font-size: 8px;
+    font-weight: 900;
+    color: #93c5fd;
+    letter-spacing: 1px;
+}
+
+.uh-cab-cluster, .uh-mods-cluster {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.uh-deck-selector {
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    background: #1e3a8a;
+    border: 1.5px solid #60a5fa;
+    border-radius: 6px;
+    color: #fef08a;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+    white-space: nowrap;
+}
+
+/* Rule 31: .mini-dial >= 44x44px */
+.uh-knob-unit.mini {
+    width: 46px !important;
+    gap: 2px !important;
+}
+
+.uh-dial.mini-dial {
+    width: 44px !important;
+    height: 44px !important;
+}
+
+.uh-dial-cap.mini-cap {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.uh-dial .knob-rotor.mini-rotor {
+    height: 16px !important;
+    width: 3px !important;
+}
+
+.uh-lbl.mini-lbl {
+    font-size: 7.5px !important;
+    color: #fde68a !important;
+}
+
+.uh-amp-head .mod-drag-handle {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 10 !important;
+    cursor: move !important;
+}
+
+.uh-amp-head .custom-knob-dial,
+.uh-amp-head button,
+.uh-amp-head [class*="-faceplate"],
+.uh-amp-head [class*="-bottom-deck"],
+.uh-amp-head [class*="-deck-selector"],
+.uh-amp-head [class*="-mod-switch-pill"],
+.uh-amp-head [class*="-ch-btn"] {
+    position: relative !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}

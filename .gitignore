@@ -1,0 +1,80 @@
+# Large disk images, archives, OS dumps
+*.img
+*.iso
+*.dtb
+*.qcow2
+*.vmdk
+*.vdi
+*.tar.gz
+*.zip
+*.7z
+*.aab
+*.apk
+*.fd
+CyberAudio-PatchboxOS*
+2024-04-04-Patchbox*
+0.fat
+1.img
+kernel8.img
+
+# Media files
+*.mp4
+*.mkv
+*.mov
+*.wav
+*.flac
+*.aif
+*.aiff
+
+# Large third-party developer toolchains
+tools/w64devkit/
+
+# Virtual machine / emulation dumps & logs
+qemu/
+downloads/
+dist/
+dist_all_in_one/
+extracted_modep/
+tmp_community_downloads/
+serial.log
+
+# Build outputs & artefacts
+build/
+build-*/
+cmake-build-*/
+bin/
+obj/
+*.exe
+*.dll
+*.so
+*.dylib
+*.vst3
+*.component
+*.lv2/*.so
+*.lv2/*.dylib
+*.lv2/*.dll
+*.o
+*.obj
+*.a
+*.lib
+
+# Caches & temporary files
+__pycache__/
+*.pyc
+*.pyo
+.cache/
+scratch/
+temp_plugins/
+_backups/
+
+# Submodules / nested repos
+GuitarRackCraft_repo/
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.suo
+*.user

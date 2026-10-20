@@ -1,0 +1,19 @@
+[Unit]
+Description=Headless REAPER Multitrack Recording Engine
+After=jack.service modep-jack-patch-router.service
+Wants=jack.service
+
+[Service]
+Type=simple
+User=patch
+Group=patch
+Environment=DISPLAY=
+Environment=JACK_PROMISCUOUS_SERVER=jack
+LimitRTPRIO=95
+LimitMEMLOCK=infinity
+ExecStart=/usr/local/bin/reaper -headless /var/modep/recordings/Patchbox_Prime_Live.RPP
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

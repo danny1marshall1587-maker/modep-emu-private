@@ -1,0 +1,82 @@
+name: MOD Universal Multi-Architecture LV2 Porter & Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin_repo_url:
+        description: 'GitHub Repository or Source ZIP URL to Port'
+        required: true
+        default: 'https://github.com/danny1marshall1587-maker/cyber-blues-driver-lv2'
+      plugin_name:
+        description: 'Custom Plugin / Bundle Name (Optional)'
+        required: false
+        default: ''
+      theme_color:
+        description: 'Pedal MODGUI Theme Color'
+        required: false
+        default: 'copper'
+        type: choice
+        options:
+          - copper
+          - blue
+          - gold
+          - green
+          - orange
+          - black
+          - silver
+          - purple
+          - red
+
+jobs:
+  build-universal-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Hub Repository
+        uses: actions/checkout@v4
+
+      - name: Install Cross-Compilers & DSP Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            build-essential \
+            gcc g++ \
+            gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            gcc-mingw-w64 g++-mingw-w64 \
+            cmake make git curl zip tar jq \
+            lv2-dev libfftw3-dev libsndfile1-dev faust
+          
+          # Install sse2neon header for x86 SSE translation to ARM NEON
+          sudo mkdir -p /usr/local/include/sse2neon
+          sudo curl -sL https://raw.githubusercontent.com/DLTcollab/sse2neon/master/sse2neon.h -o /usr/local/include/sse2neon/sse2neon.h
+          sudo cp /usr/local/include/sse2neon/sse2neon.h /usr/local/include/sse2neon.h
+
+      - name: Execute Porter Script & Cross-Compilation
+        id: build_step
+        run: |
+          python3 scripts/porter_engine.py \
+            --source "${{ github.event.inputs.plugin_repo_url }}" \
+            --name "${{ github.event.inputs.plugin_name }}" \
+            --theme "${{ github.event.inputs.theme_color }}" \
+            --output-dir "output"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: "build-${{ github.run_number }}"
+          name: "Universal FAT LV2 Build #${{ github.run_number }}"
+          body: |
+            ## 🎸 Automated Universal FAT LV2 Release
+            - **Source**: `${{ github.event.inputs.plugin_repo_url }}`
+            - **Architectures Built**:
+              - 🪟 Windows 64-bit (`.dll` for MOD Desktop)
+              - 🐧 Linux x86_64 (`.so` for MOD Desktop)
+              - 🍓 Raspberry Pi ARMv7 32-bit (`.so` for MODEP)
+              - ⚡ Raspberry Pi AArch64 64-bit (`.so` for MODEP 64)
+            - **MODGUI**: Synthesized with `${{ github.event.inputs.theme_color }}` theme.
+          files: |
+            output/*.zip
+            output/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

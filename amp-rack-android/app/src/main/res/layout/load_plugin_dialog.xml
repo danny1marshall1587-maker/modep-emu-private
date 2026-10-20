@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/plugin_dialog_root"
+    android:layout_width="match_parent"
+    android:layout_margin="20dp"
+    android:layout_height="match_parent">
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:elevation="-10dp"
+        android:id="@+id/pl_wallpaper"
+        android:src="@drawable/a5"/>
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:id="@+id/pl_title"
+        android:orientation="horizontal"
+        android:layout_height="wrap_content">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_weight="@integer/material_motion_duration_long_1"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:fontFamily="@font/comfortaa"
+            android:textSize="20dp"
+            android:layout_margin="10dp"
+            android:text="Add Plugins to Rack"/>
+
+
+        <Button
+            android:layout_width="32dp"
+            android:id="@+id/pl_close"
+            android:padding="10dp"
+            android:layout_margin="10dp"
+            android:layout_height="wrap_content"
+            android:drawableRight="@drawable/ic_baseline_close_24"
+            android:background="@color/fui_transparent"/>
+    </LinearLayout>
+    <LinearLayout
+        app:layout_constraintTop_toBottomOf="@+id/pl_title"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_margin="10dp"
+        android:id="@+id/pl_ll_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <EditText
+            android:layout_width="200dp"
+            android:textColor="@color/white"
+            android:layout_weight="1"
+            android:id="@+id/pl_search"
+            android:hint="Search"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/baseline_close_24"
+            android:id="@+id/search_clear"/>
+
+        <ToggleButton
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:textOn=""
+            android:id="@+id/pl_favs"
+            android:background="@android:color/transparent"
+            android:textOff=""/>
+    </LinearLayout>
+    <LinearLayout
+        app:layout_constraintTop_toBottomOf="@+id/pl_ll_1"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_width="match_parent"
+        android:background="@drawable/shadow"
+        android:id="@+id/pl_type_ll"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:elevation="20dp"
+        android:layout_margin="10dp"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/gruppo"
+                android:text="Sort by"
+                android:textSize="12dp"/>
+            <Spinner
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/sort_by"/>
+
+        </LinearLayout>
+        <Spinner
+            android:layout_width="wrap_content"
+            android:id="@+id/plugin_types"
+            android:padding="10dp"
+            android:background="@drawable/rounded_corners_transparent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"/>
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_margin="10dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/pl_type_ll"
+        app:layout_constrainedHeight="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:id="@+id/plugin_dialog_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        app:layout_constraintHeight_default="wrap"
+        android:layout_weight="1"/>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

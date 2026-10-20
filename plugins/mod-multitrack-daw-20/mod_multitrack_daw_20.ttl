@@ -1,0 +1,133 @@
+@prefix atom:  <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap:  <http://usefulinc.com/ns/doap#> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:   <http://lv2plug.in/ns/lv2core#> .
+@prefix mod:   <http://moddevices.com/ns/mod#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+
+<http://moddevices.com/plugins/modep/multitrack-daw-20>
+    a lv2:Plugin, lv2:UtilityPlugin ;
+    doap:name "MODEP 20-Track DAW Recorder" ;
+    doap:license <http://opensource.org/licenses/isc> ;
+    lv2:minorVersion 1 ;
+    lv2:microVersion 0 ;
+    rdfs:comment "20-channel concurrent live recorder and multi-track overdubbing engine streaming direct to USB 3 SSD with zero xruns." ;
+
+    # 20 Audio Inputs (Ports 0 - 19)
+    lv2:port [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 0 ; lv2:symbol "rec_in_1" ; lv2:name "Direct In 1" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 1 ; lv2:symbol "rec_in_2" ; lv2:name "Direct In 2" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 2 ; lv2:symbol "rec_in_3" ; lv2:name "Direct In 3" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 3 ; lv2:symbol "rec_in_4" ; lv2:name "Direct In 4" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 4 ; lv2:symbol "rec_in_5" ; lv2:name "Direct In 5" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 5 ; lv2:symbol "rec_in_6" ; lv2:name "Direct In 6" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 6 ; lv2:symbol "rec_in_7" ; lv2:name "Direct In 7" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 7 ; lv2:symbol "rec_in_8" ; lv2:name "Direct In 8" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 8 ; lv2:symbol "rec_in_9" ; lv2:name "Mixer Out 1" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 9 ; lv2:symbol "rec_in_10" ; lv2:name "Mixer Out 2" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 10 ; lv2:symbol "rec_in_11" ; lv2:name "Mixer Out 3" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 11 ; lv2:symbol "rec_in_12" ; lv2:name "Mixer Out 4" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 12 ; lv2:symbol "rec_in_13" ; lv2:name "Mixer Out 5" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 13 ; lv2:symbol "rec_in_14" ; lv2:name "Mixer Out 6" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 14 ; lv2:symbol "rec_in_15" ; lv2:name "Mixer Out 7" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 15 ; lv2:symbol "rec_in_16" ; lv2:name "Mixer Out 8" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 16 ; lv2:symbol "rec_in_17" ; lv2:name "Send/Ret 1 (Reverb)" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 17 ; lv2:symbol "rec_in_18" ; lv2:name "Send/Ret 2 (Delay)" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 18 ; lv2:symbol "rec_in_19" ; lv2:name "IEM Monitor 1" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ; lv2:index 19 ; lv2:symbol "rec_in_20" ; lv2:name "Master Board Mix" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 20 ; lv2:symbol "pb_out_1" ; lv2:name "Playback Track 1" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 21 ; lv2:symbol "pb_out_2" ; lv2:name "Playback Track 2" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 22 ; lv2:symbol "pb_out_3" ; lv2:name "Playback Track 3" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 23 ; lv2:symbol "pb_out_4" ; lv2:name "Playback Track 4" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 24 ; lv2:symbol "pb_out_5" ; lv2:name "Playback Track 5" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 25 ; lv2:symbol "pb_out_6" ; lv2:name "Playback Track 6" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 26 ; lv2:symbol "pb_out_7" ; lv2:name "Playback Track 7" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 27 ; lv2:symbol "pb_out_8" ; lv2:name "Playback Track 8" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 28 ; lv2:symbol "pb_out_9" ; lv2:name "Playback Track 9" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 29 ; lv2:symbol "pb_out_10" ; lv2:name "Playback Track 10" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 30 ; lv2:symbol "pb_out_11" ; lv2:name "Playback Track 11" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 31 ; lv2:symbol "pb_out_12" ; lv2:name "Playback Track 12" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 32 ; lv2:symbol "pb_out_13" ; lv2:name "Playback Track 13" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 33 ; lv2:symbol "pb_out_14" ; lv2:name "Playback Track 14" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 34 ; lv2:symbol "pb_out_15" ; lv2:name "Playback Track 15" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 35 ; lv2:symbol "pb_out_16" ; lv2:name "Playback Track 16" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 36 ; lv2:symbol "pb_out_17" ; lv2:name "Playback Track 17" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 37 ; lv2:symbol "pb_out_18" ; lv2:name "Playback Track 18" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 38 ; lv2:symbol "pb_out_19" ; lv2:name "Playback Track 19" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ; lv2:index 39 ; lv2:symbol "pb_out_20" ; lv2:name "Playback Track 20" ;
+    ] , [
+        a lv2:ControlPort, lv2:InputPort ;
+        lv2:index 40 ;
+        lv2:symbol "transport_rec" ;
+        lv2:name "Record" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled ;
+    ] , [
+        a lv2:ControlPort, lv2:InputPort ;
+        lv2:index 41 ;
+        lv2:symbol "transport_play" ;
+        lv2:name "Play" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled ;
+    ] , [
+        a lv2:ControlPort, lv2:InputPort ;
+        lv2:index 42 ;
+        lv2:symbol "transport_stop" ;
+        lv2:name "Stop" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:portProperty lv2:toggled ;
+    ] , [
+        a lv2:ControlPort, lv2:InputPort ;
+        lv2:index 43 ;
+        lv2:symbol "tracks_armed" ;
+        lv2:name "Arm Mask" ;
+        lv2:default 1048575.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1048575.0 ;
+    ] .

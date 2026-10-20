@@ -1,0 +1,14 @@
+[Unit]
+Description=MODEP Real-time JACK Meter Daemon
+After=jack.service
+
+[Service]
+Type=simple
+User=patch
+Environment=JACK_PROMISCUOUS_SERVER=jack
+ExecStart=/usr/local/bin/modep-meter-daemon
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

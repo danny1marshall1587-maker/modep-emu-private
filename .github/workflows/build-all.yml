@@ -1,0 +1,155 @@
+name: Build & Release Multi-Arch LV2 Plugins (ARM & x86)
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-arm-and-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: armhf
+            triplet: arm-linux-gnueabihf
+            cxx: arm-linux-gnueabihf-g++
+            pkg_suffix: armhf
+            desc: "Raspberry Pi 3/4 32-bit (Patchbox OS)"
+          - arch: arm64
+            triplet: aarch64-linux-gnu
+            cxx: aarch64-linux-gnu-g++
+            pkg_suffix: arm64
+            desc: "Raspberry Pi 4/5 64-bit (Patchbox OS 64-bit)"
+          - arch: x86_64
+            triplet: x86_64-linux-gnu
+            cxx: g++
+            pkg_suffix: x86_64
+            desc: "Linux x86_64 (MOD Desktop / MODEP)"
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Install Cross Compilers & Build Tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+                               gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+                               build-essential lv2-dev liblilv-dev zip tar gzip
+
+    - name: Build All Plugins for ${{ matrix.arch }} (${{ matrix.desc }})
+      run: |
+        CXX="${{ matrix.cxx }}"
+        echo "Building plugins with $CXX..."
+
+        compile_plugin() {
+          dir="$1"
+          src="$2"
+          so_name="$3"
+          if [ -f "plugins/$dir/$src" ]; then
+            echo "Compiling $dir -> $so_name..."
+            $CXX -O3 -fPIC -shared -static-libstdc++ -static-libgcc \
+                 -I plugins/include -I plugins/include/lv2 -I include -I include/lv2 \
+                 -I plugins/$dir/src -I plugins/$dir/include \
+                 plugins/$dir/$src -o plugins/$dir/$so_name || exit 1
+          else
+            echo "Skipping $dir ($src not found)"
+          fi
+        }
+
+        compile_plugin "cyber-denoiser" "src/cyber_denoiser_lv2.cpp" "cyber_denoiser.so"
+        compile_plugin "cyber-denoiser-mono.lv2" "src/cyber_denoiser_mono_lv2.cpp" "cyber_denoiser_mono.so"
+        compile_plugin "galaxy-strobe-tune" "src/galaxy_strobe_tune_lv2.cpp" "galaxy_strobe_tune.so"
+        compile_plugin "guitar-midi" "src/guitar_midi_lv2.cpp" "guitar_midi.so"
+        compile_plugin "nam-loader.lv2" "src/nam_loader_lv2.cpp" "nam_loader.so"
+        compile_plugin "cyber-hum-killer.lv2" "src/cyber_hum_killer_lv2.cpp" "cyber_hum_killer.so"
+        compile_plugin "cyber-hum-killer-mono.lv2" "src/cyber_hum_killer_mono_lv2.cpp" "cyber_hum_killer_mono.so"
+        compile_plugin "smart-fizz-killer.lv2" "src/smart_fizz_killer_lv2.cpp" "smart_fizz_killer.so"
+        compile_plugin "smart-fizz-killer-mono.lv2" "src/smart_fizz_killer_mono.cpp" "smart_fizz_killer_mono.so"
+        compile_plugin "aelapse.lv2" "src/aelapse_lv2.cpp" "aelapse_dsp.so"
+        compile_plugin "aelapse-mono.lv2" "src/aelapse_mono_lv2.cpp" "aelapse_mono_dsp.so"
+        compile_plugin "cyber-stomp-box.lv2" "src/cyber_stomp_box_lv2.cpp" "cyber_stomp_box.so"
+        compile_plugin "cyber-puresustain-delay.lv2" "src/cyber_puresustain_delay.cpp" "cyber_puresustain_delay.so"
+        compile_plugin "cyber-puresustain-delay-mono.lv2" "src/cyber_puresustain_delay_mono.cpp" "cyber_puresustain_delay_mono.so"
+        compile_plugin "cyber-cloud-bloom.lv2" "src/cyber_cloud_bloom.cpp" "cyber_cloud_bloom.so"
+        compile_plugin "cyber-cloud-bloom-mono.lv2" "src/cyber_cloud_bloom_mono.cpp" "cyber_cloud_bloom_mono.so"
+        compile_plugin "cyber-spring-reverb.lv2" "src/cyber_spring_reverb.cpp" "cyber_spring_reverb.so"
+        compile_plugin "cyber-spring-reverb-stereo.lv2" "src/cyber_spring_reverb_stereo.cpp" "cyber_spring_reverb_stereo.so"
+        compile_plugin "cyber-acoustic-feedbacker.lv2" "src/cyber_acoustic_feedbacker.cpp" "cyber_acoustic_feedbacker.so"
+        compile_plugin "cyber-acoustic-feedbacker-mono.lv2" "src/cyber_acoustic_feedbacker_mono.cpp" "cyber_acoustic_feedbacker_mono.so"
+        compile_plugin "cyber-feedback-room.lv2" "src/cyber_feedback_room.cpp" "cyber_feedback_room.so"
+        compile_plugin "cyber-feedback-room-mono.lv2" "src/cyber_feedback_room_mono.cpp" "cyber_feedback_room_mono.so"
+        compile_plugin "cyber-cv-reverser.lv2" "src/cyber_cv_reverser.cpp" "cyber_cv_reverser.so"
+        compile_plugin "cyber-cv-splitter.lv2" "src/cyber_cv_splitter.cpp" "cyber_cv_splitter.so"
+        compile_plugin "cyber-ycv40.lv2" "src/cyber_ycv40_lv2.cpp" "cyber_ycv40.so"
+        compile_plugin "cyber-dumble-ods.lv2" "src/cyber_dumble_ods_lv2.cpp" "cyber_dumble_ods.so"
+        compile_plugin "cyber-fender-bassman59.lv2" "src/cyber_fender_bassman59_lv2.cpp" "cyber_fender_bassman59.so"
+        compile_plugin "cyber-fender-deluxe6g3.lv2" "src/cyber_fender_deluxe6g3_lv2.cpp" "cyber_fender_deluxe6g3.so"
+        compile_plugin "cyber-fender-vibrolux6g11.lv2" "src/cyber_fender_vibrolux6g11_lv2.cpp" "cyber_fender_vibrolux6g11.so"
+        compile_plugin "cyber-fender-vibroverb63.lv2" "src/cyber_fender_vibroverb63_lv2.cpp" "cyber_fender_vibroverb63.so"
+        compile_plugin "cyber-friedman-be100.lv2" "src/cyber_friedman_be100_lv2.cpp" "cyber_friedman_be100.so"
+        compile_plugin "cyber-hiwatt-dr504.lv2" "src/cyber_hiwatt_dr504_lv2.cpp" "cyber_hiwatt_dr504.so"
+        compile_plugin "cyber-koch-the-greg.lv2" "src/cyber_koch_the_greg_lv2.cpp" "cyber_koch_the_greg.so"
+        compile_plugin "cyber-magnatone-280.lv2" "src/cyber_magnatone_280_lv2.cpp" "cyber_magnatone_280.so"
+        compile_plugin "cyber-marshall-jtm45.lv2" "src/cyber_marshall_jtm45_lv2.cpp" "cyber_marshall_jtm45.so"
+        compile_plugin "cyber-matchless-dc30.lv2" "src/cyber_matchless_dc30_lv2.cpp" "cyber_matchless_dc30.so"
+        compile_plugin "cyber-orange-or120.lv2" "src/cyber_orange_or120_lv2.cpp" "cyber_orange_or120.so"
+        compile_plugin "cyber-rockman-x100.lv2" "src/cyber_rockman_x100_lv2.cpp" "cyber_rockman_x100.so"
+        compile_plugin "cyber-roland-jc120.lv2" "src/cyber_roland_jc120_lv2.cpp" "cyber_roland_jc120.so"
+        compile_plugin "cyber-toneking-imperial.lv2" "src/cyber_toneking_imperial_lv2.cpp" "cyber_toneking_imperial.so"
+        compile_plugin "cyber-trainwreck-express.lv2" "src/cyber_trainwreck_express_lv2.cpp" "cyber_trainwreck_express.so"
+        compile_plugin "cyber-tworock-crs.lv2" "src/cyber_tworock_crs_lv2.cpp" "cyber_tworock_crs.so"
+        compile_plugin "cyber-vox-ac30pa.lv2" "src/cyber_vox_ac30pa_lv2.cpp" "cyber_vox_ac30pa.so"
+        compile_plugin "cyber-vox-ac30tb.lv2" "src/cyber_vox_ac30tb_lv2.cpp" "cyber_vox_ac30tb.so"
+        compile_plugin "cyber-slide-driver.lv2" "src/cyber_slide_driver_lv2.cpp" "cyber_slide_driver.so"
+        compile_plugin "cyber-ultimate-hybrid.lv2" "src/cyber_ultimate_hybrid_lv2.cpp" "cyber_ultimate_hybrid.so"
+
+    - name: Package Bundle for ${{ matrix.arch }}
+      run: |
+        mkdir -p dist_${{ matrix.pkg_suffix }}
+
+        for b in plugins/*; do
+          if [ -d "$b" ]; then
+            bname=$(basename "$b")
+            if [ "$bname" = "cyber-expression-cv.lv2" ] || [ "$bname" = "mains-hum-killer.lv2" ] || [ "$bname" = "include" ] || [ "$bname" = "tests" ] || [ "$bname" = "cyber-ultimate-hybrid-vst" ]; then
+              continue
+            fi
+            if [[ "$bname" != *.lv2 ]]; then
+              dest="${bname}.lv2"
+            else
+              dest="$bname"
+            fi
+            mkdir -p dist_${{ matrix.pkg_suffix }}/$dest
+            cp -r $b/* dist_${{ matrix.pkg_suffix }}/$dest/ 2>/dev/null || true
+            rm -f dist_${{ matrix.pkg_suffix }}/$dest/*.dll dist_${{ matrix.pkg_suffix }}/$dest/*.o
+          fi
+        done
+
+        cd dist_${{ matrix.pkg_suffix }}
+        tar -czvf ../modep_plugins_${{ matrix.pkg_suffix }}.tar.gz *
+        zip -r ../modep_plugins_${{ matrix.pkg_suffix }}.zip *
+        cd ..
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: modep_plugins_${{ matrix.pkg_suffix }}
+        path: |
+          modep_plugins_${{ matrix.pkg_suffix }}.tar.gz
+          modep_plugins_${{ matrix.pkg_suffix }}.zip
+
+    - name: Attach Assets to GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v1.0.0
+        files: |
+          modep_plugins_${{ matrix.pkg_suffix }}.tar.gz
+          modep_plugins_${{ matrix.pkg_suffix }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

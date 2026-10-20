@@ -1,0 +1,174 @@
+package com.shajikhan.ladspa.amprack;
+
+import static com.shajikhan.ladspa.amprack.MainActivity.mainActivity;
+
+import android.util.Log;
+import android.view.View;
+
+import com.google.android.material.slider.Slider;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class MIDIControl {
+    private final String TAG = getClass().getName();
+
+    enum Type {
+        SLIDER,
+        KNOB,
+        TOGGLE
+    } ;
+
+    enum Scope {
+        GLOBAL,
+        PLUGIN
+    } ;
+
+    View view ;
+    int plugin ;
+    int pluginControl ;
+    int control ;
+    Type type ;
+    Scope scope ;
+
+    int channel ;
+    int program ;
+
+    float rangeMin = Float.NaN ;
+    float rangeMax = Float.NaN ;
+
+    String getID () {
+        View v = view ;
+        if (v == null)
+            return "" ;
+        if (scope == Scope.PLUGIN)
+            return String.valueOf(v.getId());
+        else {
+            try {
+                return (v.getId() == View.NO_ID) ? "" :
+                        v.getResources().getResourceName(v.getId()).split(":id/")[1];
+            } catch (Exception e) {
+                Log.e(TAG, "getID: ", e);
+                return "";
+            }
+        }
+    }
+
+    JSONObject get () throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("view", getID());
+        jsonObject.put("plugin", plugin);
+        jsonObject.put("control", control);
+        jsonObject.put("type", type);
+        jsonObject.put("channel", channel);
+        jsonObject.put("control", control);
+        jsonObject.put("pluginControl", pluginControl);
+        jsonObject.put("scope", scope);
+        if (!Float.isNaN(rangeMin)) jsonObject.put("rangeMin", (double) rangeMin);
+        if (!Float.isNaN(rangeMax)) jsonObject.put("rangeMax", (double) rangeMax);
+
+        return jsonObject;
+    }
+
+    String getForDB () {
+        return String.format("%d;%d;%d;%d;%f;%f",
+                plugin, pluginControl, channel, control,
+                Float.isNaN(rangeMin) ? 0.0f : rangeMin,
+                Float.isNaN(rangeMax) ? 0.0f : rangeMax);
+
+    }
+
+    Map getMap () {
+        HashMap <String, Object> jsonObject = new HashMap<String, Object>();
+        jsonObject.put("view", -1);
+        jsonObject.put("plugin", plugin);
+        jsonObject.put("control", control);
+        jsonObject.put("type", type.ordinal());
+        jsonObject.put("channel", channel);
+        jsonObject.put("control", control);
+        jsonObject.put("pluginControl", pluginControl);
+        jsonObject.put("scope", scope.ordinal());
+        if (!Float.isNaN(rangeMin)) jsonObject.put("rangeMin", rangeMin);
+        if (!Float.isNaN(rangeMax)) jsonObject.put("rangeMax", rangeMax);
+
+        return jsonObject;
+    }
+
+    @Override
+    public String toString() {
+        String vid = "null";
+        if (view != null) {
+            vid = String.valueOf(view.getResources().getIdentifier(getID(), "id", mainActivity.getPackageName()));
+        }
+
+        return "MIDIControl{" +
+                "TAG='" + TAG + '\'' +
+                ", view=" + vid +
+                ", plugin=" + plugin +
+                ", control=" + control +
+                ", pluginControl=" + pluginControl +
+                ", type=" + type +
+                ", scope=" + scope +
+                ", channel=" + channel +
+                ", program=" + program +
+                ", rangeMin=" + rangeMin +
+                ", rangeMax=" + rangeMax +
+                '}';
+    }
+
+    void process (int data) {
+        float value = 0f ;
+        switch (type) {
+            case SLIDER:
+                Slider slider = (Slider) view;
+                float sMin = !Float.isNaN(rangeMin) ? rangeMin : slider.getValueFrom();
+                float sMax = !Float.isNaN(rangeMax) ? rangeMax : slider.getValueTo();
+                value = ((sMax - sMin) * (data / 127f)) + sMin;
+                if (value < slider.getValueFrom()) value = slider.getValueFrom();
+                if (value > slider.getValueTo()) value = slider.getValueTo();
+                Log.i(TAG, String.format("plugin %d control %d value [%f / %f] %f", plugin, control,
+                        sMin, sMax,
+                        value));
+                float finalValue1 = value;
+                mainActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        slider.setValue(finalValue1);
+                    }
+                });
+                break ;
+            case KNOB:
+                RotarySeekbar rotarySeekbar = (RotarySeekbar) view;
+                float kMin = !Float.isNaN(rangeMin) ? rangeMin : rotarySeekbar.getMinValue();
+                float kMax = !Float.isNaN(rangeMax) ? rangeMax : rotarySeekbar.getMaxValue();
+                value = ((kMax - kMin) * ((float) data / 127f)) + kMin ;
+                if (value < rotarySeekbar.getMinValue()) value = rotarySeekbar.getMinValue();
+                if (value > rotarySeekbar.getMaxValue()) value = rotarySeekbar.getMaxValue();
+                float finalValue = value;
+                mainActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        rotarySeekbar.setValue(finalValue);
+                        rotarySeekbar.mListener.onValueChanged(rotarySeekbar, finalValue);
+                    }
+                });
+                break ;
+            case TOGGLE:
+                Log.i(TAG, "process: view click!");
+                mainActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        view.performClick();
+                    }
+                });
+                break ;
+            default:
+                Log.w(TAG, "process: unknown control type " + type);
+        }
+    }
+
+}

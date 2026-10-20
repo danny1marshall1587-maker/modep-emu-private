@@ -1,0 +1,7 @@
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<http://cyber-audio.co.uk/plugins/euphoria-amp>
+    a lv2:Plugin ;
+    lv2:binary <euphoria_amp.dll> , <euphoria_amp.so> ;
+    rdfs:seeAlso <euphoria_amp.ttl> , <modgui.ttl> .

@@ -1,0 +1,22 @@
+[Unit]
+Description=MODEP Live Console — JACK Soft-Patch WebSocket Router
+Documentation=https://github.com/modep-live-console
+After=network.target jack.service modep-jack-insert-router.service
+Requires=jack.service
+
+[Service]
+Type=simple
+User=patch
+WorkingDirectory=/home/patch/modep-live-console-release/web
+ExecStart=/usr/bin/python3 /home/patch/modep-live-console-release/web/jack_patch_router.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=jack-patch-router
+
+# Ensure JACK server is accessible
+Environment=JACK_DEFAULT_SERVER=default
+
+[Install]
+WantedBy=multi-user.target

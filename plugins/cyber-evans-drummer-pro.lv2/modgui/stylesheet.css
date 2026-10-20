@@ -1,0 +1,347 @@
+/* Evans Drummer Pro — Modern Brushed Steel & Cobalt Blue Studio Styling */
+
+.edp-panel {
+    width: 440px;
+    height: 380px;
+    background: linear-gradient(180deg, #1f2229 0%, #15171c 50%, #0d0e12 100%);
+    border: 2px solid #3a3f4d;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.1);
+    position: relative;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #e0e4eb;
+    box-sizing: border-box;
+    padding: 0;
+}
+
+.edp-top-drag-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 24px;
+    cursor: move;
+    z-index: 50;
+}
+
+/* Header */
+.edp-header {
+    height: 60px;
+    background: linear-gradient(180deg, #252a35 0%, #1a1e26 100%);
+    border-bottom: 2px solid #2e3442;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    align-items: center;
+    padding: 6px 14px;
+    position: relative;
+}
+
+.edp-logo-col {
+    display: flex;
+    flex-direction: column;
+    margin-right: 14px;
+}
+
+.edp-brand {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #5b8df0;
+}
+
+.edp-model {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #f0f3f8;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+
+.edp-telemetry-badge {
+    display: flex;
+    gap: 10px;
+    background: #090a0d;
+    border: 1px solid #333a4a;
+    border-radius: 6px;
+    padding: 4px 8px;
+    align-items: center;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,0.8);
+}
+
+.edp-tele-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.edp-tele-lbl {
+    font-size: 7px;
+    font-weight: 700;
+    color: #7d889b;
+    letter-spacing: 1px;
+}
+
+.edp-tele-val {
+    font-size: 13px;
+    font-weight: 800;
+    font-family: monospace;
+    color: #4df0a0;
+    text-shadow: 0 0 6px rgba(77,240,160,0.4);
+}
+
+.edp-energy-bar-wrap {
+    width: 40px;
+    height: 10px;
+    background: #181b22;
+    border: 1px solid #363d4d;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 3px;
+}
+
+.edp-energy-bar-fill {
+    width: 20%;
+    height: 100%;
+    background: linear-gradient(90deg, #4df0a0 0%, #f0c040 70%, #f04d4d 100%);
+    transition: width 0.1s ease;
+}
+
+.edp-subtitle-col {
+    flex: 1;
+    font-size: 7px;
+    font-weight: 700;
+    color: #636d80;
+    text-align: right;
+    padding-right: 12px;
+    letter-spacing: 0.5px;
+}
+
+.edp-bypass-col {
+    width: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Main Body Rows */
+.edp-main-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.edp-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Group & Select */
+.edp-style-group {
+    display: flex;
+    flex-direction: column;
+    width: 140px;
+}
+
+.edp-group-lbl {
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #8f9bb3;
+    margin-bottom: 4px;
+}
+
+.edp-select {
+    background: #0f1116;
+    border: 1px solid #3a4254;
+    border-radius: 5px;
+    color: #e4e9f2;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 8px;
+    outline: none;
+    cursor: pointer;
+}
+
+.edp-select:hover {
+    border-color: #5b8df0;
+}
+
+/* Knobs */
+.edp-knob-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 62px;
+}
+
+.edp-knob-title {
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #8c97ad;
+    margin-bottom: 3px;
+    text-align: center;
+}
+
+.custom-knob-dial {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #303746 0%, #1a1e27 80%, #12141a 100%);
+    border: 1px solid #485268;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.2);
+    position: relative;
+    cursor: ns-resize;
+}
+
+.knob-rotor {
+    position: absolute;
+    top: 3px;
+    left: 17px;
+    width: 3px;
+    height: 12px;
+    background: #5b8df0;
+    border-radius: 1.5px;
+    transform-origin: 1.5px 16px;
+    box-shadow: 0 0 5px rgba(91,141,240,0.8);
+}
+
+.edp-knob-val {
+    font-size: 9px;
+    font-family: monospace;
+    font-weight: 700;
+    color: #a4b1cd;
+    margin-top: 3px;
+}
+
+/* Toggle Buttons */
+.edp-btn-row {
+    background: #111318;
+    border: 1px solid #292f3d;
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.edp-btn-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.edp-btn-toggle {
+    background: #1e232d;
+    border: 1px solid #3c4558;
+    color: #79869f;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 6px 12px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    outline: none;
+    transition: all 0.15s ease;
+}
+
+.edp-btn-toggle:hover {
+    border-color: #647391;
+    color: #c0cbe0;
+}
+
+.edp-btn-toggle.edp-btn-active {
+    background: #1d335a;
+    border-color: #5b8df0;
+    color: #eaf0fc;
+    box-shadow: 0 0 10px rgba(91,141,240,0.4);
+}
+
+.edp-btn-mute.edp-btn-active {
+    background: #5a1d1d;
+    border-color: #f05b5b;
+    color: #fceaea;
+    box-shadow: 0 0 10px rgba(240,91,91,0.4);
+}
+
+.edp-btn-start {
+    background: #142a14;
+    border-color: #2b732e;
+    color: #8ae895;
+}
+.edp-btn-start.edp-btn-active, .edp-btn-start:active {
+    background: #1f6b24;
+    border-color: #4dff62;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(77,255,98,0.7);
+}
+
+.edp-btn-reset {
+    background: #15222e;
+    border-color: #2b5573;
+    color: #8ac0e8;
+}
+.edp-btn-reset.edp-btn-active, .edp-btn-reset:active {
+    background: #1f476b;
+    border-color: #4da6ff;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(77,166,255,0.7);
+}
+
+.edp-btn-stop {
+    background: #2a1515;
+    border-color: #843232;
+    color: #e09090;
+}
+.edp-btn-stop.edp-btn-active {
+    background: #7a1515;
+    border-color: #ff4d4d;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(255,77,77,0.7);
+}
+
+.edp-btn-fill {
+    background: #1c2618;
+    border-color: #3f6830;
+    color: #a0d890;
+}
+.edp-btn-fill.edp-btn-active {
+    background: #286618;
+    border-color: #55d830;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(85,216,48,0.7);
+}
+
+.edp-btn-chorus {
+    background: #201a2c;
+    border-color: #523b78;
+    color: #c4b0ea;
+}
+.edp-btn-chorus.edp-btn-active {
+    background: #49287c;
+    border-color: #9d63f7;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(157,99,247,0.7);
+}
+
+.edp-btn-adventurous.edp-btn-active {
+    background: #5a451d;
+    border-color: #f0bc5b;
+    color: #fcf6ea;
+    box-shadow: 0 0 10px rgba(240,188,91,0.5);
+}
+
+.edp-btn-strumonly.edp-btn-active {
+    background: #1d5a3c;
+    border-color: #5bf0a0;
+    color: #eafcf3;
+    box-shadow: 0 0 10px rgba(91,240,160,0.5);
+}
+
+.edp-btn-lbl {
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #616c82;
+}

@@ -1,0 +1,158 @@
+name: Build & Release Cyber GuitarRackCraft APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cyber_pack/**'
+      - 'cmake/targets/cyber_audio.cmake'
+      - '.github/workflows/cyber-release.yml'
+      - 'vsthost_lib/build.gradle.kts'
+      - 'app/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cyber-release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool bison flex gettext gperf \
+            pkg-config cmake ninja-build meson patchelf patch python3 python3-pip \
+            python3-mako python3-yaml git xz-utils ca-certificates curl ccache \
+            ocaml ocamlbuild ocaml-findlib libnum-ocaml-dev faust libboost-dev \
+            libx11-dev libxext-dev libxrender-dev libxrandr-dev libxi-dev \
+            libxfixes-dev libxcursor-dev libxxf86vm-dev libfreetype-dev \
+            fonts-liberation fonts-dejavu
+          python3 -m pip install --break-system-packages mako pyyaml meson ninja || true
+
+      - name: Init Native 3rd_party Submodules (Recursive)
+        run: |
+          git submodule update --init --recursive 3rd_party
+
+      - name: Locate Android NDK
+        run: |
+          if [ -d "$ANDROID_SDK_ROOT/ndk/27.2.12479018" ]; then
+            echo "ANDROID_NDK=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> $GITHUB_ENV
+          else
+            LATEST_NDK=$(ls -d $ANDROID_SDK_ROOT/ndk/* 2>/dev/null | sort -V | tail -1)
+            echo "ANDROID_NDK=$LATEST_NDK" >> $GITHUB_ENV
+          fi
+
+      - name: Build Native LV2 Plugins & Cyber Audio Suite
+        run: |
+          echo "Using NDK: $ANDROID_NDK"
+          BUILD_VST=0 ./build.sh full
+
+      - name: Dump ExternalProject logs on failure
+        if: failure()
+        run: |
+          echo "=== Dumping configure/build failure logs ==="
+          for f in $(find build -name "*-*.log" 2>/dev/null); do
+            echo "================ $f ================"
+            cat "$f"
+          done
+
+      - name: Generate Self-Signed Keystore
+        run: |
+          keytool -genkey -v \
+            -keystore "$RUNNER_TEMP/cyber.keystore" \
+            -alias cyberaudio \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass cyberaudio \
+            -keypass cyberaudio \
+            -dname "CN=Cyber Audio, OU=Guitar, O=Cyber, L=London, ST=UK, C=GB"
+
+      - name: Build Signed Full Release APK
+        run: |
+          ./gradlew assembleFullRelease \
+            -PRELEASE_STORE_FILE="$RUNNER_TEMP/cyber.keystore" \
+            -PRELEASE_STORE_PASSWORD=cyberaudio \
+            -PRELEASE_KEY_ALIAS=cyberaudio \
+            -PRELEASE_KEY_PASSWORD=cyberaudio
+
+      - name: Locate & Stage APK
+        id: stage-apk
+        run: |
+          APK=$(find app/build/outputs/apk/full/release -name '*.apk' | head -1)
+          if [ -z "$APK" ]; then
+            echo "::error::No release APK found!"
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$APK" dist/CyberRackCraft-Pixel8Pro.apk
+          ls -lh dist/CyberRackCraft-Pixel8Pro.apk
+          echo "apk_path=dist/CyberRackCraft-Pixel8Pro.apk" >> $GITHUB_OUTPUT
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CyberRackCraft-Pixel8Pro-APK
+          path: dist/CyberRackCraft-Pixel8Pro.apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.1.0-cyber
+          name: "Cyber GuitarRackCraft v1.1.0 (Pacer MIDI + PureSustain Delay Edition)"
+          draft: false
+          prerelease: false
+          body: |
+            ## 🎸 Cyber GuitarRackCraft v1.1.0 — Pacer MIDI & PureSustain Delay Edition
+
+            ### 🚀 What's New in v1.1.0:
+            - **🎹 Full Nektar Pacer USB MIDI Integration**:
+              - Direct USB MIDI plug-and-play with Nektar Pacer and MIDI foot controllers.
+              - Stomps 1–6 toggle individual pedal bypass in real time.
+              - Preset Up / Down footswitches for instantaneous patch switching.
+              - Two-way MIDI LED status feedback and interactive **MIDI Learn** configuration dialog.
+            - **⚡ Google Pixel 8 Pro Anti-Throttling & Sustained Performance Engine**:
+              - Integrated Android ADPF (`PerformanceHintManager`) for zero-jitter 64-sample audio callbacks.
+              - Sustained Performance Mode, real-time CPU priority, and `PARTIAL_WAKE_LOCK` preventing screen-off audio dropouts.
+              - Declared Game Mode optimization in manifest.
+            - **✨ NEW PLUGIN: Cyber PureSustain Delay**:
+              - Seamless crossfade pad delay with continuous equal-power loop-melting record engine (`MELT`).
+              - No metallic allpass smear or phase cancellation.
+              - Non-dispersive 1-pole tape tone damping and dynamic lead ducker (`DUCK`).
+              - Custom royal purple metallic touch MOD-GUI with knurled black dials and violet jewel LED.
+
+            Custom release of **GuitarRackCraft** featuring Danny's complete **Cyber Audio Rig**:
+            
+            ### ✨ Included Cyber Audio Gear:
+            - **20 Valve Amps**: Friedman BE-100, Fender Deluxe/Bassman/Vibrolux/Vibroverb, Marshall JTM45, Vox AC30TB/PA, Orange OR120, Dumble ODS, Trainwreck Express, Koch The Greg, Two-Rock CRS, Hiwatt DR504, Matchless DC30, Roland JC-120, Rockman X100, Tone King Imperial, Magnatone 280, Traynor YCV40.
+            - **Galaxy Strobe Tuner**: High-precision 200% square strobe tuner pedal with HeadRush AGC auto-gain staging, sweetened guitar profiles, and live stage signal mute.
+            - **Boutique Pedals**: Smart Fizz Killer, Cyber Denoiser, Harmonic Tremolo, Cyber Screamer, Klon, Blues Driver, Guv'nor, DS-1, Noble Drive, Spring Reverb, Cloud Bloom, Acoustic Feedbacker, Hum Killer, Piezo Thump Killer.
+            - **Touchscreen MOD-GUI Interfaces**: Fully interactive HTML5/CSS pedals with customized neon visualizers and retro dials.
+            
+            ### 📲 How to Install on your Google Pixel 8 Pro:
+            1. Download `CyberRackCraft-Pixel8Pro.apk` directly on your phone.
+            2. Open the downloaded file and tap **Install**.
+            3. Connect your USB-C OTG hub, plug in your guitar audio interface and headphones.
+            4. Launch CyberRackCraft and enjoy ultra-low-latency real-time performance!
+          files: |
+            dist/CyberRackCraft-Pixel8Pro.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

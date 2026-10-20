@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:fitsSystemWindows="true"
+    android:layout_height="match_parent"
+    tools:context=".Purchase">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:id="@+id/buy_bg"
+        android:src="@drawable/bg"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ScrollView
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                app:layout_constraintRight_toRightOf="parent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Press back button to close"
+                android:id="@+id/close"
+                android:layout_gravity="center"
+                app:layout_constraintTop_toTopOf="parent"
+                android:background="@drawable/rounded_corners_transparent"
+                android:layout_margin="20dp"
+                android:padding="10dp"
+                android:drawableRight="@drawable/ic_baseline_close_24"/>
+
+            <LinearLayout
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                android:layout_width="match_parent"
+                android:layout_marginTop="4dp"
+                android:id="@+id/purchase_layout"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <ImageView
+                    android:layout_width="100dp"
+                    android:layout_gravity="center"
+                    android:layout_height="100dp"
+                    android:src="@drawable/logo"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="30dp"
+                    android:textColor="@color/white"
+                    android:shadowColor="@color/white"
+                    android:shadowRadius="5"
+                    android:layout_gravity="center"
+                    android:fontFamily="@font/comfortaa"
+                    android:text="Purchase Pro"/>
+                <LinearLayout
+                    android:layout_margin="10dp"
+                    android:id="@+id/purchase_lt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:orientation="vertical">
+                    <TextView
+                        android:visibility="gone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Pro Version"
+                        android:layout_gravity="center"
+                        android:textAlignment="center"
+                        android:fontFamily="@font/gruppo"
+                        android:textColor="@color/white"
+                        android:textSize="18dp"
+                        android:id="@+id/pro_t"/>
+                    <Button
+                        android:visibility="gone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
+                        android:text="Pro"
+                        android:textAlignment="center"
+                        android:id="@+id/price"
+                        android:textColor="@color/white"
+                        android:fontFamily="@font/comfortaa"
+                        android:layout_gravity="center"
+                        android:breakStrategy="simple"
+                        android:textStyle="bold"/>
+                    <TextView
+                        android:visibility="gone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Pro Version"
+                        android:layout_gravity="center"
+                        android:textAlignment="center"
+                        android:fontFamily="@font/gruppo"
+                        android:textColor="@color/white"
+                        android:textSize="18dp"
+                        android:id="@+id/premium_t"/>
+                    <Button
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
+                        android:visibility="gone"
+                        android:text="Premium"
+                        android:textAlignment="center"
+                        android:id="@+id/premium"
+                        android:textColor="@color/white"
+                        android:fontFamily="@font/comfortaa"
+                        android:breakStrategy="simple"
+                        android:layout_gravity="center"
+                        android:textStyle="bold"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Pro Version"
+                        android:layout_gravity="center"
+                        android:visibility="gone"
+                        android:textAlignment="center"
+                        android:fontFamily="@font/gruppo"
+                        android:textColor="@color/white"
+                        android:textSize="18dp"
+                        android:id="@+id/ultra_t"/>
+                    <Button
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
+                        android:text="Amp Rack PC Bundle with Complete Source Code"
+                        android:visibility="gone"
+                        android:textAlignment="center"
+                        android:id="@+id/ultra"
+                        android:textColor="@color/white"
+                        android:fontFamily="@font/comfortaa"
+                        android:layout_gravity="center"
+                        android:textStyle="bold"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="$20 "
+                        android:layout_gravity="center"
+                        android:textStyle="italic"
+                        android:textSize="24dp"
+                        android:id="@+id/old_price"
+                        android:breakStrategy="simple"
+                        android:visibility="gone"
+                        android:layout_marginLeft="20dp"
+                        android:fontFamily="@font/gruppo"
+                        android:textColor="@color/white"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Save 90%"
+                        android:visibility="gone"
+                        android:layout_gravity="center"
+                        android:textStyle="italic"
+                        android:textSize="24dp"
+                        android:layout_marginLeft="20dp"
+                        android:fontFamily="@font/gruppo"
+                        android:textColor="@color/white"/>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Limited time deal"
+                    android:layout_gravity="center"
+                    android:textStyle="italic"
+                    android:visibility="gone"
+                    android:textSize="24dp"
+                    android:fontFamily="@font/gruppo"
+                    android:textColor="@color/white"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:layout_width="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="Tap above to Buy Now"
+                    android:id="@+id/buy"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:shadowColor="@color/white"
+                    android:shadowRadius="5"
+                    android:fontFamily="@font/comfortaa"
+                    android:background="@color/fui_transparent"
+                    android:backgroundTint="@color/fui_transparent"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:background="@drawable/rounded_corners_transparent"
+                    android:layout_width="match_parent"
+                    android:textAlignment="viewStart"
+                    android:fontFamily="@font/comfortaa"
+                    android:textSize="20dp"
+                    android:padding="20dp"
+                    android:layout_marginTop="20dp"
+                    android:textColor="@color/white"
+                    android:breakStrategy="high_quality"
+                    android:text="@string/pro_features"
+                    android:layout_height="wrap_content"/>
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Source Code"
+                    android:fontFamily="@font/comfortaa"
+                    android:shadowRadius="5"
+                    android:layout_gravity="center"
+                    android:shadowColor="@color/white"
+                    android:textColor="@color/white"
+                    android:visibility="gone"
+                    android:id="@+id/source"
+                    android:drawableLeft="@drawable/fui_ic_github_white_24dp"
+                    android:background="@color/fui_transparent"
+                    android:textStyle="bold"/>
+
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

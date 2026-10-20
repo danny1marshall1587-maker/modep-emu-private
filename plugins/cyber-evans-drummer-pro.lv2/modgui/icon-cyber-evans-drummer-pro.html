@@ -1,0 +1,246 @@
+<div class="mod-pedal mod-pedal-boxy{{{cns}}} custom-panel edp-panel{{{c_extra}}}">
+    <!-- Dedicated top drag bar -->
+    <div mod-role="drag-handle" class="mod-drag-handle edp-top-drag-bar" title="Drag to move Evans Drummer Pro"></div>
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <div class="edp-header">
+        <div class="edp-logo-col">
+            <span class="edp-brand">CYBER AUDIO</span>
+            <span class="edp-model">EVANS DRUMMER PRO</span>
+        </div>
+        <div class="edp-telemetry-badge" title="Live Tracked Guitar Tempo & Section">
+            <div class="edp-tele-item">
+                <span class="edp-tele-lbl">BPM</span>
+                <span class="edp-tele-val" id="edp-bpm-readout">120</span>
+                <div class="mod-knob-image" mod-role="output-control-port" mod-port-symbol="detected_bpm" style="display:none;"></div>
+            </div>
+            <div class="edp-tele-item">
+                <span class="edp-tele-lbl">PART</span>
+                <span class="edp-tele-val" id="edp-section-readout">VERSE</span>
+                <div class="mod-knob-image" mod-role="output-control-port" mod-port-symbol="current_section" style="display:none;"></div>
+            </div>
+            <div class="edp-tele-item">
+                <span class="edp-tele-lbl">ENERGY</span>
+                <div class="edp-energy-bar-wrap">
+                    <div class="edp-energy-bar-fill" id="edp-energy-meter"></div>
+                </div>
+                <div class="mod-knob-image" mod-role="output-control-port" mod-port-symbol="energy_level" style="display:none;"></div>
+            </div>
+        </div>
+        <div class="edp-subtitle-col">
+            VIRTUAL SESSION DRUMMER &bull; GUITAR-ACCENT &amp; DYNAMICS TRACKING
+        </div>
+        <div class="edp-bypass-col">
+            <div class="mod-light on" mod-role="bypass-light"></div>
+        </div>
+    </div>
+
+    <!-- ── Main Controls Body ───────────────────────────────────────────── -->
+    <div class="edp-main-body">
+
+        <!-- Top Row: Style Selector & Rhythm Settings -->
+        <div class="edp-row edp-top-row">
+            <div class="edp-control-group edp-style-group">
+                <span class="edp-group-lbl">GROOVE &amp; STYLE</span>
+                <select class="edp-select" id="edp-select-style" title="Drum Kit Groove Style">
+                    <option value="0">Classic Rock</option>
+                    <option value="1">Pop / Modern Rock</option>
+                    <option value="2">Funk / Syncopated</option>
+                    <option value="3">Blues Shuffle</option>
+                    <option value="4">Motown / R&amp;B</option>
+                    <option value="5">Jazz / Swing</option>
+                    <option value="6">Bossa / Latin</option>
+                    <option value="7">Country Train</option>
+                    <option value="8">Reggae One Drop</option>
+                    <option value="9">Half-Time Heavy</option>
+                    <option value="10">Indie Folk / Strum</option>
+                    <option value="11">Folk Rock 6/8 Ballad</option>
+                    <option value="12">Acoustic Fingerstyle</option>
+                    <option value="13">Grunge / Alt 90s</option>
+                    <option value="14">Southern Rock Boogie</option>
+                    <option value="15">Punk / Energetic Drive</option>
+                    <option value="16">AI Hybrid / Adaptive Brain</option>
+                    <option value="17">Guitar-Driven Improv (Live Syncopated Mirror)</option>
+                </select>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="style" style="display:none;"></div>
+            </div>
+
+            <div class="edp-knob-unit" title="BPM Override (0 = Live Auto-Follow from Guitar Strums)">
+                <span class="edp-knob-title">BPM OVR</span>
+                <div class="custom-knob-dial" data-symbol="bpm_override" data-min="0" data-max="220" data-default="0">
+                    <div class="knob-rotor"></div>
+                </div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bpm_override" style="display:none;"></div>
+                <span class="edp-knob-val" id="edp-val-bpm_override">AUTO</span>
+            </div>
+
+            <div class="edp-knob-unit" title="Groove & Swing Timing Amount">
+                <span class="edp-knob-title">SWING</span>
+                <div class="custom-knob-dial" data-symbol="groove" data-min="0" data-max="10" data-default="4">
+                    <div class="knob-rotor"></div>
+                </div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="groove" style="display:none;"></div>
+                <span class="edp-knob-val" id="edp-val-groove">4.0</span>
+            </div>
+
+            <div class="edp-knob-unit" title="Master Kit Volume sent to Black Pearl / Red Zeppelin via MIDI CC7">
+                <span class="edp-knob-title">KIT VOL</span>
+                <div class="custom-knob-dial" data-symbol="kit_master_vol" data-min="0" data-max="127" data-default="100">
+                    <div class="knob-rotor"></div>
+                </div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="kit_master_vol" style="display:none;"></div>
+                <span class="edp-knob-val" id="edp-val-kit_master_vol">100</span>
+            </div>
+
+            <div class="edp-knob-unit" title="Master Kit Dynamic Velocity Scaling">
+                <span class="edp-knob-title">DYNAMICS</span>
+                <div class="custom-knob-dial" data-symbol="overall_velocity" data-min="0" data-max="10" data-default="7">
+                    <div class="knob-rotor"></div>
+                </div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="overall_velocity" style="display:none;"></div>
+                <span class="edp-knob-val" id="edp-val-overall_velocity">7.0</span>
+            </div>
+        </div>
+
+        <!-- Middle Row: Interactive Guitar Follower Knobs -->
+        <div class="edp-row edp-mid-row">
+            <div class="edp-knob-unit" title="Guitar Accent Sensitivity: Snare &amp; Kick match your strum dynamics">
+                <span class="edp-knob-title">ACCENT SENS</span>
+                <div class="custom-knob-dial" data-symbol="accent_sens" data-min="0" data-max="10" data-default="5">
+                    <div class="knob-rotor"></div>
+                </div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="accent_sens" style="display:none;"></div>
+                <span class="edp-knob-val" id="edp-val-accent_sens">5.0</span>
+            </div>
+
+            <div class="edp-knob-unit" title="Snare Ghost Note Density between main beats">
+                <span class="edp-knob-title">GHOST NOTES</span>
+                <div class="custom-knob-dial" data-symbol="ghost_density" data-min="0" data-max="10" data-default="3">
+                    <div class="knob-rotor"></div>
+                </div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ghost_density" style="display:none;"></div>
+                <span class="edp-knob-val" id="edp-val-ghost_density">3.0</span>
+            </div>
+
+            <div class="edp-knob-unit" title="Drum Fill Frequency and Phrase Climax Fills">
+                <span class="edp-knob-title">FILL FREQ</span>
+                <div class="custom-knob-dial" data-symbol="fill_density" data-min="0" data-max="10" data-default="5">
+                    <div class="knob-rotor"></div>
+                </div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="fill_density" style="display:none;"></div>
+                <span class="edp-knob-val" id="edp-val-fill_density">5.0</span>
+            </div>
+
+            <div class="edp-knob-unit" title="Hi-Hat Splash Sensitivity on hard guitar strums">
+                <span class="edp-knob-title">HH SPLASH</span>
+                <div class="custom-knob-dial" data-symbol="open_hh_thresh" data-min="0" data-max="10" data-default="6">
+                    <div class="knob-rotor"></div>
+                </div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="open_hh_thresh" style="display:none;"></div>
+                <span class="edp-knob-val" id="edp-val-open_hh_thresh">6.0</span>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Toggles (Crash, Learn Song, Mute, Adventurous, Strum Only) -->
+        <div class="edp-row edp-btn-row">
+            <!-- START PLAYBACK ON DOWNBEAT -->
+            <div class="edp-btn-unit" title="Start Playback: Arms drummer to start groove cleanly on the very next downbeat locked to detected tempo">
+                <button type="button" class="edp-btn-toggle edp-btn-start" id="edp-btn-start" data-sym="start_play">START</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="start_play" style="display:none;"></div>
+                <span class="edp-btn-lbl">START PLAY</span>
+            </div>
+
+            <!-- RESET TO LISTEN (NEW SONG START) -->
+            <div class="edp-btn-unit" title="Reset / New Song: Stops drums and returns drummer to listening mode to learn new song tempo and chords">
+                <button type="button" class="edp-btn-toggle edp-btn-reset" id="edp-btn-reset" data-sym="reset_listen">RESET</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="reset_listen" style="display:none;"></div>
+                <span class="edp-btn-lbl">NEW SONG</span>
+            </div>
+
+            <!-- STOP / CRASH RING OUT TRIGGER -->
+            <div class="edp-btn-unit" title="Stop Here / Ring Out: Hits crash + kick and halts drums cleanly so chord rings out">
+                <button type="button" class="edp-btn-toggle edp-btn-stop" id="edp-btn-stop" data-sym="stop_crash">STOP / RING</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="stop_crash" style="display:none;"></div>
+                <span class="edp-btn-lbl">STOP HERE</span>
+            </div>
+
+            <!-- FILL HERE TRIGGER -->
+            <div class="edp-btn-unit" title="Fill Here: Commands drummer to execute a dynamic fill roll into next downbeat">
+                <button type="button" class="edp-btn-toggle edp-btn-fill" id="edp-btn-fill" data-sym="fill_now">FILL NOW</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="fill_now" style="display:none;"></div>
+                <span class="edp-btn-lbl">FILL HERE</span>
+            </div>
+
+            <!-- MANUAL CHORUS / VERSE TOGGLE -->
+            <div class="edp-btn-unit" title="Manual Chorus Mode: Switches drum groove to high-energy chorus (rides / open hi-hats)">
+                <button type="button" class="edp-btn-toggle edp-btn-chorus" id="edp-btn-chorus" data-sym="manual_chorus">CHORUS</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="manual_chorus" style="display:none;"></div>
+                <span class="edp-btn-lbl">CHORUS MODE</span>
+            </div>
+
+            <div class="edp-btn-unit" title="Crash on Section Entry: Hits crash cymbal when moving from Verse to Chorus">
+                <button type="button" class="edp-btn-toggle edp-btn-active" id="edp-btn-crash" data-sym="crash_on_chorus">CRASH</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="crash_on_chorus" style="display:none;"></div>
+                <span class="edp-btn-lbl">CHORUS CRASH</span>
+            </div>
+
+            <div class="edp-btn-unit" title="Learn Song Roadmap: Records verse/chorus dynamic roadmap from your guitar playing">
+                <button type="button" class="edp-btn-toggle" id="edp-btn-record" data-sym="record_song">LEARN</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="record_song" style="display:none;"></div>
+                <span class="edp-btn-lbl">SONG MEMORY</span>
+            </div>
+
+            <div class="edp-btn-unit" title="Mute Drums: Stops drum MIDI output while tracking continues">
+                <button type="button" class="edp-btn-toggle edp-btn-mute" id="edp-btn-mute" data-sym="mute">MUTE</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="mute" style="display:none;"></div>
+                <span class="edp-btn-lbl">DRUM MUTE</span>
+            </div>
+
+            <div class="edp-btn-unit" title="Adventurous / Jam Mode: Freely improvises off-beat splashes and syncopation">
+                <button type="button" class="edp-btn-toggle edp-btn-adventurous" id="edp-btn-adventurous" data-sym="adventurous">JAM FREE</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="adventurous" style="display:none;"></div>
+                <span class="edp-btn-lbl">ADVENTUROUS</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footswitch & Audio/MIDI Jacks -->
+    <div class="mod-footswitch" mod-role="bypass"></div>
+
+    <div class="mod-pedal-input">
+        {{#effect.ports.audio.input}}
+        <div class="mod-input mod-input-disconnected" title="{{name}}" mod-role="input-audio-port" mod-port-symbol="{{symbol}}">
+            <div class="mod-pedal-input-image"></div>
+        </div>
+        {{/effect.ports.audio.input}}
+        {{#effect.ports.midi.input}}
+        <div class="mod-input mod-input-disconnected" title="{{name}}" mod-role="input-midi-port" mod-port-symbol="{{symbol}}">
+            <div class="mod-pedal-input-image"></div>
+        </div>
+        {{/effect.ports.midi.input}}
+        {{#effect.ports.cv.input}}
+        <div class="mod-input mod-input-disconnected" title="{{name}}" mod-role="input-cv-port" mod-port-symbol="{{symbol}}">
+            <div class="mod-pedal-input-image"></div>
+        </div>
+        {{/effect.ports.cv.input}}
+    </div>
+
+    <div class="mod-pedal-output">
+        {{#effect.ports.audio.output}}
+        <div class="mod-output mod-output-disconnected" title="{{name}}" mod-role="output-audio-port" mod-port-symbol="{{symbol}}">
+            <div class="mod-pedal-output-image"></div>
+        </div>
+        {{/effect.ports.audio.output}}
+        {{#effect.ports.midi.output}}
+        <div class="mod-output mod-output-disconnected" title="{{name}}" mod-role="output-midi-port" mod-port-symbol="{{symbol}}">
+            <div class="mod-pedal-output-image"></div>
+        </div>
+        {{/effect.ports.midi.output}}
+        {{#effect.ports.cv.output}}
+        <div class="mod-output mod-output-disconnected" title="{{name}}" mod-role="output-cv-port" mod-port-symbol="{{symbol}}">
+            <div class="mod-pedal-output-image"></div>
+        </div>
+        {{/effect.ports.cv.output}}
+    </div>
+</div>

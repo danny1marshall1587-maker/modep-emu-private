@@ -1,0 +1,66 @@
+name: Build Euphoria Amp macOS Standalone (Apple Silicon + Intel)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'euphoria-mac-*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac-standalone:
+    name: macOS ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Apple Silicon (M1/M2/M3/M4) - native arm64 runner
+          - name: arm64
+            os: macos-14
+            arch: arm64
+          # Intel Macs - x86_64 runner
+          - name: x86_64
+            os: macos-13
+            arch: x86_64
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Configure (JUCE Standalone, ${{ matrix.arch }})
+        run: |
+          cmake -S plugins/euphoria-amp-vst -B build-euphoria \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="${{ matrix.arch }}" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+
+      - name: Build Standalone
+        run: cmake --build build-euphoria --config Release --target EuphoriaAmp_Standalone --parallel
+
+      - name: Verify architecture
+        run: |
+          APP=$(find build-euphoria -name "Euphoria Amp.app" -maxdepth 4 | head -n 1)
+          echo "App: $APP"
+          lipo -info "$APP/Contents/MacOS/Euphoria Amp"
+
+      - name: Ad-hoc sign and package
+        run: |
+          APP=$(find build-euphoria -name "Euphoria Amp.app" -maxdepth 4 | head -n 1)
+          codesign --force --deep --sign - "$APP"
+          mkdir -p release
+          ditto -c -k --keepParent "$APP" "release/EuphoriaAmp-Standalone-macOS-${{ matrix.arch }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EuphoriaAmp-Standalone-macOS-${{ matrix.arch }}
+          path: release/*.zip
+
+      - name: Attach to GitHub Release (tag builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.zip

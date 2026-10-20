@@ -1,0 +1,194 @@
+/*
+ * Copyright 2018 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef SAMPLES_FULLDUPLEXPASS_H
+#define SAMPLES_FULLDUPLEXPASS_H
+
+#include <dlfcn.h>
+#include "ladspa.h"
+#include "FullDuplexStream.h"
+#include "FileWriter.h"
+#include "Meter.h"
+#include "LockFreeQueue.h"
+
+class FullDuplexPass : public FullDuplexStream {
+    //| TODO: Limit number of plugins active in free version?
+public:
+    #define MAX_PLUGINS 10 // for now
+    float inputVolume = 1.0 ;
+    float outputVolume = 1.0 ;
+    bool meterEnabled = true ;
+    bool pause = false ;
+    
+    // Lock Free Queue Manager
+    void (queue)(float * data, int frames) ;
+    LockFreeQueueManager * lockFreeQueueManager;
+
+    void (*connect_port [MAX_PLUGINS])(LADSPA_Handle Instance,
+                         unsigned long Port,
+                         LADSPA_Data * DataLocation);
+    void (*run [MAX_PLUGINS])(LADSPA_Handle Instance,
+                unsigned long SampleCount);
+    void (*run_adding [MAX_PLUGINS])(LADSPA_Handle Instance,
+                unsigned long SampleCount);
+    void (*set_run_adding_gain [MAX_PLUGINS])(LADSPA_Handle Instance,
+                                LADSPA_Data   Gain);
+
+    void * handle [MAX_PLUGINS] ;
+    LADSPA_Data run_adding_gain [MAX_PLUGINS] ;
+    const LADSPA_Descriptor * descriptor [MAX_PLUGINS] ;
+    int inputPorts [MAX_PLUGINS] ;
+    int inputPorts2 [MAX_PLUGINS] ;
+    int outputPorts [MAX_PLUGINS] ;
+    int outputPorts2 [MAX_PLUGINS] ;
+    bool pushToLockFreeBeforeOutputVolume = false ;
+    int activePlugins =  0 ;
+    float * raw = NULL; // this will never be greater than this(TM)
+    bool recordingActive = false ;
+    bool triggerRecord = false ;
+    bool bypass = false ;
+    float * inSamples = NULL ;
+
+    virtual oboe::DataCallbackResult
+    onBothStreamsReady(
+            std::shared_ptr<oboe::AudioStream> inputStream,
+            const void *inputData,
+            int   numInputFrames,
+            std::shared_ptr<oboe::AudioStream> outputStream,
+            void *outputData,
+            int   numOutputFrames) {
+        // This code assumes the data format for both streams is Float.
+        const float *inputFloats = static_cast<const float *>(inputData);
+        float *outputFloats = static_cast<float *>(outputData);
+
+        // It also assumes the channel count for each stream is the same.
+        int32_t samplesPerFrame = outputStream->getChannelCount();
+        int32_t numInputSamples = numInputFrames * samplesPerFrame;
+        int32_t numOutputSamples = numOutputFrames * samplesPerFrame;
+
+        // It is possible that there may be fewer input than output samples.
+        int32_t samplesToProcess = std::min(numInputSamples, numOutputSamples);
+
+//        float inSamples [samplesToProcess];
+        for (int i = 0 ; i < samplesToProcess ; i ++) {
+            raw [i] = inSamples [i] = inputFloats [i] * inputVolume ;
+        }
+
+//        if (meterEnabled) {
+//            Meter::process (samplesToProcess, inSamples, true);
+//        }
+        // this
+        // am I devloper yet?
+//        memcpy(outputData, inputData, samplesToProcess);
+        if (! bypass)
+            process(inSamples, numInputSamples);
+
+        /* this is not supposed to be called directly.
+         * hence the entire vringbuffer stuff
+         */
+
+        if (pushToLockFreeBeforeOutputVolume && ! pause)
+            lockFreeQueueManager->process(raw, inSamples, samplesToProcess) ;
+
+        for (int32_t i = 0; i < samplesToProcess; i++) {
+            inSamples [i] = inSamples [i]  * outputVolume; // do some arbitrary processing
+            *outputFloats++ = inSamples [i];
+        }
+
+//        if (meterEnabled) {
+//            Meter::process (samplesToProcess, inSamples, false);
+//        }
+
+        if (! pushToLockFreeBeforeOutputVolume && ! pause)
+            lockFreeQueueManager->process(raw, inSamples, samplesToProcess) ;
+
+        //        for (int32_t i = 0; i < samplesToProcess; i++) {
+//            *outputFloats++ = *inputFloats++  * outputVolume; // do some arbitrary processing
+//        }
+
+        // If there are fewer input samples then clear the rest of the buffer.
+        int32_t samplesLeft = numOutputSamples - numInputSamples;
+        for (int32_t i = 0; i < samplesLeft; i++) {
+            *outputFloats++ = 0.0; // silence
+        }
+
+        //        OUT ;
+        return oboe::DataCallbackResult::Continue;
+    }
+
+    void process (const float * data, int samplesToProcess) {
+#define PROFILE_PLUGINS1
+#ifdef PROFILE_PLUGINS
+        auto start = std::chrono::system_clock::now();
+        auto since_last = start ;
+#endif
+        for (int i = 0 ; i < activePlugins ; i ++) {
+            if (inputPorts [i] != -1)
+                connect_port [i] (handle [i], inputPorts [i], (LADSPA_Data *) data);
+            if (outputPorts [i] != -1)
+                connect_port [i] (handle [i], outputPorts [i], (LADSPA_Data *) data);
+
+//            LOGD("I/O Ports %d %d", inputPorts [i], outputPorts [i]);
+//            LOGD("[%d] samples", samplesToProcess);
+
+            if (inputPorts2 [i] != -1)
+                connect_port [i] (handle [i], inputPorts2 [i], (LADSPA_Data *) data);
+            if (outputPorts2 [i] != -1)
+                connect_port [i] (handle [i], outputPorts2 [i], (LADSPA_Data *) data);
+
+//            LOGD("I/O 2 Ports %d %d", inputPorts2 [i], outputPorts2 [i]);
+
+            if (run [i] == NULL)
+                LOGF ("run %d is null", i);
+            else
+                run [i] (handle [i], samplesToProcess);
+            /*
+            if (set_run_adding_gain [i] != NULL)
+                set_run_adding_gain [i] (handle [i], run_adding_gain [i]) ;
+            if (run_adding [i] != NULL)
+                run [i] (handle [i], samplesToProcess);
+            */
+
+#ifdef PROFILE_PLUGINS
+            auto elapsed = std::chrono::system_clock::now() - since_last ;
+            since_last = since_last + elapsed;
+            LOGD("[%d: %d] %lld ms", i, samplesToProcess, elapsed.count ()) ;
+#endif
+        }
+
+#ifdef PROFILE_PLUGINS
+        auto elapsed = std::chrono::system_clock::now() - start ;
+        LOGD("[%d] %lld ms", samplesToProcess, elapsed.count ()) ;
+#endif
+
+        /*
+        if (triggerRecord) {
+            LOGD("%f", data [0]);
+            if (data [0] > 0.1)
+                recordingActive = true ;
+            else
+                recordingActive = false ;
+        }
+         */
+
+//        if (recordingActive) {
+//            FileWriter::process(samplesToProcess, data);
+//        }
+
+
+    }
+};
+#endif //SAMPLES_FULLDUPLEXPASS_H

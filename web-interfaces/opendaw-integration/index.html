@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MODEP Multi-Track Live DAW</title>
+    <style>
+        :root {
+            --bg-color: #121417;
+            --panel-bg: #1e2227;
+            --track-bg: #272d34;
+            --track-armed: #3a1c1c;
+            --accent-green: #00ff88;
+            --accent-red: #ff3344;
+            --accent-cyan: #00e5ff;
+            --accent-yellow: #ffb700;
+            --text-main: #f0f3f6;
+            --text-dim: #8b98a5;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* Top Transport Bar */
+        header { height: 56px; background: var(--panel-bg); border-bottom: 2px solid #2d333b; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+        .project-meta { display: flex; align-items: center; gap: 14px; font-size: 0.95rem; font-weight: bold; }
+        .badge { background: #2f363d; color: var(--accent-cyan); font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; border: 1px solid #444d56; }
+
+        .transport-controls { display: flex; align-items: center; gap: 8px; }
+        .timecode { background: #090d12; border: 1px solid #30363d; color: var(--accent-green); font-family: monospace; font-size: 1.2rem; padding: 4px 12px; border-radius: 4px; letter-spacing: 1px; }
+
+        .btn-transport { background: #2f363d; border: 1px solid #444d56; color: white; padding: 7px 16px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .btn-transport:active { transform: scale(0.97); }
+        .btn-rec { background: #5a1515; border-color: var(--accent-red); color: var(--accent-red); }
+        .btn-rec.active { background: var(--accent-red); color: #fff; box-shadow: 0 0 12px rgba(255,51,68,0.7); animation: pulse 1s infinite alternate; }
+        .btn-play { background: #133924; border-color: var(--accent-green); color: var(--accent-green); }
+        .btn-play.active { background: var(--accent-green); color: #000; box-shadow: 0 0 12px rgba(0,255,136,0.6); }
+
+        @keyframes pulse { from { opacity: 0.8; } to { opacity: 1; } }
+
+        /* Timeline & Tracks */
+        .timeline-header { height: 28px; background: #181b20; border-bottom: 1px solid #2d333b; display: flex; align-items: center; padding-left: 220px; font-family: monospace; font-size: 0.7rem; color: var(--text-dim); }
+        .timeline-ruler { display: flex; width: 100%; justify-content: space-around; }
+
+        .daw-workspace { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; background: #0c0e11; }
+        .track-row { height: 48px; background: var(--track-bg); display: flex; border-bottom: 1px solid #1a1e24; }
+        .track-row.armed { background: var(--track-armed); border-left: 4px solid var(--accent-red); }
+
+        .track-header { width: 220px; flex-shrink: 0; background: #1f242b; border-right: 1px solid #30363d; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+        .track-num { font-size: 0.7rem; color: var(--text-dim); width: 22px; font-weight: bold; }
+        .track-info { flex: 1; overflow: hidden; margin-right: 6px; }
+        .track-name { font-size: 0.8rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-type { font-size: 0.65rem; color: var(--text-dim); }
+
+        .track-actions { display: flex; gap: 4px; }
+        .btn-trk { border: none; font-size: 0.65rem; font-weight: bold; padding: 4px 6px; border-radius: 3px; cursor: pointer; color: white; }
+        .btn-arm { background: #3d1c1c; border: 1px solid #5c2424; color: #ff7b72; }
+        .btn-arm.active { background: var(--accent-red); color: white; }
+        .btn-m { background: #30363d; }
+        .btn-m.active { background: #f85149; }
+        .btn-s { background: #30363d; }
+        .btn-s.active { background: var(--accent-yellow); color: #000; }
+
+        .track-lane { flex: 1; position: relative; background: #14171c; overflow: hidden; }
+        .waveform-canvas { width: 100%; height: 100%; display: block; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="project-meta">
+            <span>MODEP LIVE DAW</span>
+            <span class="badge">20 TRACK BWF</span>
+            <span class="badge" style="color:var(--accent-green)">USB 3 SSD MOUNTED</span>
+        </div>
+
+        <div class="transport-controls">
+            <div class="timecode" id="tc-display">00:00:00.00</div>
+            <button class="btn-transport" onclick="rewind()">|◀ REW</button>
+            <button class="btn-transport btn-play" id="btn-play" onclick="togglePlay()">▶ PLAY</button>
+            <button class="btn-transport" onclick="stopTransport()">■ STOP</button>
+            <button class="btn-transport btn-rec" id="btn-rec" onclick="toggleRec()">● REC</button>
+            <button class="btn-transport" style="background:#22303c; border-color:#00e5ff; color:#00e5ff;" onclick="window.location.href='/mixer'">MIXER TAB</button>
+        </div>
+    </header>
+
+    <div class="timeline-header">
+        <div class="timeline-ruler">
+            <span>01:00</span><span>02:00</span><span>03:00</span><span>04:00</span><span>05:00</span><span>06:00</span><span>07:00</span><span>08:00</span><span>09:00</span>
+        </div>
+    </div>
+
+    <div class="daw-workspace">
+        <script>
+            const trackList = [
+                { id: 1, name: "Direct Mic 1", group: "Raw Direct" },
+                { id: 2, name: "Direct Guitar", group: "Raw Direct" },
+                { id: 3, name: "Direct Bass", group: "Raw Direct" },
+                { id: 4, name: "Direct Kick", group: "Raw Direct" },
+                { id: 5, name: "Direct Snare", group: "Raw Direct" },
+                { id: 6, name: "Direct OH L", group: "Raw Direct" },
+                { id: 7, name: "Direct OH R", group: "Raw Direct" },
+                { id: 8, name: "Direct Keys", group: "Raw Direct" },
+                { id: 9, name: "Mixer Ch 1 (Vox Post)", group: "1176+EQ" },
+                { id: 10, name: "Mixer Ch 2 (Gtr Post)", group: "Amp Sim" },
+                { id: 11, name: "Mixer Ch 3 (Bass Post)", group: "Bass Comp" },
+                { id: 12, name: "Mixer Ch 4 (Kick Post)", group: "EQ+Gate" },
+                { id: 13, name: "Mixer Ch 5 (Snare Post)", group: "EQ+Comp" },
+                { id: 14, name: "Mixer Ch 6 (OH L Post)", group: "Post Mix" },
+                { id: 15, name: "Mixer Ch 7 (OH R Post)", group: "Post Mix" },
+                { id: 16, name: "Mixer Ch 8 (Keys Post)", group: "Post Mix" },
+                { id: 17, name: "Send 1 (Reverb)", group: "Wet FX Return" },
+                { id: 18, name: "Send 2 (Delay)", group: "Wet FX Return" },
+                { id: 19, name: "IEM Submix 1", group: "Monitor Mix" },
+                { id: 20, name: "Master Board Mix L/R", group: "FOH Master" }
+            ];
+
+            trackList.forEach(t => {
+                document.write(`
+                <div class="track-row" id="row-${t.id}">
+                    <div class="track-header">
+                        <div class="track-num">${t.id}</div>
+                        <div class="track-info">
+                            <div class="track-name">${t.name}</div>
+                            <div class="track-type">${t.group}</div>
+                        </div>
+                        <div class="track-actions">
+                            <button class="btn-trk btn-arm active" onclick="toggleArm(${t.id}, this)">ARM</button>
+                            <button class="btn-trk btn-m" onclick="this.classList.toggle('active')">M</button>
+                            <button class="btn-trk btn-s" onclick="this.classList.toggle('active')">S</button>
+                        </div>
+                    </div>
+                    <div class="track-lane">
+                        <canvas class="waveform-canvas" id="canvas-${t.id}"></canvas>
+                    </div>
+                </div>
+                `);
+            });
+        </script>
+    </div>
+
+    <script>
+        let isPlaying = false;
+        let isRecording = false;
+        let elapsedSeconds = 0;
+        let timer = null;
+
+        function updateTimecode() {
+            let m = Math.floor(elapsedSeconds / 60);
+            let s = Math.floor(elapsedSeconds % 60);
+            let ms = Math.floor((elapsedSeconds * 100) % 100);
+            document.getElementById("tc-display").textContent = 
+                String(m).padStart(2, '0') + ":" + 
+                String(s).padStart(2, '0') + "." + 
+                String(ms).padStart(2, '0');
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            document.getElementById("btn-play").classList.toggle("active", isPlaying);
+            if (isPlaying) {
+                if (!timer) timer = setInterval(() => { elapsedSeconds += 0.05; updateTimecode(); }, 50);
+            } else if (!isRecording) {
+                clearInterval(timer); timer = null;
+            }
+        }
+
+        function toggleRec() {
+            isRecording = !isRecording;
+            document.getElementById("btn-rec").classList.toggle("active", isRecording);
+            if (isRecording) {
+                if (!isPlaying) togglePlay();
+            } else if (!isPlaying) {
+                clearInterval(timer); timer = null;
+            }
+        }
+
+        function stopTransport() {
+            isPlaying = false;
+            isRecording = false;
+            document.getElementById("btn-play").classList.remove("active");
+            document.getElementById("btn-rec").classList.remove("active");
+            clearInterval(timer);
+            timer = null;
+        }
+
+        function rewind() {
+            stopTransport();
+            elapsedSeconds = 0;
+            updateTimecode();
+        }
+
+        function toggleArm(id, btn) {
+            btn.classList.toggle("active");
+            document.getElementById("row-" + id).classList.toggle("armed", btn.classList.contains("active"));
+        }
+
+        // Draw dummy waveform peaks for UI preview
+        window.onload = function() {
+            for (let i = 1; i <= 20; i++) {
+                const canvas = document.getElementById("canvas-" + i);
+                if (!canvas) continue;
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = 48;
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = i <= 8 ? "rgba(0, 229, 255, 0.4)" : (i <= 16 ? "rgba(0, 255, 136, 0.4)" : "rgba(255, 183, 0, 0.4)");
+                for (let x = 0; x < canvas.width; x += 4) {
+                    let h = (Math.sin(x * 0.05 + i) * 0.5 + 0.5) * (Math.random() * 28 + 4);
+                    ctx.fillRect(x, 24 - h / 2, 2, h);
+                }
+            }
+        };
+    </script>
+</body>
+</html>

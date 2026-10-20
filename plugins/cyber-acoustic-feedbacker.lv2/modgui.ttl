@@ -1,0 +1,131 @@
+@prefix lv2:    <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix modgui: <http://moddevices.com/ns/modgui#> .
+
+<http://cyber-audio.co.uk/plugins/cyber-acoustic-feedbacker>
+    modgui:gui [
+        modgui:resourcesDirectory <modgui> ;
+        modgui:iconTemplate <modgui/icon-cyber-acoustic-feedbacker.html> ;
+        modgui:stylesheet <modgui/stylesheet.css> ;
+        modgui:javascript <modgui/script.js> ;
+        modgui:screenshot <modgui/screenshot.png> ;
+        modgui:thumbnail <modgui/thumbnail.png> ;
+        modgui:brand "Cyber Audio" ;
+        modgui:label "Feedbacker" ;
+        modgui:model "boxy" ;
+        modgui:panel "custom" ;
+        modgui:color "#78350f" ;
+        modgui:port [
+            lv2:index 0 ;
+            lv2:symbol "gain" ;
+            lv2:name "GAIN" ;
+        ] , [
+            lv2:index 1 ;
+            lv2:symbol "distress" ;
+            lv2:name "DISTRESS" ;
+        ] , [
+            lv2:index 2 ;
+            lv2:symbol "tail" ;
+            lv2:name "TAIL" ;
+        ] , [
+            lv2:index 3 ;
+            lv2:symbol "mix" ;
+            lv2:name "MIX" ;
+        ] , [
+            lv2:index 4 ;
+            lv2:symbol "takeover_thresh" ;
+            lv2:name "POINT" ;
+        ] , [
+            lv2:index 5 ;
+            lv2:symbol "transition_time" ;
+            lv2:name "FADE" ;
+        ] , [
+            lv2:index 6 ;
+            lv2:symbol "loop_window" ;
+            lv2:name "WINDOW" ;
+        ] , [
+            lv2:index 7 ;
+            lv2:symbol "loop_damping" ;
+            lv2:name "DAMP" ;
+        ] , [
+            lv2:index 8 ;
+            lv2:symbol "vol_match" ;
+            lv2:name "VOL MATCH" ;
+        ] , [
+            lv2:index 9 ;
+            lv2:symbol "bloom_rate" ;
+            lv2:name "BLOOM" ;
+        ] , [
+            lv2:index 10 ;
+            lv2:symbol "attack_lockout" ;
+            lv2:name "GUARD" ;
+        ] , [
+            lv2:index 11 ;
+            lv2:symbol "loop_attack" ;
+            lv2:name "RAMP" ;
+        ] , [
+            lv2:index 12 ;
+            lv2:symbol "loop_release" ;
+            lv2:name "SEAM REL" ;
+        ] , [
+            lv2:index 13 ;
+            lv2:symbol "loop_drift" ;
+            lv2:name "DRIFT" ;
+        ] , [
+            lv2:index 14 ;
+            lv2:symbol "spk_recirc" ;
+            lv2:name "SPK FEED" ;
+        ] , [
+            lv2:index 15 ;
+            lv2:symbol "pickup_sat" ;
+            lv2:name "PICKUP" ;
+        ] , [
+            lv2:index 16 ;
+            lv2:symbol "air_wobble_rate" ;
+            lv2:name "AIR RATE" ;
+        ] , [
+            lv2:index 17 ;
+            lv2:symbol "air_wobble_depth" ;
+            lv2:name "AIR DEPTH" ;
+        ] , [
+            lv2:index 18 ;
+            lv2:symbol "room_in_loop" ;
+            lv2:name "ROOM IN LOOP" ;
+        ] , [
+            lv2:index 19 ;
+            lv2:symbol "room_size" ;
+            lv2:name "ROOM SIZE" ;
+        ] , [
+            lv2:index 20 ;
+            lv2:symbol "room_decay" ;
+            lv2:name "ROOM DECAY" ;
+        ] , [
+            lv2:index 21 ;
+            lv2:symbol "room_damping" ;
+            lv2:name "ROOM DAMP" ;
+        ] , [
+            lv2:index 22 ;
+            lv2:symbol "room_mix" ;
+            lv2:name "ROOM MIX" ;
+        ] , [
+            lv2:index 23 ;
+            lv2:symbol "room_feed" ;
+            lv2:name "ROOM FEED" ;
+        ] , [
+            lv2:index 24 ;
+            lv2:symbol "trig_lfo_rate" ;
+            lv2:name "WIGGLE SPD" ;
+        ] , [
+            lv2:index 25 ;
+            lv2:symbol "trig_lfo_depth" ;
+            lv2:name "WIGGLE DEP" ;
+        ] , [
+            lv2:index 26 ;
+            lv2:symbol "hold_on_pluck" ;
+            lv2:name "HOLD DRONE" ;
+        ] , [
+            lv2:index 27 ;
+            lv2:symbol "trigger" ;
+            lv2:name "FEEDBACK" ;
+        ] ;
+    ] .

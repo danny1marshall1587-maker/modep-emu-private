@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/get_pro"
+        android:title="Get Full Version"
+        android:icon="@drawable/ic_baseline_cloud_upload_24"/>
+
+    <item android:id="@+id/logout_menu_item"
+        android:title="Log out"/>
+    <item android:id="@+id/settings_menu_item"
+        android:title="Settings"/>
+    <item android:id="@+id/debug_menu_item"
+        android:title="Clear Queue"/>
+
+    <item android:id="@+id/connect_guitar_menu"
+        android:title="Connect Guitar"/>
+
+    <item android:id="@+id/bug_menu"
+        android:title="Report a bug"/>
+
+    <item android:id="@+id/feature_menu"
+        android:visible="false"
+        android:title="Suggest a feature"/>
+
+    <item android:id="@+id/how_to_use"
+        android:title="How to use"/>
+
+    <item android:id="@+id/save_collection"
+        android:title="Save presets to file"/>
+
+    <item android:id="@+id/load_collection"
+        android:title="Load presets from file"/>
+
+    <item android:id="@+id/menu_tune"
+        android:title="Latency Tuner"
+        android:icon="@drawable/baseline_tune_24"/>
+    <item
+        android:id="@+id/menu_sync"
+        android:icon="@drawable/baseline_sync_24"
+        android:title="Sync with PC / Smart Pedal"/>
+
+    <item android:id="@+id/bt_menu"
+        android:title="Connect Bluetooth MIDI"/>
+    <item android:id="@+id/menu_select_midi"
+        android:title="Select MIDI Device"/>
+    <item android:id="@+id/youtube"
+        android:title="Play with YouTube Video"/>
+    <item android:id="@+id/nam"
+        android:title="NAM Model Downloader"/>
+    <item android:id="@+id/clear_midi"
+        android:title="Clear MIDI Controls"/>
+    <item android:id="@+id/download_pc"
+        android:visible="false"
+        android:title="Download for PC"/>
+    <item android:id="@+id/menu_exit"
+        android:title="Exit"
+        android:icon="@drawable/ic_baseline_close_24"/>
+</menu>

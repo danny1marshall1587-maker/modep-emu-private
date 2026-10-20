@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreference
+        android:title="Don't close plugin dialog after adding plugin"
+        android:key="keep_plugindialog_open"
+        android:defaultValue="false"
+        android:summary="Keep plugin dialog open after adding a plugin"/>
+
+    <SwitchPreference
+        android:title="Adapt UI to large screens"
+        android:key="tablet_mode"
+        android:defaultValue="true"
+        android:summary="Optimise UI to make use of large displays (e.g. tablets)"/>
+
+    <ListPreference
+        android:title="Theme"
+        android:key="theme"
+        android:defaultValue="TubeAmp"
+        app:entryValues="@array/themes"
+        app:entries="@array/themes"/>
+    <Preference
+        android:title="Load Theme From Folder"
+        android:summary="Load a theme from a folder on your device"
+        android:key="theme_custom"/>
+    <Preference
+        android:title="Load Theme From File"
+        android:summary="Load a theme from a file on your device"
+        android:key="theme_file"/>
+    <Preference
+        android:title="Set Wallpaper"
+        android:key="background_custom"/>
+
+    <Preference
+        android:summary="Restart the app for theme change to take effect."/>
+
+    <ListPreference
+        android:title="Color Scheme"
+        app:key="color_scheme"
+        android:summary="Choose a color scheme for Material Theme"
+        android:entries="@array/mstyles"
+        app:defaultValue="Theme.AmpRack"
+        android:defaultValue="Theme.AmpRack"
+        android:entryValues="@array/mstyles"/>
+
+    <Preference
+        android:title="More themes online"
+        android:summary="Tap to download more themes from the web"
+        android:key="more_themes_online"/>
+
+</PreferenceScreen>

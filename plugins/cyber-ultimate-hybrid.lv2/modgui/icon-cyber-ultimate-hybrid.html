@@ -1,0 +1,138 @@
+<div class="mod-pedal cyber-ultimate-hybrid-head" style="width:940px;background:#090d16;border:2px solid #334155;border-radius:14px;padding:12px;color:#f8fafc;font-family:'Segoe UI',sans-serif;user-select:none;">
+    <!-- Top 4-Page Hardware Selector Bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #334155;">
+        <div style="display:flex;gap:6px;">
+            <button type="button" class="uh-page-tab active" data-uh-tab="0" style="padding:7px 13px;border-radius:8px;font-size:12px;font-weight:800;background:#0284c7;color:#fff;border:1px solid #38bdf8;cursor:pointer;">
+                1. '65 BLACKFACE AB763
+            </button>
+            <button type="button" class="uh-page-tab" data-uh-tab="1" style="padding:7px 13px;border-radius:8px;font-size:12px;font-weight:800;background:#1e293b;color:#cbd5e1;border:1px solid #475569;cursor:pointer;">
+                2. '59 BASSMAN / '68 JMP
+            </button>
+            <button type="button" class="uh-page-tab" data-uh-tab="2" style="padding:7px 13px;border-radius:8px;font-size:12px;font-weight:800;background:#1e293b;color:#cbd5e1;border:1px solid #475569;cursor:pointer;">
+                3. REVERB &amp; HARMONIC VIBRATO
+            </button>
+            <button type="button" class="uh-page-tab" data-uh-tab="3" style="padding:7px 13px;border-radius:8px;font-size:12px;font-weight:800;background:#1e293b;color:#cbd5e1;border:1px solid #475569;cursor:pointer;">
+                4. POWER &amp; MIXER SEND RACK
+            </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="channel_mode" data-symbol="channel_mode" title="Tap to cycle Clean / Crunch / Jumpered">
+                <span class="uh-sw-label">CHANNEL</span>
+                <span class="uh-sw-val" id="uh-val-channel_mode">JUMPERED</span>
+            </div>
+            <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="quality_mode" data-symbol="quality_mode" title="Tap to scale CPU Oversampling">
+                <span class="uh-sw-label">PHYSICS CPU</span>
+                <span class="uh-sw-val" id="uh-val-quality_mode">4x STUDIO</span>
+            </div>
+            <div class="mod-footswitch" mod-role="bypass" style="padding:7px 12px;border-radius:8px;background:#dc2626;color:#fff;font-size:11px;font-weight:800;cursor:pointer;">
+                BYPASS
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 0: '65 FENDER BLACKFACE AB763 AMP VIEW -->
+    <div class="uh-page-view" data-uh-page="0" style="display:block;background:#111318;border:2px solid #64748b;border-radius:12px;padding:14px;">
+        <div style="background:#05070b;border:2px solid #cbd5e1;border-radius:8px;padding:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div>
+                    <div style="font-size:11px;font-weight:800;color:#38bdf8;letter-spacing:1px;">CHANNEL 1 &bull; AB763 PLATE-DRIVEN TONE STACK</div>
+                    <div style="font-size:20px;font-weight:900;font-style:italic;color:#ffffff;">Cyber '65 Twin / Super Blackface</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="bright_sw" data-symbol="bright_sw">
+                        <span class="uh-sw-label">BRIGHT CAP</span>
+                        <span class="uh-sw-val" id="uh-val-bright_sw">120pF ON</span>
+                    </div>
+                    <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="speaker_cab" data-symbol="speaker_cab">
+                        <span class="uh-sw-label">CABINET</span>
+                        <span class="uh-sw-val" id="uh-val-speaker_cab">2x12 C12N</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-around;align-items:center;padding:8px 0;">
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="clean_vol" data-symbol="clean_vol"><div class="knob-rotor"></div></div><div class="uh-k-lbl">CLEAN VOL</div></div>
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="treble" data-symbol="treble"><div class="knob-rotor"></div></div><div class="uh-k-lbl">TREBLE</div></div>
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="mid" data-symbol="mid"><div class="knob-rotor"></div></div><div class="uh-k-lbl">MIDDLE</div></div>
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="bass" data-symbol="bass"><div class="knob-rotor"></div></div><div class="uh-k-lbl">BASS</div></div>
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="master" data-symbol="master"><div class="knob-rotor"></div></div><div class="uh-k-lbl">MASTER</div></div>
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="output_level" data-symbol="output_level"><div class="knob-rotor"></div></div><div class="uh-k-lbl">OUT LEVEL</div></div>
+            </div>
+        </div>
+        <div style="margin-top:10px;padding:12px;border-radius:8px;background:repeating-linear-gradient(0deg,#94a3b8 0px,#94a3b8 2px,#475569 2px,#475569 5px);border:1px solid #64748b;display:flex;justify-content:space-between;align-items:center;">
+            <span style="background:#090d16;color:#f8fafc;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:800;border:1px solid #cbd5e1;">FENDER AB763 SILVER GRILLE &bull; GLASSY CLEAN HEADROOM</span>
+        </div>
+    </div>
+
+    <!-- PAGE 1: '59 TWEED BASSMAN 5F6-A / '68 MARSHALL JMP VIEW -->
+    <div class="uh-page-view" data-uh-page="1" style="display:none;background:#b47b2a;border:2px solid #78350f;border-radius:12px;padding:14px;">
+        <div style="background:linear-gradient(180deg,#fde68a 0%,#d97706 100%);border:2px solid #451a03;border-radius:8px;padding:12px;color:#1c0a00;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div>
+                    <div style="font-size:11px;font-weight:900;color:#451a03;letter-spacing:1px;">CHANNEL 2 &bull; DC-COUPLED 12AX7 CATHODE FOLLOWER</div>
+                    <div style="font-size:20px;font-weight:900;color:#1c0a00;">'59 Tweed Bassman 5F6-A / '68 Marshall JMP</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="slope_mode" data-symbol="slope_mode">
+                        <span class="uh-sw-label">VOICING SLOPE</span>
+                        <span class="uh-sw-val" id="uh-val-slope_mode">56k TWEED</span>
+                    </div>
+                    <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="power_tubes" data-symbol="power_tubes">
+                        <span class="uh-sw-label">POWER TUBES</span>
+                        <span class="uh-sw-val" id="uh-val-power_tubes">2x 6L6GC</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-around;align-items:center;padding:8px 0;">
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="drive_gain" data-symbol="drive_gain"><div class="knob-rotor"></div></div><div class="uh-k-lbl" style="color:#1c0a00;">DRIVE GAIN</div></div>
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="drive_vol" data-symbol="drive_vol"><div class="knob-rotor"></div></div><div class="uh-k-lbl" style="color:#1c0a00;">CH2 LEVEL</div></div>
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="presence" data-symbol="presence"><div class="knob-rotor"></div></div><div class="uh-k-lbl" style="color:#1c0a00;">PRESENCE</div></div>
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="sag_amount" data-symbol="sag_amount"><div class="knob-rotor"></div></div><div class="uh-k-lbl" style="color:#1c0a00;">B+ SAG</div></div>
+                <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="speaker_drive" data-symbol="speaker_drive"><div class="knob-rotor"></div></div><div class="uh-k-lbl" style="color:#1c0a00;">CONE DRIVE</div></div>
+            </div>
+        </div>
+        <div style="margin-top:10px;padding:12px;border-radius:8px;background:#450a0a;border:1px solid #f59e0b;display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:#fde68a;font-size:12px;font-weight:800;">OXBLOOD GRILLE &bull; CATHODE-DRIVEN TONE STACK (56k TWEED / 33k PLEXI)</span>
+        </div>
+    </div>
+
+    <!-- PAGE 2: 3-SPRING ACCUTRONICS REVERB & HARMONIC TUBE VIBRATO RACK -->
+    <div class="uh-page-view" data-uh-page="2" style="display:none;background:#0f172a;border:2px solid #10b981;border-radius:12px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div>
+                <div style="font-size:11px;font-weight:800;color:#34d399;letter-spacing:1px;">OUTBOARD TUBE TANK &amp; MODULATOR RACK</div>
+                <div style="font-size:20px;font-weight:900;color:#ffffff;">Accutronics 3-Spring Reverb &amp; Brownface / Greg Harmonic Vibrato</div>
+            </div>
+            <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="trem_mode" data-symbol="trem_mode">
+                <span class="uh-sw-label">VIBRATO CIRCUIT</span>
+                <span class="uh-sw-val" id="uh-val-trem_mode">HARMONIC TUBE</span>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:space-around;align-items:center;padding:10px 0;">
+            <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="rev_dwell" data-symbol="rev_dwell"><div class="knob-rotor"></div></div><div class="uh-k-lbl">TUBE DWELL</div></div>
+            <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="rev_mix" data-symbol="rev_mix"><div class="knob-rotor"></div></div><div class="uh-k-lbl">REVERB MIX</div></div>
+            <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="rev_tone" data-symbol="rev_tone"><div class="knob-rotor"></div></div><div class="uh-k-lbl">TANK TONE</div></div>
+            <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="rev_drip" data-symbol="rev_drip"><div class="knob-rotor"></div></div><div class="uh-k-lbl">SPRING DRIP</div></div>
+            <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="trem_speed" data-symbol="trem_speed"><div class="knob-rotor"></div></div><div class="uh-k-lbl">VIB SPEED</div></div>
+            <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="trem_depth" data-symbol="trem_depth"><div class="knob-rotor"></div></div><div class="uh-k-lbl">INTENSITY</div></div>
+        </div>
+    </div>
+
+    <!-- PAGE 3: NOISE GATE LAB & MIXER SEND ROUTING -->
+    <div class="uh-page-view" data-uh-page="3" style="display:none;background:#1e1b4b;border:2px solid #a855f7;border-radius:12px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div>
+                <div style="font-size:11px;font-weight:800;color:#c084fc;letter-spacing:1px;">STAGE NOISE SUPPRESSOR &amp; MIXER AUX DELAY INTEGRATION</div>
+                <div style="font-size:18px;font-weight:900;color:#ffffff;">Studio Noise Suppressor Lab &amp; Aux Send 3&ndash;4 Tape Delay Info</div>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:space-around;align-items:center;padding:10px 0;">
+            <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="gate_enable" data-symbol="gate_enable"><span class="uh-sw-label">INPUT GATE</span><span class="uh-sw-val" id="uh-val-gate_enable">ON</span></div>
+            <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="denoise_enable" data-symbol="denoise_enable"><span class="uh-sw-label">SPECTRAL DENOISE</span><span class="uh-sw-val" id="uh-val-denoise_enable">ON</span></div>
+            <div class="uh-mod-switch-pill" mod-role="input-control-port" mod-port-symbol="dehum_enable" data-symbol="dehum_enable"><span class="uh-sw-label">MAINS DE-HUM</span><span class="uh-sw-val" id="uh-val-dehum_enable">ON</span></div>
+            <div class="uh-knob-col"><div class="mini-dial custom-knob-dial" mod-role="input-control-port" mod-port-symbol="noise_lab_amount" data-symbol="noise_lab_amount"><div class="knob-rotor"></div></div><div class="uh-k-lbl">SUPPRESS AMT</div></div>
+        </div>
+        <div style="margin-top:8px;padding:10px;background:#090d16;border:1px solid #7c3aed;border-radius:8px;font-size:12px;color:#e9d5ff;">
+            <strong>Note (Live Mixer vs Desktop VST3/Standalone):</strong> In the Live Mixer, use <strong>Aux Send 3 &amp; 4</strong> for 15/30 IPS Tape Slapback &amp; Ping-Pong Delay. In the Desktop VST3 / AU / Standalone version, Page 4 exposes the full 6-knob Studio Tape Delay Rack directly inside the plugin.
+        </div>
+    </div>
+</div>

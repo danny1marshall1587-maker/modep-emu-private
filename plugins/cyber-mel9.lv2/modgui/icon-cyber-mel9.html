@@ -1,0 +1,399 @@
+<div class="mod-pedal mod-pedal-boxy{{{cns}}} custom-panel mel9-panel{{{c_extra}}}">
+    <!-- Dedicated top drag bar so the entire top header is draggable without blocking sliders/buttons -->
+    <div mod-role="drag-handle" class="mod-drag-handle mel9-top-drag-bar" title="Drag to move plugin"></div>
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <div class="mel9-header">
+        <div class="mel9-logo-col">
+            <span class="mel9-brand">CYBER AUDIO</span>
+            <span class="mel9-model">MEL 9</span>
+        </div>
+        <div class="mel9-subtitle-col">
+            VINTAGE TAPE INSTRUMENTS &bull; MELLOTRON M400 EMULATION &bull; CHORD HARMONY
+        </div>
+        <div class="mel9-bypass-col">
+            <div class="mod-light on" mod-role="bypass-light"></div>
+        </div>
+    </div>
+
+    <!-- ── Main body: NOTE SELECTOR + DRAWBARS ─────────────────────────── -->
+    <div class="mel9-main-body">
+
+        <!-- ════════════════════════════════════════════════════════════════
+             SECTION A — NOTE SELECTOR (10 interval volume sliders)
+             ═══════════════════════════════════════════════════════════════ -->
+        <div class="mel9-section mel9-note-section">
+            <div class="mel9-section-header">
+                <div class="mel9-section-title">NOTE SELECTOR <span class="mel9-section-sub">&bull; Chord Voicing Volumes</span></div>
+                
+                <!-- Diatonic Key & Scale Selection -->
+                <div class="mel9-key-lock-bar">
+                    <span class="mel9-key-lbl">KEY:</span>
+                    <select class="mel9-select" id="mel9-select-key" title="Diatonic Key Lock (Auto / Chromatic, C, C#, D...)">
+                        <option value="0">Auto / Chromatic</option>
+                        <option value="1">C</option>
+                        <option value="2">C# / Db</option>
+                        <option value="3">D</option>
+                        <option value="4">D# / Eb</option>
+                        <option value="5">E</option>
+                        <option value="6">F</option>
+                        <option value="7">F# / Gb</option>
+                        <option value="8">G</option>
+                        <option value="9">G# / Ab</option>
+                        <option value="10">A</option>
+                        <option value="11">A# / Bb</option>
+                        <option value="12">B</option>
+                    </select>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="key_root" style="display:none;"></div>
+
+                    <select class="mel9-select" id="mel9-select-scale" title="Scale Mode (Auto, Major, Minor)">
+                        <option value="0">Scale: Auto</option>
+                        <option value="1">Major</option>
+                        <option value="2">Minor</option>
+                    </select>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="scale_mode" style="display:none;"></div>
+                </div>
+
+                <!-- 3rd quality pills -->
+                <div class="mel9-third-row">
+                    <span class="mel9-third-lbl">3RD:</span>
+                    <button type="button" class="mel9-pill active" id="mel9-q-auto">AUTO</button>
+                    <button type="button" class="mel9-pill"        id="mel9-q-min">MINOR</button>
+                    <button type="button" class="mel9-pill"        id="mel9-q-maj">MAJOR</button>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="third_mode" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="mel9-slider-row">
+                <!-- Sub Oct -->
+                <div class="mel9-ns-unit" title="Sub Octave (-12 semitones)">
+                    <div class="mel9-ns-label">-OCT</div>
+                    <div class="mel9-ns-note">-8va</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-sub" id="mel9-fill-ns_sub_oct"></div>
+                        <div class="mel9-thumb" id="mel9-thumb-ns_sub_oct" data-sym="ns_sub_oct" data-min="0" data-max="10" data-def="0"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_sub_oct" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_sub_oct">0</div>
+                </div>
+                <!-- Sub 5th -->
+                <div class="mel9-ns-unit" title="Sub Fifth (-7 semitones)">
+                    <div class="mel9-ns-label">-5TH</div>
+                    <div class="mel9-ns-note">-5th</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-sub" id="mel9-fill-ns_sub_fifth"></div>
+                        <div class="mel9-thumb" id="mel9-thumb-ns_sub_fifth" data-sym="ns_sub_fifth" data-min="0" data-max="10" data-def="0"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_sub_fifth" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_sub_fifth">0</div>
+                </div>
+                <!-- Sub 3rd -->
+                <div class="mel9-ns-unit" title="Sub Third (Auto Minor/Major 3rd down)">
+                    <div class="mel9-ns-label">-3RD</div>
+                    <div class="mel9-ns-note">-3rd</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-sub" id="mel9-fill-ns_sub_third"></div>
+                        <div class="mel9-thumb" id="mel9-thumb-ns_sub_third" data-sym="ns_sub_third" data-min="0" data-max="10" data-def="0"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_sub_third" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_sub_third">0</div>
+                </div>
+
+                <div class="mel9-ns-divider"></div>
+
+                <!-- Root -->
+                <div class="mel9-ns-unit mel9-ns-root-unit" title="Chord Root Note">
+                    <div class="mel9-ns-label mel9-root-lbl">ROOT</div>
+                    <div class="mel9-ns-note">&bull;</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-root" id="mel9-fill-ns_root"></div>
+                        <div class="mel9-thumb mel9-thumb-root" id="mel9-thumb-ns_root" data-sym="ns_root" data-min="0" data-max="10" data-def="8"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_root" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_root">8</div>
+                </div>
+
+                <div class="mel9-ns-divider"></div>
+
+                <!-- +3rd -->
+                <div class="mel9-ns-unit" title="+3rd (Auto Minor/Major 3rd up)">
+                    <div class="mel9-ns-label">+3RD</div>
+                    <div class="mel9-ns-note">+3rd</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-up" id="mel9-fill-ns_third"></div>
+                        <div class="mel9-thumb" id="mel9-thumb-ns_third" data-sym="ns_third" data-min="0" data-max="10" data-def="7"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_third" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_third">7</div>
+                </div>
+                <!-- +5th -->
+                <div class="mel9-ns-unit" title="+5th (Perfect 5th up)">
+                    <div class="mel9-ns-label">+5TH</div>
+                    <div class="mel9-ns-note">+5th</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-up" id="mel9-fill-ns_fifth"></div>
+                        <div class="mel9-thumb" id="mel9-thumb-ns_fifth" data-sym="ns_fifth" data-min="0" data-max="10" data-def="6"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_fifth" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_fifth">6</div>
+                </div>
+                <!-- +Oct -->
+                <div class="mel9-ns-unit" title="+Oct (+12 semitones)">
+                    <div class="mel9-ns-label">+OCT</div>
+                    <div class="mel9-ns-note">+8va</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-up" id="mel9-fill-ns_oct"></div>
+                        <div class="mel9-thumb" id="mel9-thumb-ns_oct" data-sym="ns_oct" data-min="0" data-max="10" data-def="5"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_oct" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_oct">5</div>
+                </div>
+                <!-- +Oct+3rd -->
+                <div class="mel9-ns-unit" title="+Octave + 3rd">
+                    <div class="mel9-ns-label">O+3</div>
+                    <div class="mel9-ns-note">+Oct3</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-hi" id="mel9-fill-ns_oct_third"></div>
+                        <div class="mel9-thumb" id="mel9-thumb-ns_oct_third" data-sym="ns_oct_third" data-min="0" data-max="10" data-def="0"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_oct_third" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_oct_third">0</div>
+                </div>
+                <!-- +Oct+5th -->
+                <div class="mel9-ns-unit" title="+Octave + 5th">
+                    <div class="mel9-ns-label">O+5</div>
+                    <div class="mel9-ns-note">+Oct5</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-hi" id="mel9-fill-ns_oct_fifth"></div>
+                        <div class="mel9-thumb" id="mel9-thumb-ns_oct_fifth" data-sym="ns_oct_fifth" data-min="0" data-max="10" data-def="0"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_oct_fifth" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_oct_fifth">0</div>
+                </div>
+                <!-- +2Oct -->
+                <div class="mel9-ns-unit" title="+2 Octaves (+24 semitones)">
+                    <div class="mel9-ns-label">+2OCT</div>
+                    <div class="mel9-ns-note">+15ma</div>
+                    <div class="mel9-vtrack">
+                        <div class="mel9-vfill mel9-fill-hi" id="mel9-fill-ns_dbl_oct"></div>
+                        <div class="mel9-thumb" id="mel9-thumb-ns_dbl_oct" data-sym="ns_dbl_oct" data-min="0" data-max="10" data-def="0"></div>
+                    </div>
+                    <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ns_dbl_oct" style="display:none;"></div>
+                    <div class="mel9-ns-val" id="mel9-val-ns_dbl_oct">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mel9-section mel9-inst-section">
+            <div class="mel9-section-header">
+                <div class="mel9-section-title">TAPE INSTRUMENT</div>
+            </div>
+            <div class="mel9-inst-box">
+                <select class="mel9-select mel9-inst-select" id="mel9-select-inst" title="TAPE INSTRUMENT">
+                    <option value="0">1: Orchestra</option>
+                    <option value="1">2: Cello</option>
+                    <option value="2">3: Strings</option>
+                    <option value="3">4: Flutes</option>
+                    <option value="4">5: Clarinet</option>
+                    <option value="5">6: Saxophone</option>
+                    <option value="6">7: Brass</option>
+                    <option value="7">8: Low Choir</option>
+                    <option value="8">9: High Choir</option>
+                </select>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="preset" style="display:none;"></div>
+                <div class="mel9-inst-display" id="mel9-inst-display">1: Orchestra</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         DEV MODE: LIVE PITCH TRACKING & STABILITY CALIBRATION RACK
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div class="mel9-dev-rack">
+        <div class="mel9-dev-badge">
+            <span class="mel9-dev-dot"></span> DUAL DETECTOR CALIBRATION &bull; AUTOCORRELATION + RESONATOR BANK FUSION
+        </div>
+        <div class="mel9-dev-controls">
+            <!-- SENSITIVITY (0.1 to 20) -->
+            <div class="mel9-dev-unit" title="Detector Sensitivity (0.1 = heavy picking, 20.0 = delicate soft touch & harmonics)">
+                <div class="mel9-dial mel9-dial-dev" data-sym="track_sens" data-min="0.1" data-max="20" data-def="8"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="track_sens" style="display:none;"></div>
+                <span class="mel9-dev-lbl">SENS</span>
+                <span class="mel9-dev-val" id="mel9-val-track_sens">8.0</span>
+            </div>
+            <!-- STABILITY (0.1 to 20) -->
+            <div class="mel9-dev-unit" title="Chord Stability Hysteresis (0.1 = instant jump, 20.0 = iron-clad locked chord hold)">
+                <div class="mel9-dial mel9-dial-dev" data-sym="track_stab" data-min="0.1" data-max="20" data-def="6"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="track_stab" style="display:none;"></div>
+                <span class="mel9-dev-lbl">STABILITY</span>
+                <span class="mel9-dev-val" id="mel9-val-track_stab">6.0</span>
+            </div>
+            <!-- DEBOUNCE SPEED (1 to 16) -->
+            <div class="mel9-dev-unit" title="Debounce Speed (1 = Instant 5ms retrigger, 2-4 = Fast responsive, 10-16 = Deliberate sustained chords)">
+                <div class="mel9-dial mel9-dial-dev" data-sym="debounce_speed" data-min="1" data-max="16" data-def="2"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="debounce_speed" style="display:none;"></div>
+                <span class="mel9-dev-lbl">DEBOUNCE</span>
+                <span class="mel9-dev-val" id="mel9-val-debounce_speed">2</span>
+            </div>
+            <!-- RESONATOR Q (1.5 to 30) -->
+            <div class="mel9-dev-unit" title="Resonator Bandpass Q (1.5 = instant broad pitch grab, 7.0 = musical balance, 30.0 = surgical selectivity)">
+                <div class="mel9-dial mel9-dial-dev" data-sym="filter_q" data-min="1.5" data-max="30" data-def="7"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="filter_q" style="display:none;"></div>
+                <span class="mel9-dev-lbl">FILTER Q</span>
+                <span class="mel9-dev-val" id="mel9-val-filter_q">7.0</span>
+            </div>
+            <!-- BASS BOOST (0 to 20) -->
+            <div class="mel9-dev-unit" title="Bass Weighting / Root Priority (0 = flat chroma, 20 = maximum weight on lowest strings)">
+                <div class="mel9-dial mel9-dial-dev" data-sym="bass_boost" data-min="0" data-max="20" data-def="6"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bass_boost" style="display:none;"></div>
+                <span class="mel9-dev-lbl">BASS BIAS</span>
+                <span class="mel9-dev-val" id="mel9-val-bass_boost">6.0</span>
+            </div>
+            <!-- AGC SPEED (0 to 20) -->
+            <div class="mel9-dev-unit" title="Auto Gain Control Speed (0 = off/fixed gain, 6 = balanced listener, 20 = aggressive leveler)">
+                <div class="mel9-dial mel9-dial-dev" data-sym="agc_speed" data-min="0" data-max="20" data-def="6"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="agc_speed" style="display:none;"></div>
+                <span class="mel9-dev-lbl">AGC SPEED</span>
+                <span class="mel9-dev-val" id="mel9-val-agc_speed">6.0</span>
+            </div>
+            <!-- AUTOCORRELATION 2ND-DETECTOR WEIGHT (0 to 20) -->
+            <div class="mel9-dev-unit" title="Autocorrelation 2nd-Detector Fusion Weight (0 = off, 8 = balanced fundamental lock, 20 = forced root lock)">
+                <div class="mel9-dial mel9-dial-dev" data-sym="ac_weight" data-min="0" data-max="20" data-def="8"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ac_weight" style="display:none;"></div>
+                <span class="mel9-dev-lbl">AUTOCORR</span>
+                <span class="mel9-dev-val" id="mel9-val-ac_weight">8.0</span>
+            </div>
+            <!-- AUTOCORRELATION CENTER CLIPPING (0 to 10) -->
+            <div class="mel9-dev-unit" title="Time-Domain Center Clipping (Removes upper harmonic ripple so fundamental stands out clearly)">
+                <div class="mel9-dial mel9-dial-dev" data-sym="ac_clip" data-min="0" data-max="10" data-def="4"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="ac_clip" style="display:none;"></div>
+                <span class="mel9-dev-lbl">AC CLIP</span>
+                <span class="mel9-dev-val" id="mel9-val-ac_clip">4.0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="mel9-perf-bar">
+        <div class="mel9-perf-unit" title="Tape Wow and Flutter">
+            <div class="mel9-dial mel9-dial-highlight" data-sym="flutter" data-min="0" data-max="10" data-def="3"><div class="mel9-dial-rotor"></div></div>
+            <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="flutter" style="display:none;"></div>
+            <span class="mel9-perf-lbl">FLUTTER</span>
+        </div>
+        <div class="mel9-perf-unit" title="Tape Warmth and Saturation">
+            <div class="mel9-dial" data-sym="warmth" data-min="0" data-max="10" data-def="4"><div class="mel9-dial-rotor"></div></div>
+            <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="warmth" style="display:none;"></div>
+            <span class="mel9-perf-lbl">WARMTH</span>
+        </div>
+        <div class="mel9-perf-unit" title="Tape Attack Time">
+            <div class="mel9-dial" data-sym="attack" data-min="0" data-max="10" data-def="2"><div class="mel9-dial-rotor"></div></div>
+            <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="attack" style="display:none;"></div>
+            <span class="mel9-perf-lbl">ATTACK</span>
+        </div>
+        <div class="mel9-perf-unit" title="Chord Sustain">
+            <div class="mel9-dial mel9-dial-highlight" data-sym="sustain" data-min="0" data-max="10" data-def="5"><div class="mel9-dial-rotor"></div></div>
+            <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="sustain" style="display:none;"></div>
+            <span class="mel9-perf-lbl">SUSTAIN</span>
+        </div>
+        <div class="mel9-perf-unit" title="Release Decay">
+            <div class="mel9-dial mel9-dial-highlight" data-sym="release" data-min="0" data-max="10" data-def="5"><div class="mel9-dial-rotor"></div></div>
+            <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="release" style="display:none;"></div>
+            <span class="mel9-perf-lbl">RELEASE</span>
+        </div>
+        <div class="mel9-perf-unit" title="Gate Sensitivity">
+            <div class="mel9-dial mel9-dial-gate" data-sym="gate_sens" data-min="0" data-max="10" data-def="5"><div class="mel9-dial-rotor"></div></div>
+            <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="gate_sens" style="display:none;"></div>
+            <span class="mel9-perf-lbl">GATE</span>
+        </div>
+        <div class="mel9-perf-unit" title="Dry Guitar Level">
+            <div class="mel9-dial" data-sym="dry" data-min="0" data-max="10" data-def="5"><div class="mel9-dial-rotor"></div></div>
+            <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="dry" style="display:none;"></div>
+            <span class="mel9-perf-lbl">DRY</span>
+        </div>
+        <div class="mel9-perf-unit" title="Mellotron Volume">
+            <div class="mel9-dial mel9-dial-out" data-sym="wet" data-min="0" data-max="10" data-def="8"><div class="mel9-dial-rotor"></div></div>
+            <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="wet" style="display:none;"></div>
+            <span class="mel9-perf-lbl">MEL VOL</span>
+        </div>
+        <div class="mel9-perf-unit" title="Master Output Level">
+            <div class="mel9-dial mel9-dial-out" data-sym="output" data-min="0" data-max="10" data-def="7"><div class="mel9-dial-rotor"></div></div>
+            <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="output" style="display:none;"></div>
+            <span class="mel9-perf-lbl">OUTPUT</span>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         SECTION D — AUTO LOWEST-NOTE RHYTHM BASS PLAYER
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div class="mel9-bass-bar">
+        <div class="mel9-bass-badge">
+            <span class="mel9-bass-dot"></span>
+            <span>AUTO RHYTHM BASS PLAYER</span>
+        </div>
+
+        <div class="mel9-bass-controls">
+            <!-- Bass Pattern Select -->
+            <div class="mel9-bass-unit">
+                <span class="mel9-bass-lbl">PATTERN</span>
+                <select class="mel9-select mel9-bass-select" id="mel9-select-bass-pattern" title="Bass Rhythm Pattern">
+                    <option value="0">0: Off</option>
+                    <option value="1" selected>1: Drone / Pedal Sustain</option>
+                    <option value="2">2: 8th Note Rock Pulse</option>
+                    <option value="3">3: Root-Octave Groove</option>
+                    <option value="4">4: Root-5th Country / Blues</option>
+                    <option value="5">5: Walking Bass</option>
+                    <option value="6">6: Dub / Reggae Drop</option>
+                </select>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bass_pattern" style="display:none;"></div>
+            </div>
+
+            <!-- Bass Level -->
+            <div class="mel9-bass-unit" title="Bass Level (0 = silent)">
+                <div class="mel9-dial mel9-dial-bass" data-sym="bass_level" data-min="0" data-max="10" data-def="0"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bass_level" style="display:none;"></div>
+                <span class="mel9-bass-lbl">BASS VOL</span>
+                <span class="mel9-bass-val" id="mel9-val-bass_level">0.0</span>
+            </div>
+
+            <!-- Bass Tone -->
+            <div class="mel9-bass-unit" title="Bass Tone Filter (0 = deep sub, 10 = bright punch)">
+                <div class="mel9-dial mel9-dial-bass" data-sym="bass_tone" data-min="0" data-max="10" data-def="5"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bass_tone" style="display:none;"></div>
+                <span class="mel9-bass-lbl">TONE</span>
+                <span class="mel9-bass-val" id="mel9-val-bass_tone">5.0</span>
+            </div>
+
+            <!-- Bass BPM -->
+            <div class="mel9-bass-unit" title="Sequencer Tempo BPM (40-240)">
+                <div class="mel9-dial mel9-dial-bass" data-sym="bass_bpm" data-min="40" data-max="240" data-def="120"><div class="mel9-dial-rotor"></div></div>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bass_bpm" style="display:none;"></div>
+                <span class="mel9-bass-lbl">BPM</span>
+                <span class="mel9-bass-val" id="mel9-val-bass_bpm">120</span>
+            </div>
+
+            <!-- Tap Tempo Button -->
+            <div class="mel9-bass-unit">
+                <button type="button" class="mel9-tap-btn" id="mel9-tap-btn" title="Tap tempo in rhythm to set BPM">TAP</button>
+                <div class="mod-knob-image" mod-role="input-control-port" mod-port-symbol="bass_tap" style="display:none;"></div>
+                <span class="mel9-bass-lbl">TEMPO</span>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Footswitch & Audio Jacks -->
+    <div class="mod-footswitch" mod-role="bypass"></div>
+    <div class="mod-pedal-input">
+        {{#effect.ports.audio.input}}
+        <div class="mod-input mod-input-disconnected" title="{{name}}" mod-role="input-audio-port" mod-port-symbol="{{symbol}}">
+            <div class="mod-pedal-input-image"></div>
+        </div>
+        {{/effect.ports.audio.input}}
+    </div>
+    <div class="mod-pedal-output">
+        {{#effect.ports.audio.output}}
+        <div class="mod-output mod-output-disconnected" title="{{name}}" mod-role="output-audio-port" mod-port-symbol="{{symbol}}">
+            <div class="mod-pedal-output-image"></div>
+        </div>
+        {{/effect.ports.audio.output}}
+    </div>
+</div>

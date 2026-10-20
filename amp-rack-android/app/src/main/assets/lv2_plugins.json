@@ -1,0 +1,1748 @@
+{
+  "15009": {
+    "name": "rkr AlienWah",
+    "id": 5001,
+    "index": 9,
+    "desc": "This effect features two alternating comb filters for a vocal/formant-like wah sound. It could be considered a combined flanger and phaser. It can be extreme or add very subtle shimmer",
+    "library": "rkrlv2.so"
+  },
+  "15005": {
+    "name": "rkr Analog Phaser",
+    "id": 5002,
+    "index": 5,
+    "desc": "A physically-informed, highly-configurable digital model of an analog FET phaser effect.",
+    "library": "rkrlv2.so"
+  },
+  "15020": {
+    "name": "rkr Arpie",
+    "id": 5003,
+    "index": 20,
+    "desc": "A pitch shifter that changes the shifting amount in a rhythmic pattern. Adds pulse and brightness to your sound.",
+    "library": "rkrlv2.so"
+  },
+  "15012": {
+    "name": "rkr Cabinet",
+    "id": 5004,
+    "desc": "Equalizer with preset curves to match the effect of various guitar cabinets.",
+    "index": 12,
+    "library": "rkrlv2.so"
+  },
+  "15004": {
+    "name": "rkr Flanger/Chorus",
+    "id": 5005,
+    "desc": "A flanger or chorus (depending on delay time) effect. Allows for fractional delays for a more intense effect.",
+    "index": 4,
+    "library": "rkrlv2.so"
+  },
+  "15027": {
+    "name": "rkr Coil Crafter",
+    "id": 5006,
+    "desc": "A equalizer that makes your pickups sound like different pickups. Can switch a strat to sound like humbuckers in a strat etc.",
+    "index": 27,
+    "library": "rkrlv2.so"
+  },
+  "15038": {
+    "name": "rkr CompBand",
+    "id": 5007,
+    "desc": "Multi-band compressor with 4 frequency bands and wet/dry mix control. Each band has individual ratio and threshold controls.",
+    "index": 38,
+    "library": "rkrlv2.so"
+  },
+  "15001": {
+    "name": "rkr Compressor",
+    "id": 5008,
+    "index": 1,
+    "desc": "A flexible compressor with optional soft knee and makeup gain.",
+    "library": "rkrlv2.so"
+  },
+  "15015": {
+    "name": "rkr Derelict",
+    "id": 5009,
+    "desc": "A very configurable waveshaping distortion module with resonance control of the filters for extra color.",
+    "index": 15,
+    "library": "rkrlv2.so"
+  },
+  "15019": {
+    "name": "rkr DistBand",
+    "id": 5010,
+    "index": 19,
+    "desc": "A multi-band distortion allowing different character distortion of different frequencies. It is a waveshaping distortion with a different waveshaper selectable for each band.",
+    "library": "rkrlv2.so"
+  },
+  "15002": {
+    "name": "rkr Distorsion",
+    "id": 5011,
+    "index": 2,
+    "desc": "A flexible waveshaping distortion with 30 waveshapes to choose from.",
+    "library": "rkrlv2.so"
+  },
+  "15017": {
+    "name": "rkr Dual Flange",
+    "id": 5012,
+    "index": 17,
+    "desc": "Two flange effects cascaded to create unique and more intense tones than available through a single flanger.",
+    "library": "rkrlv2.so"
+  },
+  "15003": {
+    "name": "rkr Echo",
+    "id": 5013,
+    "desc": "Configurable echo effect with a reverse echo feature.",
+    "index": 3,
+    "library": "rkrlv2.so"
+  },
+  "15036": {
+    "name": "rkr Echotron",
+    "desc": "An extremely-configurable delay that allows up to 127 taps. Individual tap timing can be customized and loaded through text files. You can also have a custom filter on each tap. Several example files included.",
+    "id": 5014,
+    "index": 36,
+    "library": "rkrlv2.so"
+  },
+  "15026": {
+    "name": "rkr Echoverse",
+    "id": 5015,
+    "index": 26,
+    "desc": "Configurable echo designed to be stable for thick, in-your-face walls of sound.",
+    "library": "rkrlv2.so"
+  },
+  "15000": {
+    "name": "rkr EQ",
+    "id": 5016,
+    "index": 0,
+    "desc": "10 band graphical equalizer with resonance control.",
+    "library": "rkrlv2.so"
+  },
+  "15011": {
+    "name": "rkr Parametric EQ",
+    "id": 5017,
+    "index": 11,
+    "desc": "3 band parametric peak-filter equalizer.",
+    "library": "rkrlv2.so"
+  },
+  "15007": {
+    "name": "rkr Exciter",
+    "id": 5018,
+    "desc": "Harmonic exciter that allows you to adjust the volume of each of 10 harmonics.",
+    "index": 7,
+    "library": "rkrlv2.so"
+  },
+  "15021": {
+    "name": "rkr Expander",
+    "id": 5019,
+    "desc": "Analog BJT modeled dynamic expander for subtler noise suppression than a gate typically offers. Can also be used for interesting evelope-triggered swell and fade effects.",
+    "index": 21,
+    "library": "rkrlv2.so"
+  },
+  "15043": {
+    "name": "rkr NoiseGate",
+    "id": 5020,
+    "desc": "Based on Gate, Steve Harris LADSPA plugin.",
+    "index": 43,
+    "library": "rkrlv2.so"
+  },
+  "15006": {
+    "name": "rkr Harmonizer (no midi)",
+    "id": 5021,
+    "index": 6,
+    "desc": "Pitch shifter that harmonizes with your dry signal. This works best for monophonic sounds (a single note at a time). Also allows selection of root and chord for intelligent harmonies.",
+    "library": "rkrlv2.so"
+  },
+  "15041": {
+    "name": "rkr Infinity",
+    "id": 5022,
+    "desc": "This is the audio equivalent of a barber pole effect, with 8 filter bands continuously sweeping up or down. This has enough flexibility to create effects anywhere from subtle to insane.",
+    "index": 41,
+    "library": "rkrlv2.so"
+  },
+  "15013": {
+    "name": "rkr Musical Delay",
+    "id": 5024,
+    "desc": "Dual delay with delay times selectable by tempo and note subdivision.",
+    "index": 13,
+    "library": "rkrlv2.so"
+  },
+  "15025": {
+    "name": "rkr MuTroMojo",
+    "id": 5025,
+    "index": 25,
+    "desc": "State variable filter with envelope or LFO modulation. Allows it to act like a mixable blend of highpass, lowpass or bandpass filter. Similar to a mutron III. Also useful for classic wah pedal emulation when wah parameter is controlled by an expression pedal.",
+    "library": "rkrlv2.so"
+  },
+  "15039": {
+    "name": "rkr OpticalTrem",
+    "id": 5026,
+    "index": 39,
+    "desc": "An optical tremolo effect emulation such as often built into a guitar amplifier. This varies the signal volume through an LFO.",
+    "library": "rkrlv2.so"
+  },
+  "15008": {
+    "name": "rkr Pan",
+    "id": 5027,
+    "index": 7,
+    "desc": "LFO controlled auto-panning/stereo tremelo effect. Useful to expand your stereo image.",
+    "library": "rkrlv2.so"
+  },
+  "15042": {
+    "name": "rkr Phaser",
+    "id": 5028,
+    "desc": "More mild digital phaser with exponential LFO sweep.",
+    "index": 42,
+    "library": "rkrlv2.so"
+  },
+  "15010": {
+    "name": "rkr Reverb",
+    "id": 5029,
+    "desc": "A simple, efficient reverb effect.",
+    "index": 10,
+    "library": "rkrlv2.so"
+  },
+  "15035": {
+    "name": "rkr Reverbtron",
+    "id": 5030,
+    "index": 35,
+    "desc": "Convolution-based reverb effect. IR samples can be converted to .rvb format and loaded into this effect for a less cpu-intensive convolution. Several files included.",
+    "library": "rkrlv2.so"
+  },
+  "15018": {
+    "name": "rkr Ring",
+    "id": 5031,
+    "desc": "A ring modulator with monophonic frequency recognition for synthesis.",
+    "index": 18,
+    "library": "rkrlv2.so"
+  },
+  "15031": {
+    "name": "rkr Sequence",
+    "id": 5032,
+    "index": 31,
+    "desc": "8-step modulation sequencer. Each step is user-adjustable. Signal amplitude, filter cutoff frequency, or pitch shifting modulations available.",
+    "library": "rkrlv2.so"
+  },
+  "15028": {
+    "name": "rkr Shelf Boost",
+    "id": 5033,
+    "index": 28,
+    "desc": "Low-shelf filter for simple control of your tone.",
+    "library": "rkrlv2.so"
+  },
+  "15032": {
+    "name": "rkr Shifter",
+    "id": 5034,
+    "desc": "Pitch shifter with easy controls for expression pedal controled whammy effects. Also has a mode for envelope based control.",
+    "index": 32,
+    "library": "rkrlv2.so"
+  },
+  "15022": {
+    "name": "rkr Shuffle",
+    "id": 5035,
+    "index": 22,
+    "desc": "Creates interesting spatial effects. Converts stereo signal to Mid/Side and applys a parametric four band EQ to M or S channel. Effect based on Stereo Shuffling paper by Michael Gerzon.",
+    "library": "rkrlv2.so"
+  },
+  "15037": {
+    "name": "rkr StereoHarmonizer (no midi)",
+    "id": 5036,
+    "index": 37,
+    "desc": "Pitch shifter that harmonizes 2 voices with your dry signal. This works best for monophonic sounds (a single note at a time). This version has a detune for stereo chorus effects. Also allows selection of root and chord for intelligent harmonies.",
+    "library": "rkrlv2.so"
+  },
+  "15034": {
+    "name": "rkr StompBox:Fuzz",
+    "id": 5037,
+    "index": 34,
+    "desc": "Physically-informed fuzz stompbox emulation. Based on several popular schematics, this is designed to capture the sound of an era more than emulate a specific model.",
+    "library": "rkrlv2.so"
+  },
+  "15033": {
+    "name": "rkr StompBox",
+    "id": 5038,
+    "desc": "Physically-informed distortion stompbox emulation with 8 different distortion-character modes. Intended to allow quick dialing-in to the tone you want.",
+    "index": 33,
+    "library": "rkrlv2.so"
+  },
+  "15030": {
+    "name": "rkr Sustainer",
+    "id": 5039,
+    "desc": "A very simple, no-frills soft knee compressor good for making notes sustain. Brighter than the full Rakarrack Compressor.",
+    "index": 30,
+    "library": "mda-rkrlv2.so"
+  },
+  "15023": {
+    "name": "rkr Synthfilter",
+    "id": 5040,
+    "index": 23,
+    "desc": "A filter like what can be found in synthesizers. Up to 12 lowpass + 12 highpass filters with resonance. Cutoff frequency is controllable by LFO or volume envelope.",
+    "library": "rkrlv2.so"
+  },
+  "15016": {
+    "name": "rkr Valve",
+    "id": 5041,
+    "index": 16,
+    "desc": "Tube distortion emulation with extra distortion available.",
+    "library": "rkrlv2.so"
+  },
+  "15024": {
+    "name": "rkr VaryBand",
+    "id": 5042,
+    "index": 24,
+    "desc": "Multi-band tremolo effect allowing 2 LFOs to modulate volume of any combination of 4 frequency bands.",
+    "library": "rkrlv2.so"
+  },
+  "15040": {
+    "name": "rkr Vibe",
+    "id": 5043,
+    "desc": "The UniVibe was intended as a rotating speaker emulation. It does a poor job of that, but in its own right became a popular phase-shifter effect. This version has optional feedback to achieve some additional tones.",
+    "index": 40,
+    "library": "mda-rkrlv2.so"
+  },
+  "15029": {
+    "name": "rkr Vocoder",
+    "id": 5044,
+    "desc": "32 band vocoder. This type of effect is well known for creating robot-like voices in popular music. The input is divided into frequency bands and each band's volume is controlled by an auxiliary input's frequency curve such that the output signal is filtered to sound like the aux signal.",
+    "index": 29,
+    "library": "rkrlv2.so"
+  },
+  "15014": {
+    "name": "rkr WahWah",
+    "desc": "Wah effect controllable by the input volume envelope or by LFO.",
+    "id": 5045,
+    "index": 14,
+    "library": "rkrlv2.so"
+  },
+  "15100": {
+    "name": "MDA Ambience",
+    "desc": "MDA Ambience",
+    "id": 6001,
+    "index": 0,
+    "library": "mda-Ambience.so"
+  },
+  "15200": {
+    "name": "MDA Bandisto",
+    "desc": "This plug is like MultiBand but uses 3 bands of clipping instead of compression.",
+    "id": 6002,
+    "index": 0,
+    "library": "mda-Bandisto.so"
+  },
+  "15300": {
+    "name": "MDA BeatBox",
+    "id": 6003,
+    "desc": "Contains three samples (kick, snare and hat) designed to be triggered by incoming audio in three frequency ranges.  The default samples are based on the Roland CR-78.",
+    "index": 0,
+    "library": "mda-BeatBox.so"
+  },
+  "15400": {
+    "name": "MDA Combo",
+    "id": 6004,
+    "desc": "This plug-in can sound quite subtle but comes alive when used on guitar with the drive turned up! ",
+    "index": 0,
+    "library": "mda-Combo.so"
+  },
+  "15500": {
+    "name": "MDA De-ess",
+    "id": 6005,
+    "desc": "Reduce excessive sibilants (/s/ /t/ /sh/ etc.) in vocals and speech.",
+    "index": 0,
+    "library": "mda-DeEss.so"
+  },
+  "15600": {
+    "name": "MDA Degrade",
+    "id": 6006,
+    "desc": "Sample quality reduction",
+    "index": 0,
+    "library": "mda-Degrade.so"
+  },
+  "15700": {
+    "name": "MDA Delay",
+    "id": 6007,
+    "index": 0,
+    "desc": "Simple stereo delay with feedback tone control",
+    "library": "mda-Delay.so"
+  },
+  "15800": {
+    "name": "MDA Detune",
+    "id": 6008,
+    "desc": "A low-quality stereo pitch shifter for the sort of chorus and detune effects found on multi-effects hardware",
+    "index": 0,
+    "library": "mda-Detune.so"
+  },
+  "15900": {
+    "name": "MDA Dither",
+    "id": 6009,
+    "desc": "When a waveform is rounded to the nearest 16 (or whatever)-bit value this causes distortion. Dither allows you to exchange this rough sounding signal-dependant distortion for a smooth background hiss.",
+    "index": 0,
+    "library": "mda-Dither.so"
+  },
+  "16000": {
+    "name": "MDA DubDelay",
+    "id": 6010,
+    "index": 0,
+    "desc": "Delay with feedback saturation and time/pitch modulation",
+    "library": "mda-DubDelay.so"
+  },
+  "16100": {
+    "name": "MDA DX10",
+    "id": 6011,
+    "index": 0,
+    "library": "mda-DX10.so"
+  },
+  "16200": {
+    "name": "MDA Dynamics",
+    "id": 6012,
+    "index": 0,
+    "desc": "Compressor / Limiter / Gate",
+    "library": "mda-Dynamics.so"
+  },
+  "16300": {
+    "name": "MDA ePiano",
+    "id": 6013,
+    "index": 0,
+    "library": "mda-EPiano.so"
+  },
+  "16400": {
+    "name": "MDA Image",
+    "id": 6014,
+    "index": 0,
+    "desc": "Stereo image adjustment and M-S matrix",
+    "library": "mda-Image.so"
+  },
+  "16500": {
+    "name": "MDA JX10",
+    "id": 6015,
+    "index": 0,
+    "library": "mda-JX10.so"
+  },
+  "16600": {
+    "name": "MDA Leslie",
+    "id": 6016,
+    "index": 0,
+    "desc": "Rotary speaker simulator. No overdrive or speaker cabinet simulation is added - you may want to combine this plug-in with Combo.  For a much thicker sound try combining two Leslie plug-ins in series!",
+    "library": "mda-Leslie.so"
+  },
+  "16700": {
+    "name": "MDA Limiter",
+    "id": 6017,
+    "index": 0,
+    "desc": "Opto-electronic style limiter",
+    "library": "mda-Limiter.so"
+  },
+  "16800": {
+    "name": "MDA Loudness",
+    "id": 6018,
+    "index": 0,
+    "desc": "Equal loudness contours for bass EQ and mix correction",
+    "library": "mda-Loudness.so"
+  },
+  "16900": {
+    "name": "MDA MultiBand",
+    "id": 6019,
+    "index": 0,
+    "desc": "Multi-band compressor with M-S processing modes",
+    "library": "mda-MultiBand.so"
+  },
+  "17000": {
+    "name": "MDA Overdrive",
+    "id": 6020,
+    "index": 0,
+    "desc": "Soft distortion. Possible uses include adding body to drum loops, fuzz guitar, and that 'standing outside a nightclub' sound. This plug does not simulate valve distortion, and any attempt to process organ sounds through it will be extremely unrewarding!",
+    "library": "mda-Overdrive.so"
+  },
+  "17100": {
+    "name": "MDA Piano",
+    "id": 6021,
+    "index": 0,
+    "library": "mda-Piano.so"
+  },
+  "17200": {
+    "name": "MDA RePsycho!",
+    "id": 6022,
+    "desc": "Drum loop pitch changer. Event-based pitch shifter",
+    "index": 0,
+    "library": "mda-RePsycho.so"
+  },
+  "17300": {
+    "name": "MDA RezFilter",
+    "id": 6023,
+    "index": 0,
+    "desc": "Resonant filter with LFO and envelope follower",
+    "library": "mda-RezFilter.so"
+  },
+  "17400": {
+    "name": "MDA RingMod",
+    "id": 6024,
+    "index": 0,
+    "desc": "Simple ring modulator with sine-wave oscillator",
+    "library": "mda-RingMod.so"
+  },
+  "17500": {
+    "name": "MDA RoundPan",
+    "id": 6025,
+    "desc": "3D panner. Like all 3D processes the result depends on where you sit relative to the speakers, and mono compatibility is not guaranteed. This plug-in must be used in a stereo channel or bus!",
+    "index": 0,
+    "library": "mda-RoundPan.so"
+  },
+  "17600": {
+    "name": "MDA Shepard",
+    "id": 6026,
+    "desc": "Continuously rising/falling tone generator.",
+    "index": 0,
+    "library": "mda-Shepard.so"
+  },
+  "17700": {
+    "name": "MDA Splitter",
+    "id": 6027,
+    "desc": "Frequency/level crossover for setting up dynamic processing. This plug-in can split a signal based on frequency or level, for example for producing dynamic effects where only loud drum hits are sent to a reverb. Other functions include a simple \"spectral gate\" in INVERSE mode and a conventional gate and filter for separating drum sounds in NORMAL mode.",
+    "index": 0,
+    "library": "mda-Splitter.so"
+  },
+  "17800": {
+    "name": "MDA Stereo",
+    "id": 6028,
+    "desc": "Haas delay and comb filtering.",
+    "index": 0,
+    "library": "mda-Stereo.so"
+  },
+  "17900": {
+    "name": "MDA SubSynth",
+    "id": 6029,
+    "index": 0,
+    "desc": "Several low frequency enhancement methods. More bass than you could ever need!\n\nBe aware that you may be adding low frequency content outside the range of your monitor speakers.  To avoid clipping, follow with a limiter plug-in (this can also give some giant hip-hop drum sounds!).",
+    "library": "mda-SubSynth.so"
+  },
+  "18000": {
+    "name": "MDA TalkBox",
+    "id": 6030,
+    "desc": "High resolution vocoder. ",
+    "index": 0,
+    "library": "mda-TalkBox.so"
+  },
+  "18100": {
+    "name": "MDA TestTone",
+    "id": 6031,
+    "index": 0,
+    "desc": "Signal generator with pink and white noise, impulses and sweeps",
+    "library": "mda-TestTone.so"
+  },
+  "18200": {
+    "name": "MDA ThruZero",
+    "id": 6032,
+    "index": 0,
+    "desc": "Classic tape-flanging simulation. This plug simulates tape-flanging, where two copies of a signal cancel out completely as the tapes pass each other. It can also be used for other modulated delay effects such as phasing and simple chorusing.",
+    "library": "mda-ThruZero.so"
+  },
+  "18300": {
+    "name": "MDA Tracker",
+    "id": 6033,
+    "desc": "Pitch tracking oscillator, or pitch tracking EQ",
+    "index": 0,
+    "library": "mda-Tracker.so"
+  },
+  "18400": {
+    "name": "MDA Transient",
+    "id": 6034,
+    "index": 0,
+    "library": "mda-Transient.so"
+  },
+  "18500": {
+    "name": "MDA VocInput",
+    "id": 6035,
+    "index": 0,
+    "desc": "Pitch tracking oscillator for generating vocoder carrier input",
+    "library": "mda-VocInput.so"
+  },
+  "18600": {
+    "name": "MDA Vocoder",
+    "id": 6036,
+    "desc": "Switchable 8 or 16 band vocoder. 16-band vocoder for applying the spectrum of one sound (the modulator, usually a voice or rhythm part) to the waveform of another (the carrier, usually a synth pad or sawtooth wave).",
+    "index": 0,
+    "library": "mda-Vocoder.so"
+  },
+  "18700": {
+    "name": "Gx_AxisFace_",
+    "id": 7001,
+    "index": 0,
+    "desc": "Simulation of the Classic Silicon Pedal",
+    "library": "libGxAxisFace.lv2.so"
+  },
+  "18800": {
+    "name": "Gx_bajatubedriver_",
+    "id": 7002,
+    "index": 0,
+    "desc": "Tube based overdrive pedal simulation Based on the BaJaTubeDriver",
+    "library": "libGxBaJaTubeDriver.lv2.so"
+  },
+  "18900": {
+    "name": "GxBlueAmp",
+    "id": 7003,
+    "desc": "Single - ended head amplifier simulation inspired by late 1950s amplifier designs, it delivers tight bass, clean mids and highs",
+    "index": 0,
+    "library": "libGxBlueAmp.lv2.so"
+  },
+  "19000": {
+    "name": "Gx_boobtube_",
+    "id": 7004,
+    "desc": "The BoobTube is a little tube boost pedal simulation. It adds some overdrive and tube compression along with boosting the signal",
+    "index": 0,
+    "library": "libGxBoobTube.lv2.so"
+  },
+  "19100": {
+    "name": "GxBottleRocket",
+    "id": 7005,
+    "index": 0,
+    "desc": "Analogue simulation of a tube preamp based on a classic tube overdrive",
+    "library": "libGxBottleRocket.lv2.so"
+  },
+  "19200": {
+    "name": "GxClubDrive",
+    "id": 7006,
+    "desc": "Overdrive Pedal Simulation based on a EF86 Pentode Valve Simulation.",
+    "index": 0,
+    "library": "libGxClubDrive.lv2.so"
+  },
+  "19300": {
+    "name": "Gx_CreamMachine_",
+    "id": 7007,
+    "desc": "Simulation, based on a tube power amp circuit",
+    "index": 0,
+    "library": "libGxCreamMachine.lv2.so"
+  },
+  "19400": {
+    "name": "GxDOP270",
+    "id": 7008,
+    "desc": "Based on a classic Overdrive Amp",
+    "index": 0,
+    "library": "libGxDOP270.lv2.so"
+  },
+  "19500": {
+    "name": "GxEpic",
+    "id": 7009,
+    "index": 0,
+    "desc": "Simulation of a class A electric guitar valve amplifier",
+    "library": "libGxEpic.lv2.so"
+  },
+  "19600": {
+    "name": "GxEternity",
+    "id": 7010,
+    "index": 0,
+    "desc": "This low compression overdrive pedal is perfect for any style of music that requires natural sounding overdrive",
+    "library": "libGxEternity.lv2.so"
+  },
+  "19700": {
+    "name": "GxFz1b",
+    "desc": "Vintage Fuzz Pedal simulation",
+    "id": 7011,
+    "index": 0,
+    "library": "libGxFz1b.lv2.so"
+  },
+  "19800": {
+    "name": "GxFz1s",
+    "id": 7012,
+    "desc": "Vintage Fuzz Pedal simulation",
+    "index": 0,
+    "library": "libGxFz1s.lv2.so"
+  },
+  "19900": {
+    "name": "GxGuvnor",
+    "id": 7013,
+    "desc": "Overdrive/distortion pedal simulation",
+    "index": 0,
+    "library": "libGxGuvnor.lv2.so"
+  },
+  "20000": {
+    "name": "GxHeathkit",
+    "id": 7014,
+    "desc": "Distortion Booster Pedal simulation based on a classic distortion/booster/fuzz",
+    "index": 0,
+    "library": "libGxHeathkit.lv2.so"
+  },
+  "20100": {
+    "name": "GxHotBox",
+    "id": 7015,
+    "index": 0,
+    "desc": "Analouge simulation of a tube preamp with overdrive and interactive tone control",
+    "library": "libGxHotBox.lv2.so"
+  },
+  "20200": {
+    "name": "GxHyperion",
+    "desc": "Simulation of the Fuzz Pedal",
+    "id": 7016,
+    "index": 0,
+    "library": "libGxHyperion.lv2.so"
+  },
+  "20300": {
+    "name": "GxKnightFuzz",
+    "id": 7017,
+    "index": 0,
+    "desc": "Vintage Fuzz Pedal simulation. This is a really nasty Fuzz Pedal, which act at lower/ moderate settings as a ultra dark fuzz, when settings get cranked up, it becomes more and more high harmonics.",
+    "library": "libGxKnightFuzz.lv2.so"
+  },
+  "20400": {
+    "name": "Gx_liquiddrive_",
+    "id": 7018,
+    "desc": "Liquid Drive provides a tonal response with a warm mild to aggressive overdrive, which can do anything from Blues to Hard Rock",
+    "index": 0,
+    "library": "libGxLiquidDrive.lv2.so"
+  },
+  "20500": {
+    "name": "GxLuna",
+    "id": 7019,
+    "desc": "Gnarly overdrive pedal simulation",
+    "index": 0,
+    "library": "libGxLuna.lv2.so"
+  },
+  "20600": {
+    "name": "Gx_MicroAmp_",
+    "desc": "The MicroAmp is designed to be a transparent clean volume booster.",
+    "id": 7020,
+    "index": 0,
+    "library": "libGxMicroAmp.lv2.so"
+  },
+  "20700": {
+    "name": "Gx_plexi_",
+    "id": 7021,
+    "desc": "Power Amp simulation",
+    "index": 0,
+    "library": "libGxPlexi.lv2.so"
+  },
+  "20800": {
+    "name": "Gx_quack_",
+    "id": 7022,
+    "desc": "Envelope controlled wah pedal with some extra features",
+    "index": 0,
+    "library": "libGxQuack.lv2.so"
+  },
+  "20900": {
+    "name": "Gx_saturate_",
+    "desc": "A LV2 saturation plugin",
+    "id": 7023,
+    "index": 0,
+    "library": "libGxSaturator.lv2.so"
+  },
+  "21000": {
+    "name": "Gx_sd1sim_",
+    "id": 7024,
+    "index": 0,
+    "desc": "Super Overdrive pedal simulation",
+    "library": "libGxSD1.lv2.so"
+  },
+  "21100": {
+    "name": "GxSD2Lead",
+    "id": 7025,
+    "desc": "SD2 overdirve pedal simulation",
+    "index": 0,
+    "library": "libGxSD2Lead.lv2.so"
+  },
+  "21200": {
+    "name": "Gx_shakatube_",
+    "id": 7026,
+    "desc": "A overdrive tube pedal simulation",
+    "index": 0,
+    "library": "libGxShakaTube.lv2.so"
+  },
+  "21300": {
+    "name": "GxSloopyBlue",
+    "id": 7027,
+    "index": 0,
+    "desc": "Overdrive pedal simulation",
+    "library": "libGxSloopyBlue.lv2.so"
+  },
+  "21400": {
+    "name": "Gx_slowgear_",
+    "id": 7028,
+    "desc": "Attack-smoothing, auto-swelling pedal of the early 80s",
+    "index": 0,
+    "library": "libGxSlowGear.lv2.so"
+  },
+  "21500": {
+    "name": "GxSunFace",
+    "id": 7029,
+    "index": 0,
+    "desc": "A classic fuzz face with some light modifications",
+    "library": "libGxSunFace.lv2.so"
+  },
+  "21600": {
+    "name": "Gx_sfp_",
+    "id": 7030,
+    "desc": "Analog simulation of a Fuzz pedal as LV2 plugin. In this simulation the trim pot, which is usualy in the housing, is exposed as control parameter. It adjust the amount of harmonics.",
+    "index": 0,
+    "library": "libGxSuperFuzz.lv2.so"
+  },
+  "21700": {
+    "name": "Gx_supersonic_",
+    "id": 7031,
+    "index": 0,
+    "desc": "Tube amp simulation",
+    "library": "libGxSupersonic.lv2.so"
+  },
+  "21800": {
+    "name": "Gx_vstb_",
+    "id": 7032,
+    "index": 0,
+    "desc": "Analog simulation of a Tone Bender pedal as LV2 plugin",
+    "library": "libGxSuppaToneBender.lv2.so"
+  },
+  "21900": {
+    "name": "Gx_ampegsvt_",
+    "id": 7033,
+    "index": 0,
+    "desc": "Tube based Bass preamp simulation",
+    "library": "libGxSVT.lv2.so"
+  },
+  "22000": {
+    "name": "GxTimRay",
+    "id": 7034,
+    "index": 0,
+    "desc": "Overdrive pedal simulation",
+    "library": "libGxTimRay.lv2.so"
+  },
+  "22100": {
+    "name": "GxToneMachine",
+    "id": 7035,
+    "index": 0,
+    "desc": "Analogous simulation of a classic Tone Machine Pedal as LV2 plugin",
+    "library": "libGxToneMachine.lv2.so"
+  },
+  "22200": {
+    "name": "GxTubeDistortion",
+    "id": 7036,
+    "index": 0,
+    "desc": "Simulation of a Tube based Distortion Pedal",
+    "library": "libGxTubeDistortion.lv2.so"
+  },
+  "22300": {
+    "name": "GxUltraCab",
+    "id": 7037,
+    "desc": "Cabinet simulator Lv2 stereo plugin",
+    "index": 0,
+    "library": "libGxUltraCab.lv2.so"
+  },
+  "22400": {
+    "name": "GxUVox720k",
+    "id": 7038,
+    "desc": "Analog simulation of a classic solid state amp as LV2 plugin",
+    "index": 0,
+    "library": "libGxUVox720k.lv2.so"
+  },
+  "22500": {
+    "name": "Gx_valvecaster_",
+    "id": 7039,
+    "index": 0,
+    "desc": "The ValveCaster is a little tube boost pedal simulation. It adds some overdrive and tube compression along with boosting the signal",
+    "library": "libGxValveCaster.lv2.so"
+  },
+  "22600": {
+    "name": "Gx_voxbass_",
+    "id": 7040,
+    "desc": "Analog Simulation of the 1984 (*) Vox Venue Bass 100 Pre Amp Section",
+    "index": 0,
+    "library": "libGxVBassPreAmp.lv2.so"
+  },
+  "22700": {
+    "name": "Gx_vfm_",
+    "id": 7041,
+    "desc": "Simulation of the Vintage Fuzz Master Pedal",
+    "index": 0,
+    "library": "libGxVintageFuzzMaster.lv2.so"
+  },
+  "22800": {
+    "name": "Gx_vmk2d_",
+    "id": 7042,
+    "index": 0,
+    "desc": "Classic Cabinet Simulation",
+    "library": "libGxVmk2.lv2.so"
+  },
+  "22900": {
+    "name": "Gx_voodoo_",
+    "id": 7043,
+    "index": 0,
+    "desc": "Simulation impressed by a classic fuzz pedal. It's basically a Bosstone circuite, followed by the tone control of the FoxToneMachine in parralel with a DarkBooster, finaly ended in a Volume control",
+    "library": "libGxVoodoFuzz.lv2.so"
+  },
+  "23000": {
+    "name": "the infamous bent delay",
+    "id": 8001,
+    "index": 0,
+    "desc": "This lo-fi delay subtracts a downsampled (aliased) delayed signal from the original. Makes gritty slapback sounds or surprisingly warm textures.",
+    "library": "bentdelay.so"
+  },
+  "23100": {
+    "name": "casynth",
+    "id": 8002,
+    "index": 0,
+    "library": "casynth.so"
+  },
+  "23200": {
+    "name": "the infamous cellular automaton synth",
+    "id": 8003,
+    "index": 0,
+    "library": "casynth.so"
+  },
+  "23300": {
+    "name": "the infamous cheap distortion",
+    "id": 8004,
+    "desc": "This experimental distortion is a simple waveshaper approximating a reflected square, fourth, or eighth root. It does this through bit twiddling, and therefore uses no floating point operations. Its useful to have a simple amplifier to adjust input and output levels.",
+    "index": 0,
+    "library": "cheapdist.so"
+  },
+  "23400": {
+    "name": "the infamous envelope follower",
+    "id": 8005,
+    "index": 0,
+    "library": "envfollower.so"
+  },
+  "23500": {
+    "name": "the infamous ewham",
+    "id": 8006,
+    "index": 0,
+    "library": "ewham.so"
+  },
+  "23600": {
+    "name": "the infamous Hip2B",
+    "id": 8007,
+    "index": 0,
+    "library": "hip2b.so"
+  },
+  "23700": {
+    "name": "hip2b",
+    "id": 8008,
+    "index": 0,
+    "library": "hip2b.so"
+  },
+  "23800": {
+    "name": "the infamous lush life",
+    "id": 8009,
+    "index": 0,
+    "library": "lushlife.so"
+  },
+  "23900": {
+    "name": "lushlife",
+    "id": 8010,
+    "index": 0,
+    "library": "lushlife.so"
+  },
+  "24000": {
+    "name": "the infamous mindi",
+    "id": 8011,
+    "index": 0,
+    "library": "mindi.so"
+  },
+  "24100": {
+    "name": "the infamous octolo",
+    "id": 8012,
+    "index": 0,
+    "library": "octolo.so"
+  },
+  "24200": {
+    "name": "octolo",
+    "id": 8013,
+    "index": 0,
+    "library": "octolo.so"
+  },
+  "24300": {
+    "name": "the infamous power cut",
+    "id": 8014,
+    "desc": "This is a tape stop with up to 10 seconds of decay time. Curvature can be added for full customization of the effect.",
+    "index": 0,
+    "library": "powercut.so"
+  },
+  "24400": {
+    "name": "the infamous power up",
+    "id": 8015,
+    "index": 0,
+    "library": "powerup.so"
+  },
+  "24500": {
+    "name": "the infamous stuck",
+    "id": 8016,
+    "index": 0,
+    "desc": "This effect samples the input, detects the primary waveform, and creates a drone of the note played when triggered. It is polyphonic and matches your tone. It may have pulsing/shimmering sounds on fuller chords.",
+    "library": "stuck.so"
+  },
+  "24600": {
+    "name": "Gx4BandEQ",
+    "id": 8017,
+    "index": 0,
+    "desc": "Equalizer with 4 variable bands",
+    "library": "libGx4BandEQ.lv2.so"
+  },
+  "24700": {
+    "name": "Gx_cabsim_",
+    "id": 8018,
+    "desc": "Cabinet Simulation",
+    "index": 0,
+    "library": "libGxCabSim.lv2.so"
+  },
+  "24800": {
+    "name": "Gx_denoiser2_",
+    "id": 8019,
+    "index": 0,
+    "desc": "cascaded moving average filter to suppress input noise ",
+    "library": "libGxDenoiser2.lv2.so"
+  },
+  "24900": {
+    "name": "Gx_DistortionPlus_",
+    "id": 8020,
+    "desc": "Analogue simulation of a Distortion Pedal",
+    "index": 0,
+    "library": "libGxDistortionPlus.lv2.so"
+  },
+  "25000": {
+    "name": "Gx_fenderizer_",
+    "id": 8021,
+    "index": 0,
+    "desc": "Distortion Simulation",
+    "library": "libGxFenderizer.lv2.so"
+  },
+  "25100": {
+    "name": "GxOsMutantes",
+    "id": 8022,
+    "desc": "Analogue simulation of Circuit developed in 70\u2019s",
+    "index": 0,
+    "library": "libGxOsMutantes.lv2.so"
+  },
+  "25200": {
+    "name": "Gx_overdriver_",
+    "id": 8023,
+    "desc": "Overdrive with level and tone control",
+    "index": 0,
+    "library": "libGxOverDriver.lv2.so"
+  },
+  "25300": {
+    "name": "Gx_pushpull_",
+    "id": 8024,
+    "desc": "Octave up push pull transistor fuzz simulation",
+    "index": 0,
+    "library": "libGxPushPull.lv2.so"
+  },
+  "25400": {
+    "name": "GxReverseDelay",
+    "id": 8025,
+    "desc": "Digital reverse delay",
+    "index": 0,
+    "library": "libGxReverseDelay.lv2.so"
+  },
+  "25500": {
+    "name": "GxSwitchlessWah",
+    "id": 8026,
+    "desc": "Analog wah emulation with switchless activation",
+    "index": 0,
+    "library": "wah.so"
+  },
+  "25600": {
+    "name": "Gx_tonemender_",
+    "id": 8027,
+    "index": 0,
+    "desc": "Clean boost with a 3-knob tonestack",
+    "library": "libGxToneMender.lv2.so"
+  },
+  "25700": {
+    "name": "GxZoom",
+    "id": 8028,
+    "index": 0,
+    "desc": "Distortion pedal from early 80s",
+    "library": "libGxZoom.lv2.so"
+  },
+  "25800": {
+    "name": "Gx_alembic",
+    "id": 8029,
+    "index": 0,
+    "desc": "Based on simple  vstudio preamp. 2 sections of 12AX7 together with tonestack and volume. This is an identical circuit apart from coupling caps which could do with filters",
+    "library": "libgx_alembic.lv2.so"
+  },
+  "25900": {
+    "name": "Gxbooster",
+    "id": 8030,
+    "index": 0,
+    "desc": "A 2 band boost plugin. With this plugin you can boost the high and the low frequencies independently",
+    "library": "libgxbooster.lv2.so"
+  },
+  "26000": {
+    "name": "Gx_expander",
+    "desc": "The expander is a compressor in reverse. There are two types of expander. In some, signals above the threshold remain at unity gain whereas signals below the threshold are reduced in gain, whereas in others the signal above the threshold also has the gain increased. Therefore you can use an expander as a noise reduction unit. Set the threshold to be just below the level of the player when playing. When the player stops the signal will fall below this threshold and the signal is reduced in gain thus reducing the noise or spill.",
+    "id": 8031,
+    "index": 0,
+    "library": "libgx_expander.lv2.so"
+  },
+  "26100": {
+    "name": "Gx_flanger",
+    "id": 8032,
+    "desc": "Very nice flanger effect",
+    "index": 0,
+    "library": "libgx_flanger.lv2.so"
+  },
+  "26200": {
+    "name": "GxFuzzMaster",
+    "desc": "Distortion effect",
+    "id": 8033,
+    "index": 0,
+    "library": "libgx_fumaster.lv2.so"
+  },
+  "26300": {
+    "name": "GxFuzzFaceFuller",
+    "id": 8034,
+    "desc": "Nice Fuzz distortion",
+    "index": 0,
+    "library": "libgx_fuzzfacefm.lv2.so"
+  },
+  "26400": {
+    "name": "Gx_fuzzface_",
+    "id": 8035,
+    "index": 0,
+    "desc": "Fuzz Face distortion",
+    "library": "libgx_fuzzface.lv2.so"
+  },
+  "26500": {
+    "name": "Gx_gcb_95_",
+    "id": 8036,
+    "index": 0,
+    "desc": "Distortion effect",
+    "library": "libgx_gcb_95.lv2.so"
+  },
+  "26600": {
+    "name": "GxGraphicEQ",
+    "id": 8037,
+    "desc": "Equalizer pedal",
+    "index": 0,
+    "library": "libgx_graphiceq.lv2.so"
+  },
+  "26700": {
+    "name": "GxHF_Brightener",
+    "id": 8038,
+    "index": 0,
+    "desc": "Distortion pedal",
+    "library": "libgx_hfb.lv2.so"
+  },
+  "26800": {
+    "name": "Gx_hogsfoot_",
+    "id": 8039,
+    "desc": "Distortion pedal",
+    "index": 0,
+    "library": "libgx_hogsfoot.lv2.so"
+  },
+  "26900": {
+    "name": "Gx_hornet_",
+    "id": 8040,
+    "desc": "Distortion pedal",
+    "index": 0,
+    "library": "libgx_hornet.lv2.so"
+  },
+  "27000": {
+    "name": "GxMultiBandCompressor",
+    "id": 8041,
+    "index": 0,
+    "desc": "Multi Band Compressor",
+    "library": "libgx_mbcompressor.lv2.so"
+  },
+  "27100": {
+    "name": "GxMultiBandDelay",
+    "id": 8042,
+    "desc": "Multi Band Delay",
+    "index": 0,
+    "library": "libgx_mbdelay.lv2.so"
+  },
+  "27200": {
+    "name": "GxMultiBandDistortion",
+    "id": 8043,
+    "index": 0,
+    "desc": "Multi Band Distortion",
+    "library": "libgx_mbdistortion.lv2.so"
+  },
+  "27300": {
+    "name": "GxMultiBandEcho",
+    "id": 8044,
+    "index": 0,
+    "desc": "Multi Band Echo",
+    "library": "libgx_mbecho.lv2.so"
+  },
+  "27400": {
+    "name": "Gx_mbreverb_",
+    "id": 8045,
+    "index": 0,
+    "desc": "Multi Band Reverb",
+    "library": "libgx_mbreverb.lv2.so"
+  },
+  "27500": {
+    "name": "Gx_mole_",
+    "id": 8046,
+    "index": 0,
+    "desc": "Distortion pedal",
+    "library": "libgx_mole.lv2.so"
+  },
+  "27600": {
+    "name": "Gxoc_2",
+    "id": 8047,
+    "index": 0,
+    "desc": "Distortion pedal",
+    "library": "libgx_oc_2.lv2.so"
+  },
+  "27700": {
+    "name": "Gx_phaser",
+    "id": 8048,
+    "index": 0,
+    "desc": "Phaser effect",
+    "library": "libgx_phaser.lv2.so"
+  },
+  "27800": {
+    "name": "GxRangeMaster",
+    "id": 8049,
+    "desc": "Booster pedal",
+    "index": 0,
+    "library": "libgx_rangem.lv2.so"
+  },
+  "27900": {
+    "name": "GxReverb-Stereo",
+    "id": 8050,
+    "desc": "Reverb pedal",
+    "index": 0,
+    "library": "libgx_reverb.lv2.so"
+  },
+  "28000": {
+    "name": "Gx_room_simulator_",
+    "id": 8051,
+    "desc": "Reverb pedal",
+    "index": 0,
+    "library": "libgx_room_simulator.lv2.so"
+  },
+  "28100": {
+    "name": "GxScreamingBird",
+    "id": 8052,
+    "desc": "Distortion pedal",
+    "index": 0,
+    "library": "libgx_scream.lv2.so"
+  },
+  "28200": {
+    "name": "Gxshimmizita",
+    "id": 8053,
+    "desc": "Reverb pedal",
+    "index": 0,
+    "library": "libgx_shimmizita.lv2.so"
+  },
+  "28300": {
+    "name": "Gx_studiopre",
+    "id": 8054,
+    "desc": "Pre Amplifier Pedal",
+    "index": 0,
+    "library": "libgx_studiopre.lv2.so"
+  },
+  "28400": {
+    "name": "Gx Studio Preamp Stereo",
+    "desc": "Pre Amplifier Pedal",
+    "id": 8055,
+    "index": 0,
+    "library": "libgx_studiopre_st.lv2.so"
+  },
+  "28500": {
+    "name": "Gx_susta_",
+    "id": 8056,
+    "index": 0,
+    "desc": "Sustain effect",
+    "library": "libgx_susta.lv2.so"
+  },
+  "28600": {
+    "name": "Gx_switched_tremolo_",
+    "id": 8057,
+    "desc": "Tremolo plugin",
+    "index": 0,
+    "library": "libgx_switched_tremolo.lv2.so"
+  },
+  "28700": {
+    "name": "GxTape",
+    "id": 8058,
+    "desc": "Nice Filter Pedal",
+    "index": 0,
+    "library": "libgxtape.lv2.so"
+  },
+  "28800": {
+    "name": "Gx Tape Stereo",
+    "id": 8059,
+    "desc": "Nice Filter Pedal",
+    "index": 0,
+    "library": "libgxtape_st.lv2.so"
+  },
+  "28900": {
+    "name": "GxTiltTone",
+    "id": 8060,
+    "desc": "Simple Tilt tone control. The tilt control imposes a shelving function, which attenuates half of frequency band and augments the other half. In other words, it is special type of a tone control that, unlike the typical tone control that boosts or cuts just the highs or mids or lows, shifts both highs and lows at once. ",
+    "index": 0,
+    "library": "libgxtilttone.lv2.so"
+  },
+  "29000": {
+    "name": "GxTremolo",
+    "id": 8061,
+    "desc": "Model of a vactrol tremolo unit by transmogrify",
+    "index": 0,
+    "library": "libgx_tremolo.lv2.so"
+  },
+  "29100": {
+    "name": "GxRedeyeFx",
+    "id": 8062,
+    "desc": "Distortion pedal",
+    "index": 0,
+    "library": "libgxtubedelay.lv2.so"
+  },
+  "29200": {
+    "name": "GxTubeTremelo",
+    "id": 8063,
+    "desc": "Model of a vactrol tremolo unit by transmogrify",
+    "index": 0,
+    "library": "libgxtubetremelo.lv2.so"
+  },
+  "29300": {
+    "name": "GxTubeVibrato",
+    "id": 8064,
+    "index": 0,
+    "desc": "Attempt at a true vibrato and it works well! Sounds very sweet with tubes wrapped",
+    "library": "libgxtubevibrato.lv2.so"
+  },
+  "29400": {
+    "name": "Gx_vibe_mono",
+    "id": 8065,
+    "desc": "Vibrato Effect",
+    "index": 0,
+    "library": "libgx_vibe.lv2.so"
+  },
+  "29500": {
+    "name": "Gx w20",
+    "id": 8066,
+    "index": 0,
+    "desc": "Based on simple classic vstudio preamp",
+    "library": "libgx_w20.lv2.so"
+  },
+  "29600": {
+    "name": "GxZita_rev1-Stereo",
+    "id": 8067,
+    "desc": "Reverb pedal",
+    "index": 0,
+    "library": "libgx_zita_rev1.lv2.so"
+  },
+  "29700": {
+    "name": "FatFrog",
+    "id": 8068,
+    "desc": "High Gain Amplifier",
+    "index": 0,
+    "library": "libFatFrog.lv2.so"
+  },
+  "29800": {
+    "name": "LittleFly_",
+    "id": 8069,
+    "desc": "Overdrive/Distortion pedal simulation",
+    "index": 0,
+    "library": "libLittleFly.lv2.so"
+  },
+  "29900": {
+    "desc": "Valve amplifier simulation",
+    "name": "XDarkTerror",
+    "id": 8070,
+    "index": 0,
+    "library": "libXDarkTerror.lv2.so"
+  },
+  "30000": {
+    "name": "X_tinyterror_",
+    "id": 8071,
+    "index": 0,
+    "desc": "Valve amplifier simulation",
+    "library": "libXTinyTerror.lv2.so"
+  },
+  "30100": {
+    "name": "Gx_aclipper_",
+    "id": 8072,
+    "desc": "Distortion Pedal",
+    "index": 0,
+    "library": "libgx_aclipper.lv2.so"
+  },
+  "30200": {
+    "name": "GxWah",
+    "id": 8073,
+    "desc": "Analog wah emulation of a classic pedal, in a auto-wah version",
+    "index": 0,
+    "library": "libgxautowah.lv2.so"
+  },
+  "30300": {
+    "name": "Gx_bmp_",
+    "id": 8074,
+    "index": 0,
+    "desc": "Distortion pedal",
+    "library": "libgx_bmp.lv2.so"
+  },
+  "30400": {
+    "name": "GxBoss DS1",
+    "desc": "Classic distortion pedal",
+    "id": 8075,
+    "index": 0,
+    "library": "libgx_bossds1.lv2.so"
+  },
+  "30500": {
+    "name": "GxChorus-Stereo",
+    "id": 8076,
+    "desc": "Chorus pedal",
+    "index": 0,
+    "library": "libgx_chorus.lv2.so"
+  },
+  "30600": {
+    "name": "GxWahwah",
+    "id": 8077,
+    "index": 0,
+    "desc": "Wah pedal",
+    "library": "libgx_colwah.lv2.so"
+  },
+  "30700": {
+    "name": "GxCompressor",
+    "id": 8078,
+    "index": 0,
+    "desc": "Compressor pedal",
+    "library": "libgx_compressor.lv2.so"
+  },
+  "30800": {
+    "name": "Gx_cstb_",
+    "id": 8079,
+    "desc": "Distortion based on a classic tone shaping pedal",
+    "index": 0,
+    "library": "libgx_cstb.lv2.so"
+  },
+  "30900": {
+    "name": "Gx_delay_stereo",
+    "id": 8080,
+    "index": 0,
+    "desc": "Delay effect pedal",
+    "library": "libgx_delay.lv2.so"
+  },
+  "31000": {
+    "name": "Gxdigital_delay",
+    "id": 8081,
+    "desc": "Delay effect pedal",
+    "index": 0,
+    "library": "libgx_digital_delay.lv2.so"
+  },
+  "31100": {
+    "name": "Gx_duck_delay_",
+    "id": 8082,
+    "desc": "The delayed signal added to output dependent of input signal amplitude. If the input signal is high. The delayed signal turned off, and vise versa. The switching controlled by envelope follower",
+    "index": 0,
+    "library": "libgx_duck_delay.lv2.so"
+  },
+  "31200": {
+    "name": "GxEchoCat",
+    "id": 8083,
+    "index": 0,
+    "desc": "A tape delay simulation plugin",
+    "library": "libgxechocat.lv2.so"
+  },
+  "31300": {
+    "name": "GxEcho-Stereo",
+    "id": 8084,
+    "desc": "Echo pedal",
+    "index": 0,
+    "library": "libgx_echo.lv2.so"
+  },
+  "31400": {
+    "name": "GxFuzz",
+    "id": 8085,
+    "desc": "Fuzz effect pedal",
+    "index": 0,
+    "library": "libgx_fuzz.lv2.so"
+  },
+  "31500": {
+    "name": "Gx_muff_",
+    "id": 8086,
+    "desc": "Nice distortion effect",
+    "index": 0,
+    "library": "libgx_muff.lv2.so"
+  },
+  "31600": {
+    "name": "Gx_mxrdist_",
+    "id": 8087,
+    "index": 0,
+    "desc": "Distortion pedal",
+    "library": "libgx_mxrdist.lv2.so"
+  },
+  "31700": {
+    "name": "Gxts9sim",
+    "id": 8088,
+    "desc": "Tube effect pedal",
+    "index": 0,
+    "library": "libgxts9.lv2.so"
+  },
+  "31800": {
+    "name": "bluesbreaker",
+    "desc": "Overdrive pedal simulation",
+    "id": 8089,
+    "index": 0,
+    "library": "libbluesbreaker.so"
+  },
+  "31900": {
+    "name": "CollisionDrive",
+    "id": 8090,
+    "index": 0,
+    "library": "libCollisionDrive.so"
+  },
+  "32000": {
+    "name": "Harmonic Exciter",
+    "id": 8091,
+    "index": 0,
+    "desc": "The HarmonicExciter is based on a half wave clipper, allow to add harmonics to the source by mix them in.",
+    "library": "libHarmonicExciter.so"
+  },
+  "32100": {
+    "name": "MetalTone",
+    "id": 8092,
+    "index": 0,
+    "desc": "Distortion Pedal simulation",
+    "library": "libMetalTone.so"
+  },
+  "32200": {
+    "name": "Rumor",
+    "id": 8093,
+    "desc": "The Rumor is pure, nasty growling bass fuzz pedal, with bold out-front presence, and cutting articulation",
+    "index": 0,
+    "library": "libRumor.so"
+  },
+  "32300": {
+    "name": "VintageAC30",
+    "id": 8094,
+    "index": 0,
+    "desc": "Classic Cabinet Emulation",
+    "library": "libVintageAC30.so"
+  },
+  "32400": {
+    "name": "GxAmplifier",
+    "desc": "This plugin is the combination of guitarix's head, tonestack and cabinet, which, in that order, composes the signal path",
+    "id": 8095,
+    "index": 0,
+    "library": "libgx_amp.lv2.so"
+  },
+  "32500": {
+    "name": "GxMetalAmp",
+    "desc": "Metal Amplifier",
+    "id": 8096,
+    "index": 0,
+    "library": "libgxmetal_amp.lv2.so"
+  },
+  "32600": {
+    "name": "GxMetalHead",
+    "desc": "Metal Distortion",
+    "id": 8097,
+    "index": 0,
+    "library": "libgxmetal_head.lv2.so"
+  },
+  "32700": {
+    "name": "GNUitar Distortion",
+    "id": 8098,
+    "desc": "Distortion from the GNUitar project",
+    "index": 0,
+    "library": "libgnuitar-distort.lv2.so"
+  },
+  "32800": {
+    "desc": "Distortion from the GNUitar project",
+    "name": "GNUitar Tube Amplifier",
+    "id": 8099,
+    "index": 0,
+    "library": "libgnuitar-distort2.lv2.so"
+  },
+  "32900": {
+    "name": "Looper",
+    "id": 8100,
+    "desc": "Looper pedal",
+    "index": 0,
+    "library": "liblooper.so"
+  },
+  "33000": {
+    "name": "Neural Amp Modeler",
+    "id": 8101,
+    "desc": "Deep learning plugin to create models of guitar amplifiers and pedals with state-of-the-art accuracy",
+    "index": 0,
+    "library": "neural_amp_modeler.so"
+  },
+  "33100": {
+    "name": "Tap IR",
+    "id": 8102,
+    "desc": "Impulse response",
+    "index": 0,
+    "library": "libir.so"
+  },
+  "33200": {
+    "name": "convoLV2",
+    "desc": "Impulse response",
+    "id": 8103,
+    "index": 0,
+    "library": "libconvoLV2.so"
+  },
+  "33300": {
+    "name": "AIDA-X",
+    "desc": "Load and play AI-trained models of guitar amps and pedals, offering a high-fidelity simulation of real gear",
+    "id": 8104,
+    "index": 0,
+    "library": "rt-neural-generic.so"
+  },
+  "33400": {
+    "id": 8105,
+    "name": "GNUitar Tube Amplifier v2",
+    "desc": "Effects from the GNUitar project",
+    "index": 0,
+    "library": "libgnuitar-tubeamp.lv2.so"
+  },
+  "33500": {
+    "id": 8106,
+    "desc": "Effects from the GNUitar project",
+    "name": "GNUitar Overdrive v2",
+    "index": 0,
+    "library": "libgnuitar-distort2-np.lv2.so"
+  },
+  "33600": {
+    "id": 8107,
+    "name": "x42 DARC",
+    "index": 0,
+    "desc": "General purpose audio signal compressor",
+    "library": "libdarc.so"
+  },
+  "33700": {
+    "id": 8108,
+    "name": "Simple IR Loader",
+    "index": 0,
+    "desc": "Impulse Response Loader",
+    "library": "libir_cab.so"
+  },
+  "33800": {
+    "id": 8109,
+    "name": "Fonin Overdrive",
+    "index": 0,
+    "desc": "Effects from the GNUitar project",
+    "library": "libfonin-overdrive.lv2.so"
+  },
+  "33900": {
+    "id": 8110,
+    "name": "Fonin Tube Amplifier",
+    "desc": "Effects from the GNUitar project",
+    "index": 0,
+    "library": "libfonin-tubeamp.lv2.so"
+  },
+  "34000": {
+    "id": 8111,
+    "name": "Fonin Distortion",
+    "desc": "Effects from the GNUitar project",
+    "index": 0,
+    "library": "libfonin-distortion.lv2.so"
+  },
+  "34100": {
+    "id": 8112,
+    "name": "Fonin Sustain",
+    "desc": "Effects from the GNUitar project",
+    "index": 0,
+    "library": "libfonin-sustain.lv2.so"
+  },
+  "34200": {
+    "id": 8113,
+    "name": "PowerAmpImpulses",
+    "index": 0,
+    "desc": "Simulate valve amplifiers",
+    "library": "libPowerAmpImpulses.so"
+  },
+  "34300": {
+    "id": 8114,
+    "name": "PowerAmps",
+    "desc": "Simulate valve amplifiers",
+    "index": 0,
+    "library": "libPowerAmps.so"
+  },
+  "34400": {
+    "id": 8115,
+    "name": "PreAmpImpulses",
+    "desc": "Simulate valve amplifiers",
+    "index": 0,
+    "library": "libPreAmpImpulses.so"
+  },
+  "34500": {
+    "id": 8116,
+    "name": "PreAmps",
+    "index": 0,
+    "desc": "Simulate valve amplifiers",
+    "library": "libPreAmps.so"
+  },
+  "34600": {
+    "id": 8117,
+    "name": "Ratatouille",
+    "index": 0,
+    "desc": "Neural Model loader and mixer with IR",
+    "library": "libRatatouille.so"
+  },
+  "34700": {
+    "id": 8118,
+    "name": "Impulse Loader",
+    "index": 0,
+    "desc": "This is a simple, mono, IR-File loader/convolution LV2 plugin",
+    "library": "libImpulseLoader.so"
+  },
+  "34800": {
+    "id": 8119,
+    "name": "Neural Amp Modeler NG",
+    "index": 0,
+    "desc": "Deep learning plugin to create models of guitar amplifiers and pedals with state-of-the-art accuracy",
+    "library": "nam.so"
+  },
+  "34900": {
+    "id": 8120,
+    "name": "Tamg Amp",
+    "index": 3,
+    "desc": "Guitar amp simulator",
+    "library": "libtamgamp.so"
+  },
+  "35000": {
+    "id": 8121,
+    "name": "x42 - IR Convolver Mono => Stereo",
+    "index": 3,
+    "desc": "Impulse response loader",
+    "library": "libzconvo.so"
+  },
+  "36000": {
+    "id": 9101,
+    "name": "Cyber Organ 9",
+    "index": 0,
+    "desc": "Cyber Audio polyphonic chord-tracking organ with 9 authentic classic organ voicings and single-note protection.",
+    "library": "cyber_organ9.so"
+  },
+  "36100": {
+    "id": 9102,
+    "name": "Cyber Mel9",
+    "index": 0,
+    "desc": "Cyber Audio vintage tape replay / mellotron emulator featuring strings, flutes, choir and orchestra sounds.",
+    "library": "cyber_mel9.so"
+  },
+  "36200": {
+    "id": 9103,
+    "name": "Cyber Synth9",
+    "index": 0,
+    "desc": "Cyber Audio analog synthesizer guitar pedal emulator with fat polyphonic synth leads and pads.",
+    "library": "cyber_synth9.so"
+  },
+  "36300": {
+    "id": 9104,
+    "name": "Cyber String9",
+    "index": 0,
+    "desc": "Cyber Audio symphonic string ensemble machine delivering rich orchestral washes and lush string pads.",
+    "library": "cyber_string9.so"
+  },
+  "36400": {
+    "id": 9105,
+    "name": "Cyber Bass9",
+    "index": 0,
+    "desc": "Cyber Audio polyphonic bass synthesizer with sub-octaves, synths and deep upright bass tones.",
+    "library": "cyber_bass9.so"
+  },
+  "36500": {
+    "id": 9106,
+    "name": "Cyber Hum Killer PRO",
+    "index": 0,
+    "desc": "Cyber Audio high-precision 8-harmonic mains hum (50Hz/60Hz) & DC suppressor with adaptive notch filtering.",
+    "library": "cyber_hum_killer.so"
+  },
+  "36600": {
+    "id": 9107,
+    "name": "Cyber Denoiser PRO",
+    "index": 0,
+    "desc": "Cyber Audio 10-band forensic spectral subtractive denoiser with real-time noise profile learning.",
+    "library": "cyber_denoiser.so"
+  },
+  "36700": {
+    "id": 9108,
+    "name": "Smart Fizz Killer",
+    "index": 0,
+    "desc": "Cyber Audio warm boutique harmonic saturator, phase smearer and high-frequency fizz suppressor.",
+    "library": "smart_fizz_killer.so"
+  }
+}

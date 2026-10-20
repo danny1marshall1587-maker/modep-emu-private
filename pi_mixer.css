@@ -1,0 +1,1923 @@
+:root {
+            --bg-color: #121417;
+            --panel-bg: #1c2024;
+            --channel-bg: #24292f;
+            --accent-green: #2ecc71;
+            --accent-orange: #f39c12;
+            --accent-red: #e74c3c;
+            --accent-blue: #3498db;
+            --accent-purple: #9b59b6;
+            --text-main: #f0f3f6;
+            --text-dim: #8b949e;
+            --border-color: #30363d;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: var(--bg-color); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* Top Navigation Header */
+        header { height: 56px; background: var(--panel-bg); border-bottom: 2px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 10; }
+        .logo-area { display: flex; align-items: center; gap: 12px; font-weight: bold; font-size: 1.15rem; letter-spacing: 0.5px; }
+        .badge { background: var(--accent-orange); color: #000; font-size: 0.72rem; padding: 3px 7px; border-radius: 4px; font-weight: 900; }
+        .badge-live { background: #238636; color: #fff; font-size: 0.72rem; padding: 3px 7px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
+        .badge-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #3fb950; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+        .header-controls { display: flex; gap: 10px; align-items: center; }
+        .btn-top { background: #2d333b; border: 1px solid var(--border-color); color: white; padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease; }
+        .btn-top:hover { background: #373e47; }
+        .btn-top.active { background: var(--accent-blue); border-color: #58a6ff; }
+        .btn-nav-pedalboard { background: #1f6feb; border-color: #388bfd; }
+        .btn-nav-daw { background: #8957e5; border-color: #a371f7; }
+
+        /* REAPER Remote Transport Header Group */
+        .reaper-transport-group {
+            display: flex;
+            align-items: center;
+            background: #0f141c;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 2px 4px;
+            gap: 4px;
+        }
+        .btn-transport {
+            background: #21262d;
+            border: 1px solid #363b42;
+            color: #c9d1d9;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            user-select: none;
+        }
+        .btn-transport:hover { background: #30363d; color: #fff; }
+        .btn-transport:active { transform: translateY(1px); }
+        .btn-transport-rec {
+            color: #f85149;
+            border-color: rgba(248, 81, 73, 0.4);
+        }
+        .btn-transport-rec:hover {
+            background: rgba(248, 81, 73, 0.15);
+            color: #ff7b72;
+            border-color: #f85149;
+        }
+        .btn-transport-rec.recording-active {
+            background: #da3633 !important;
+            color: #ffffff !important;
+            border-color: #f85149 !important;
+            box-shadow: 0 0 14px rgba(248, 81, 73, 0.8);
+            animation: pulse 1s infinite;
+        }
+        .btn-transport-stop:hover { color: #fff; border-color: #8b949e; }
+        .btn-transport-play:hover { color: #3fb950; border-color: #2ea043; }
+        .btn-transport-web {
+            background: #1f2937;
+            border-color: #4b5563;
+            color: #60a5fa;
+            font-size: 0.75rem;
+            padding: 6px 10px;
+        }
+        .btn-transport-web:hover {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #3b82f6;
+        }
+
+        /* Mixer Canvas */
+        .mixer-container {
+            display: flex !important;
+            flex-direction: row;
+            flex: 1 1 auto;
+            visibility: visible !important;
+            opacity: 1 !important;
+            overflow-x: auto;
+            padding: 10px;
+            gap: 10px;
+            align-items: stretch;
+        }
+        .channel-strip { flex: 0 0 148px; background: var(--channel-bg); border-radius: 9px; border: 1.5px solid var(--ch-accent, var(--border-color)); border-top: 5px solid var(--ch-accent, #38bdf8); display: flex; flex-direction: column; padding: 10px 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.5); position: relative; transition: border-color 0.2s ease; }
+        .channel-strip.master { flex: 0 0 162px; background: #161b22; border: 1.5px solid var(--accent-orange); border-top: 5px solid var(--accent-orange); }
+        .channel-strip.stereo-linked { box-shadow: 0 0 0 2px #818cf8, 0 4px 14px rgba(0,0,0,0.5); border-color: #818cf8 !important; }
+
+        /* Soft-Patch Hardware Input Dropdown */
+        .soft-patch-row { display: flex; align-items: center; gap: 4px; margin-bottom: 5px; font-size: 0.64rem; font-weight: 800; color: #8b949e; }
+        .soft-patch-select { background: #0f141c; border: 1px solid #374151; color: #60a5fa; border-radius: 4px; font-size: 0.65rem; font-weight: 800; padding: 2px 3px; cursor: pointer; flex: 1; min-height: 28px; }
+        .soft-patch-select:focus { outline: none; border-color: #38bdf8; }
+
+        /* Stereo LINK Button — placed between odd/even channel pairs */
+        .stereo-link-col { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 0 0 22px; gap: 0; }
+        .btn-stereo-link { writing-mode: vertical-rl; text-orientation: mixed; background: #1e2430; border: 1.5px solid #374151; color: #64748b; border-radius: 5px; font-size: 0.6rem; font-weight: 900; letter-spacing: 0.5px; cursor: pointer; padding: 6px 3px; min-height: 60px; width: 22px; transition: all 0.15s ease; touch-action: manipulation; }
+        .btn-stereo-link.active { background: #1e1b4b; border-color: #818cf8; color: #c7d2fe; box-shadow: 0 0 10px rgba(129, 140, 248, 0.5); }
+        .btn-stereo-link:active { transform: scale(0.95); }
+
+        .ch-header { text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 8px; cursor: pointer; border-radius: 4px; padding: 4px; transition: background 0.15s; }
+        .ch-header:active { background: rgba(255,255,255,0.06); }
+        .ch-title-badge { display: inline-block; font-size: 0.8rem; font-weight: 900; background: var(--ch-accent, #38bdf8); color: #000; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; cursor: pointer; }
+        .ch-sub-name { font-size: 0.85rem; font-weight: 800; color: #f8fafc; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+
+        /* Super Insert MODEP Board Button - Tablet Hit Target >= 44px */
+        .btn-super-insert { background: #1f2a37; border: 1px solid #374151; color: #60a5fa; border-radius: 6px; font-size: 0.72rem; font-weight: 800; min-height: 42px; text-align: center; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s ease; }
+        .btn-super-insert:hover { background: #2563eb; color: #fff; border-color: #3b82f6; }
+        .btn-super-insert:active { transform: scale(0.98); }
+
+        /* DSP Blocks indicators - Tablet Hit Targets */
+        .dsp-badges { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 8px; }
+        .dsp-pill { font-size: 0.68rem; text-align: center; background: #161b22; min-height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 5px; border: 1px solid #30363d; color: var(--text-dim); font-weight: 700; cursor: pointer; transition: all 0.15s ease; }
+        .dsp-pill:hover { border-color: var(--accent-blue); color: #fff; }
+        .dsp-pill:active { transform: scale(0.97); }
+        .dsp-pill.active { background: #0e3020; border-color: var(--accent-green); color: var(--accent-green); }
+        .dsp-pill.reeq-badge { background: #1e1b4b; border-color: #818cf8; color: #c7d2fe; }
+
+        /* Fader & Real Audio Meter Section */
+        .fader-section { flex: 1; display: flex; justify-content: center; align-items: stretch; gap: 4px; position: relative; margin: 6px 0; min-height: 290px; }
+        .meter-container { width: 12px; background: #0b0d10; border-radius: 3px; display: flex; flex-direction: column-reverse; overflow: hidden; border: 1px solid #1f242d; position: relative; margin: 6px 0 24px 0; }
+        /* Calibrated Console Meter Scale: < -18dB green, -18dB yellow (58%), -6dB orange (83%), 0dB red (100% clipping) */
+        .meter-bar { width: 100%; height: 0%; background: linear-gradient(to top, #10b981 0%, #10b981 55%, #eab308 58%, #f59e0b 80%, #f97316 83%, #ef4444 98%, #dc2626 100%); transition: height 0.04s ease-out; }
+        .meter-ticks { position: absolute; right: 0; top: 0; bottom: 0; width: 3px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; opacity: 0.35; }
+        .meter-tick { width: 100%; height: 1px; background: #fff; }
+
+        /* Multi-Color Gain Reduction (GR) Meter alongside Channel Fader */
+        /* Top-down reduction: 0-6dB green (safe acoustic), 6-12dB orange (safe vocal/leveler), >12dB red (heavy reduction alert) */
+        .gr-meter-container {
+            width: 10px;
+            background: #06080a;
+            border-radius: 3px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #1e2633;
+            position: relative;
+            margin: 6px 0 24px 0;
+        }
+        .gr-meter-bar {
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(to bottom, #10b981 0%, #10b981 30%, #f59e0b 31%, #f59e0b 60%, #ef4444 61%, #b91c1c 100%);
+            transition: height 0.05s ease-out;
+        }
+        .gr-meter-scale-title {
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.48rem;
+            font-weight: 900;
+            color: #64748b;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            pointer-events: none;
+            letter-spacing: 0.5px;
+        }
+
+        /* Full-Throw Precision Fader Track (100mm Virtual Throw) */
+        .fader-track {
+            flex: 1;
+            position: relative;
+            min-width: 82px;
+            cursor: pointer;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        /* dB Scale Markings (aligned from +10dB top to -inf bottom across full slot) */
+        .fader-scale {
+            position: absolute;
+            left: 2px;
+            top: 14px;
+            bottom: 38px;
+            width: 42px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+            font-size: 0.58rem;
+            color: #64748b;
+            font-family: -apple-system, monospace;
+            font-weight: 700;
+            text-align: right;
+        }
+        .scale-mark {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            height: 0;
+            position: relative;
+        }
+        .scale-mark span {
+            margin-right: 2px;
+        }
+        .scale-mark.zero { color: #f8fafc; font-weight: 900; }
+        .scale-mark::after {
+            content: "";
+            width: 10px;
+            height: 1px;
+            background: #475569;
+        }
+        .scale-mark.zero::after {
+            width: 14px;
+            height: 2px;
+            background: #38bdf8;
+            box-shadow: 0 0 6px #38bdf8;
+        }
+
+        /* Physical Recessed Metal Console Slot (Visual guidance channel) */
+        .fader-slot-bg {
+            position: absolute;
+            left: 45px;
+            width: 6px;
+            top: 14px;
+            bottom: 38px;
+            background: #060709;
+            border: 1px solid #1a2028;
+            border-radius: 3px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.95);
+            pointer-events: none;
+        }
+        .fader-slot-centerline {
+            position: absolute;
+            left: 47.5px;
+            width: 1px;
+            top: 16px;
+            bottom: 40px;
+            background: rgba(255,255,255,0.08);
+            pointer-events: none;
+        }
+
+        /* Authentic Physical Console Fader Cap (Pointer-dragged, glides 100% of slot length) */
+        .fader-cap {
+            position: absolute;
+            left: 20px;
+            width: 56px;
+            height: 44px;              /* 44px minimum touch target */
+            margin-bottom: -22px;     /* Center fader cap line directly over slot/scale mark */
+            bottom: 38px;
+            background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 32%, #334155 47%, #ffffff 50%, #334155 53%, #94a3b8 68%, #f1f5f9 100%);
+            border: 1.5px solid #0f172a;
+            border-radius: 5px;
+            box-shadow: 0 5px 14px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.9);
+            cursor: grab;
+            z-index: 10;
+            pointer-events: auto;
+            touch-action: none;
+            transition: box-shadow 0.1s ease;
+        }
+        .fader-cap:active, .fader-cap.dragging {
+            cursor: grabbing;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.98), 0 0 14px rgba(56,189,248,0.8), inset 0 1px 0 rgba(255,255,255,1);
+        }
+        /* Extended invisible grab zone — makes it easy to grab on touchscreen */
+        .fader-cap::before {
+            content: "";
+            position: absolute;
+            inset: -14px -8px;       /* 14px above/below, 8px left/right extra grab area */
+            pointer-events: auto;     /* This extends the hit zone WITHOUT visual change */
+            touch-action: none;
+        }
+        /* White alignment index line on fader cap */
+        .fader-cap::after {
+            content: "";
+            position: absolute;
+            top: 21px;
+            left: 3px;
+            right: 3px;
+            height: 2px;
+            background: #ffffff;
+            box-shadow: 0 0 5px rgba(255,255,255,0.9);
+            pointer-events: none;
+        }
+        .fader-db-display {
+            position: absolute;
+            bottom: 2px;
+            font-size: 0.72rem;
+            color: #94a3b8;
+            font-weight: 800;
+            width: 100%;
+            text-align: center;
+            font-family: monospace;
+            pointer-events: none;
+        }
+
+        /* Channel Buttons - Tablet Hit Targets >= 44px */
+        .btn-group { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+        .btn-strip { border: none; border-radius: 6px; min-height: 44px; font-size: 0.78rem; font-weight: 800; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; letter-spacing: 0.5px; transition: all 0.15s ease; touch-action: manipulation; }
+        .btn-strip:active { transform: scale(0.97); }
+        .btn-mute { background: #30363d; }
+        .btn-mute.active { background: var(--accent-red); box-shadow: 0 0 12px rgba(231,76,60,0.8); }
+        .btn-solo { background: #30363d; }
+        .btn-solo.active { background: var(--accent-orange); color: #000; box-shadow: 0 0 12px rgba(243,156,18,0.8); }
+        .btn-amm { background: #1f2937; font-size: 0.7rem; border: 1px solid #374151; }
+        .btn-amm.active { background: #0284c7; border-color: #38bdf8; }
+
+        /* Interactive DSP Modal Dialogs */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 12px; }
+        .modal-overlay.open { display: flex; }
+        .dsp-modal { background: #181a1f; border: 1px solid #333a42; border-radius: 12px; width: 780px; max-width: 96vw; max-height: 94vh; overflow-y: auto; padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.9); display: flex; flex-direction: column; gap: 14px; }
+        /* ReEQ JSFX Authentic Styling and Touch Controls - Full Screen Tablet Expansion */
+        .dsp-modal.reeq-modal,
+        .dsp-modal.reaeq-modal {
+            width: 98vw;
+            max-width: 1400px;
+            height: 97vh;
+            max-height: 98vh;
+            padding: 12px 18px;
+            background: #101216;
+            border: 1.5px solid #4338ca;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.95);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Fullscreen ReaEQ Canvas Engine Bounds */
+        .dsp-modal.reeq-modal.fullscreen,
+        .dsp-modal.reaeq-modal.fullscreen,
+        .reaeq-modal.fullscreen {
+            width: 100vw !important;
+            height: calc(100vh - 60px) !important;
+            max-width: none !important;
+            max-height: none !important;
+            position: fixed !important;
+            top: 60px !important;
+            left: 0 !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            padding: 10px 14px !important;
+            box-sizing: border-box !important;
+        }
+
+        .modal-overlay:has(.fullscreen),
+        .modal-overlay.has-fullscreen {
+            padding: 0 !important;
+            z-index: 9999 !important;
+        }
+
+        .dsp-modal.ao-modal { width: 1040px; max-width: 98vw; padding: 0; background: transparent; border: none; box-shadow: none; }
+        .reeq-canvas-container {
+            position: relative;
+            width: 100%;
+            flex: 1 1 0;
+            min-height: 0;
+            background: #0f1115;
+            border-radius: 8px;
+            border: 1px solid #1e2430;
+            overflow: hidden;
+            cursor: crosshair;
+            touch-action: none;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+        }
+        #reeq-canvas { width: 100%; height: 100%; display: block; }
+        .reeq-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1a1e24; border-radius: 6px; border: 1px solid #2d3748; font-size: 0.76rem; flex-shrink: 0 !important; }
+        .reeq-node-strip { display: flex; gap: 8px; overflow-x: auto; padding: 8px 2px; margin-top: 4px; scrollbar-width: thin; flex-shrink: 0 !important; }
+        .modal-header { flex-shrink: 0 !important; }
+        .reeq-node-card { flex: 1; min-width: 105px; background: #161a20; border-radius: 6px; padding: 8px 10px; border: 1px solid #262f3d; font-size: 0.72rem; cursor: pointer; transition: all 0.15s ease; user-select: none; }
+        .reeq-node-card.selected { border-color: #6366f1; background: #1f2533; box-shadow: 0 0 12px rgba(99,102,241,0.4); }
+        .reeq-node-header { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 0.78rem; margin-bottom: 6px; }
+        .reeq-node-controls { display: flex; flex-direction: column; gap: 4px; color: #94a3b8; }
+        .reeq-node-controls select { background: #0e1217; border: 1px solid #2d3748; color: #f1f5f9; font-size: 0.72rem; font-weight: 600; border-radius: 4px; padding: 5px; min-height: 34px; cursor: pointer; }
+        .reeq-q-slider-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+        .reeq-q-slider { flex: 1; height: 16px; cursor: pointer; accent-color: #6366f1; }
+
+        
+        /* Input Stage De-Noiser Gate LED & Controls */
+        .gate-led {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            background: #eab308;
+            box-shadow: 0 0 6px #eab308;
+            transition: all 0.15s ease;
+        }
+        .gate-led.open {
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+        }
+        .gate-led.closed {
+            background: #f59e0b;
+            box-shadow: 0 0 6px #f59e0b;
+        }
+        .btn-learn-noise {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #f1f5f9;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-learn-noise:hover { background: #334155; border-color: #94a3b8; }
+        .btn-learn-noise.learning { background: #dc2626; border-color: #ef4444; color: #fff; animation: pulse 0.8s infinite; }
+
+        /* Dual Compressor Rack Layout */
+        .dual-comp-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+        .dual-comp-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+        }
+        .dual-comp-badge {
+            font-size: 0.68rem;
+            font-weight: 900;
+            font-family: monospace;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .dual-comp-badge.fet { background: #0369a1; color: #e0f2fe; }
+        .dual-comp-badge.la { background: #78350f; color: #fef3c7; }
+
+        /* Auto-EQ Room Calibration Wizard Modal */
+        .room-cal-box {
+            background: #0b0f17;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            font-family: -apple-system, monospace;
+        }
+        .room-cal-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .room-cal-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: #e2e8f0;
+        }
+        .room-cal-step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+        .room-cal-curve-canvas {
+            width: 100%;
+            height: 180px;
+            background: #030712;
+            border-radius: 6px;
+            border: 1px solid #1f2937;
+        }
+        .safety-limiter-badge {
+            font-size: 0.62rem;
+            font-weight: 900;
+            color: #38bdf8;
+            background: #0f172a;
+            border: 1px solid #0284c7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 6px;
+        }
+
+        /* Automatic Feedback Destroyer (AFD) Real-time Tracking UI */
+        .afd-container { display: flex; flex-direction: column; gap: 12px; }
+        .afd-spectrum-container { position: relative; width: 100%; height: 260px; background: #07090e; border-radius: 6px; border: 1px solid #1e2430; overflow: hidden; }
+        #afd-spectrum-canvas { width: 100%; height: 100%; display: block; }
+        .afd-hud { position: absolute; top: 10px; left: 14px; display: flex; gap: 16px; font-size: 0.74rem; color: #94a3b8; font-family: monospace; }
+        .afd-hud-item { display: flex; align-items: center; gap: 5px; }
+        .afd-hud-val { color: #f8fafc; font-weight: bold; }
+        .afd-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 8px; }
+        .afd-filter-card { background: #131720; border: 1px solid #232b38; border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 0.68rem; font-family: monospace; transition: all 0.2s ease; }
+        .afd-filter-card.hunting { border-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+        .afd-filter-card.clamped { border-color: #ef4444; background: rgba(239, 68, 68, 0.12); box-shadow: 0 0 10px rgba(239, 68, 68, 0.25); }
+        .afd-filter-header { display: flex; justify-content: space-between; font-weight: bold; }
+        .afd-filter-status { padding: 2px 5px; border-radius: 3px; font-size: 0.6rem; text-transform: uppercase; font-weight: 800; }
+        .status-idle { background: #1f2937; color: #94a3b8; }
+        .status-hunting { background: #b45309; color: #fef3c7; animation: pulse 1s infinite; }
+        .status-clamped { background: #991b1b; color: #fee2e2; }
+        .afd-controls-row { display: flex; justify-content: space-between; align-items: center; background: #11141a; padding: 10px 14px; border-radius: 6px; border: 1px solid #1f242d; }
+        .afd-btn-danger { background: #dc2626; border: 1px solid #ef4444; color: #fff; padding: 8px 16px; min-height: 42px; border-radius: 6px; font-size: 0.78rem; font-weight: 800; cursor: pointer; transition: all 0.15s ease; }
+        .afd-btn-danger:hover { background: #b91c1c; }
+        .afd-btn-action { background: #2563eb; border: 1px solid #3b82f6; color: #fff; padding: 8px 16px; min-height: 42px; border-radius: 6px; font-size: 0.78rem; font-weight: 800; cursor: pointer; transition: all 0.15s ease; }
+        .afd-btn-action:hover { background: #1d4ed8; }
+
+        /* Mixer View Navigation Tabs - 10" Tablet Ergonomics */
+        .mixer-nav-tabs { display: flex; gap: 6px; background: #15181e; padding: 6px 14px; border-bottom: 1px solid var(--border-color); align-items: center; justify-content: space-between; flex-wrap: wrap; }
+        .tab-group { display: flex; gap: 6px; align-items: center; }
+        .btn-tab { background: #21262d; border: 1px solid #30363d; color: #8b949e; min-height: 44px; padding: 6px 18px; border-radius: 6px; font-size: 0.82rem; font-weight: 800; cursor: pointer; transition: all 0.15s ease; touch-action: manipulation; }
+        .btn-tab:hover { background: #30363d; color: #f0f3f6; }
+        .btn-tab.active { background: var(--accent-blue); border-color: #58a6ff; color: #ffffff; box-shadow: 0 0 12px rgba(56,189,248,0.4); }
+
+        /* Sends on Fader (SOF) Action Toolbar - 10" Tablet Ergonomics */
+        .sof-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .sof-label { font-size: 0.76rem; color: #f59e0b; font-weight: 900; text-transform: uppercase; margin-right: 2px; }
+        .btn-sof { background: #1f242d; border: 1px solid #374151; color: #94a3b8; min-height: 44px; padding: 6px 12px; border-radius: 6px; font-size: 0.76rem; font-weight: 800; cursor: pointer; transition: all 0.15s ease; touch-action: manipulation; }
+        .btn-sof:hover { color: #fff; border-color: #60a5fa; }
+        .btn-sof:active { transform: scale(0.97); }
+        .btn-sof.active { background: #d97706; border-color: #fbbf24; color: #000; box-shadow: 0 0 12px rgba(245,158,11,0.6); font-weight: 900; }
+        .btn-sof-exit { background: #374151; border: 1px solid #4b5563; color: #f87171; min-height: 44px; padding: 6px 14px; border-radius: 6px; font-size: 0.76rem; font-weight: 900; cursor: pointer; display: none; }
+        .btn-sof-exit.visible { display: block; }
+
+        /* Sends on Faders (SOF) Active Visual Banner */
+        .sof-banner { background: linear-gradient(90deg, #b45309, #d97706); color: #000; padding: 8px 18px; font-size: 0.84rem; font-weight: 900; display: none; align-items: center; justify-content: space-between; letter-spacing: 0.5px; border-bottom: 2px solid #fbbf24; }
+        .sof-banner.active { display: flex; }
+
+        /* Touch Fader Speed Limiter Setting */
+        .speed-control-box { display: flex; align-items: center; gap: 8px; font-size: 0.74rem; color: #8b949e; background: #161b22; padding: 4px 10px; min-height: 44px; border-radius: 6px; border: 1px solid #30363d; }
+        .speed-slider { width: 85px; height: 18px; cursor: pointer; }
+
+        /* Channel Strip Color Accents for FX Sends & Monitors */
+        .channel-strip.aux-send { border-top: 5px solid #8b5cf6; }
+        .channel-strip.fx-return { border-top: 5px solid #ec4899; }
+        .channel-strip.monitor-out { border-top: 5px solid #06b6d4; }
+
+        /* Global Master Tap Tempo Bar in Header */
+        .tap-tempo-box { display: flex; align-items: center; gap: 6px; background: #161a22; border: 1px solid #30363d; border-radius: 6px; padding: 3px 8px; min-height: 44px; }
+        .btn-tap-tempo { background: #2563eb; border: 1px solid #3b82f6; color: #fff; min-height: 38px; min-width: 60px; padding: 4px 12px; border-radius: 5px; font-weight: 900; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; touch-action: manipulation; transition: all 0.1s ease; }
+        .btn-tap-tempo:active, .btn-tap-tempo.flash { background: #38bdf8; color: #000; box-shadow: 0 0 14px #38bdf8; transform: scale(0.96); }
+        .tempo-display { font-family: monospace; font-size: 1rem; font-weight: 900; color: #f8fafc; min-width: 68px; text-align: center; }
+        .tempo-bpm-unit { font-size: 0.65rem; color: #8b949e; font-weight: 700; margin-left: 1px; }
+
+        /* Docked Universal Momentary FX Mute ("Mute All Sends") */
+        .btn-fx-mute-momentary {
+            min-width: 120px;
+            min-height: 44px;
+            padding: 4px 14px;
+            background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%);
+            border: 2px solid #ef4444;
+            color: #ffffff;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: all 0.12s ease;
+        }
+        .btn-fx-mute-momentary:active, .btn-fx-mute-momentary.engaged {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+            color: #000;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.9), inset 0 2px 4px rgba(0,0,0,0.4);
+            transform: scale(0.95);
+        }
+        .btn-fx-mute-sub { font-size: 0.60rem; text-transform: uppercase; font-weight: 800; opacity: 0.9; }
+
+        /* Rename Modal & Color Tagging Popover */
+        .color-popover { position: fixed; z-index: 120; background: #181a20; border: 1.5px solid #3b82f6; border-radius: 10px; padding: 14px; box-shadow: 0 12px 36px rgba(0,0,0,0.9); display: none; flex-direction: column; gap: 10px; width: 280px; }
+        .color-popover.open { display: flex; }
+        .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .color-swatch { width: 100%; height: 38px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.2); cursor: pointer; transition: transform 0.1s ease; }
+        .color-swatch:active { transform: scale(0.92); border-color: #fff; }
+
+        .rename-modal-card { width: 420px; max-width: 90vw; background: #161a22; border: 1.5px solid #38bdf8; border-radius: 12px; padding: 20px; box-shadow: 0 16px 40px rgba(0,0,0,0.9); display: flex; flex-direction: column; gap: 14px; }
+        .rename-input { background: #0b0d12; border: 1.5px solid #30363d; border-radius: 6px; color: #fff; font-size: 1.1rem; padding: 10px 14px; font-weight: bold; width: 100%; outline: none; }
+        .rename-input:focus { border-color: #38bdf8; }
+
+        /* Input Gain & Regain Matching Controls */
+        .gain-section { display: flex; align-items: center; justify-content: space-between; background: #13171e; border: 1px solid #232b38; border-radius: 6px; padding: 4px 6px; margin-bottom: 6px; }
+        .gain-label-box { display: flex; flex-direction: column; }
+        .gain-title { font-size: 0.62rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; }
+        .gain-hw-sub { font-size: 0.52rem; color: #f59e0b; font-weight: 700; }
+        .gain-val-display { font-size: 0.76rem; font-weight: 900; font-family: monospace; color: #38bdf8; min-width: 44px; text-align: right; }
+        .btn-regain { background: #1f2937; border: 1px solid #374151; color: #94a3b8; font-size: 0.58rem; font-weight: 900; padding: 3px 5px; border-radius: 4px; cursor: pointer; transition: all 0.12s ease; }
+        .btn-regain.active { background: #059669; border-color: #10b981; color: #ffffff; box-shadow: 0 0 8px rgba(16, 185, 129, 0.6); }
+
+        /* Unified Channel FX Strip Quick Button */
+        .btn-fx-quick-open { background: linear-gradient(180deg, #1e2530 0%, #161a22 100%); border: 1.5px solid #38bdf8; border-radius: 6px; min-height: 44px; padding: 4px 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; margin-bottom: 6px; transition: all 0.15s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+        .btn-fx-quick-open:active { background: #2563eb; transform: scale(0.97); }
+        .fx-quick-title { font-size: 0.72rem; font-weight: 900; color: #38bdf8; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+        .fx-quick-flow { font-size: 0.56rem; font-weight: 800; color: #94a3b8; display: flex; gap: 3px; align-items: center; }
+        .fx-flow-dot { width: 5px; height: 5px; border-radius: 50%; background: #10b981; }
+
+        /* Channel FX Rack Strip Quick Settings Modal */
+        .dsp-modal.channel-rack-modal { width: 920px; max-width: 96vw; background: #0f1217; border: 1.5px solid #38bdf8; }
+        .rack-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .rack-row { background: #161b24; border: 1px solid #232c3a; border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px; transition: all 0.15s ease; }
+        .rack-row:hover { border-color: #3b82f6; background: #1a202c; }
+        .rack-header-area { display: flex; align-items: center; gap: 10px; min-width: 170px; }
+        .rack-num { background: #222938; border: 1px solid #374151; color: #38bdf8; font-size: 0.7rem; font-weight: 900; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .rack-name { font-size: 0.88rem; font-weight: 800; color: #f8fafc; }
+        .rack-sub { font-size: 0.65rem; color: #8b949e; }
+        .rack-inline-controls { display: flex; gap: 10px; align-items: center; flex: 1; justify-content: center; }
+        .rack-mini-knob { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .rack-mini-label { font-size: 0.6rem; color: #8b949e; font-weight: 700; text-transform: uppercase; }
+        .rack-mini-slider { width: 75px; height: 16px; cursor: pointer; }
+        .rack-mini-val { font-size: 0.72rem; color: #58a6ff; font-family: monospace; font-weight: 800; }
+        .rack-actions { display: flex; align-items: center; gap: 8px; }
+        .btn-rack-open { background: #2563eb; border: 1px solid #3b82f6; color: #fff; min-height: 40px; padding: 4px 12px; border-radius: 6px; font-size: 0.74rem; font-weight: 800; cursor: pointer; }
+        .btn-rack-open:active { transform: scale(0.95); background: #1d4ed8; }
+        .btn-rack-bypass { background: #1e2430; border: 1px solid #374151; color: #94a3b8; min-height: 40px; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; cursor: pointer; }
+        .btn-rack-bypass.active { background: #10b981; color: #000; border-color: #34d399; font-weight: 900; }
+
+        /* Quick-Access Expanded EQ Card on DSP Rack Page */
+        .rack-row.rack-eq-card {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            background: linear-gradient(180deg, #11141c 0%, #0d0f15 100%);
+            border: 2px solid #4f46e5;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);
+            padding: 14px 16px;
+        }
+        .rack-eq-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .rack-eq-canvas-wrap {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            background: #090a0f;
+            border-radius: 6px;
+            border: 1px solid #1e1b4b;
+            overflow: hidden;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+        }
+        #dsp-rack-reeq-mini {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .rack-eq-quick-strip {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            width: 100%;
+            padding: 4px 0 2px;
+            scrollbar-width: thin;
+        }
+        .rack-eq-quick-node {
+            flex: 1;
+            min-width: 90px;
+            background: #141722;
+            border: 1px solid #283144;
+            border-radius: 6px;
+            padding: 6px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            user-select: none;
+        }
+        .rack-eq-quick-node.active {
+            border-color: #818cf8;
+            background: #1e1b4b;
+            box-shadow: 0 0 10px rgba(129, 140, 248, 0.35);
+        }
+
+        /* Comp model switcher & Direct tap mode selector buttons */
+        .comp-model-group {
+            display: flex;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 2px;
+            gap: 4px;
+        }
+        .comp-model-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #94a3b8;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .comp-model-btn.active {
+            background: #0284c7;
+            color: #fff;
+            border-color: #38bdf8;
+            box-shadow: 0 0 8px rgba(56,189,248,0.5);
+        }
+        .tap-mode-group {
+            display: flex;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 3px;
+            gap: 6px;
+        }
+        .tap-mode-btn {
+            background: #1e293b;
+            border: 1.5px solid #334155;
+            color: #94a3b8;
+            border-radius: 5px;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .tap-mode-btn.active {
+            background: #10b981;
+            color: #022c22;
+            border-color: #34d399;
+            box-shadow: 0 0 10px rgba(16,185,129,0.5);
+        }
+
+        /* ============================================================
+           DSP RACK FULL-PAGE VIEW  (replaces mixer canvas when active)
+           ============================================================ */
+        #dsp-rack-page {
+            display: none;          /* hidden by default — shown by showDspRackPage() */
+            position: fixed;
+            inset: 56px 0 0 0;     /* below the fixed header */
+            background: #0b0d12;
+            z-index: 50;
+            flex-direction: row;
+            overflow: hidden;
+        }
+        #dsp-rack-page.open { display: flex; }
+
+        /* Left panel — DSP rack controls (scrollable) */
+        #dsp-rack-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 14px 16px;
+            gap: 12px;
+        }
+
+        /* DSP Rack page header bar */
+        .dsp-rack-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #141720;
+            border: 1px solid #232c3a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            flex-shrink: 0;
+        }
+        .dsp-rack-page-title {
+            font-size: 1rem;
+            font-weight: 900;
+            color: #38bdf8;
+            letter-spacing: 0.5px;
+        }
+        .dsp-rack-page-subtitle {
+            font-size: 0.72rem;
+            color: #8b949e;
+            margin-top: 2px;
+        }
+        .btn-rack-back {
+            background: #1e2430;
+            border: 2px solid #38bdf8;
+            color: #38bdf8;
+            min-height: 48px;
+            min-width: 120px;
+            padding: 6px 18px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 900;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.15s ease;
+        }
+        .btn-rack-back:active { background: #38bdf8; color: #000; transform: scale(0.97); }
+
+        /* Gain section inside the DSP rack page */
+        .rack-gain-section {
+            background: #131820;
+            border: 1.5px solid #38bdf8;
+            border-radius: 8px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-shrink: 0;
+        }
+        .rack-gain-title { font-size: 0.78rem; font-weight: 900; color: #38bdf8; text-transform: uppercase; }
+        .rack-gain-hw { font-size: 0.62rem; color: #f59e0b; font-weight: 700; }
+        .rack-gain-slider { flex: 1; height: 24px; cursor: pointer; accent-color: #38bdf8; }
+        .rack-gain-val { font-size: 1rem; font-weight: 900; font-family: monospace; color: #38bdf8; min-width: 60px; text-align: right; }
+
+        /* ============================================================
+           FOCUSED CHANNEL FADER STRIP (LEFT PANEL OF DSP RACK)
+           Replaces the whole quick mixer with just the active channel strip
+           placed directly on the left side of the screen
+           ============================================================ */
+        #dsp-rack-page {
+            display: none;
+            position: fixed;
+            inset: 56px 0 0 0;
+            background: #0b0d12;
+            z-index: 50;
+            flex-direction: row;
+            overflow: hidden;
+        }
+        #dsp-rack-page.open { display: flex; }
+
+        #dsp-rack-focused-strip {
+            width: 170px;
+            flex-shrink: 0;
+            background: #141720;
+            border-right: 2px solid #232c3a;
+            display: flex;
+            flex-direction: column;
+            padding: 14px 10px;
+            box-shadow: 4px 0 16px rgba(0,0,0,0.6);
+            z-index: 5;
+        }
+
+        .focused-strip-header {
+            text-align: center;
+            border-bottom: 1px solid #283140;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        .focused-strip-badge {
+            font-size: 0.85rem;
+            font-weight: 900;
+            background: #38bdf8;
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+        .focused-strip-name {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #f8fafc;
+            margin-top: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ============================================================
+           TAL-DELAY VINTAGE GREEN / EMERALD / TEAL COLOR THEME
+           Exact replica of TAL chassis with custom tape/delay styling
+           ============================================================ */
+        .tal-plugin-frame.tal-theme-delay {
+            border-color: #1f382b;
+            background: #131a16;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(52,211,153,0.15);
+        }
+        .tal-plugin-frame.tal-theme-delay .tal-title-banner {
+            background: #2e5944;
+            color: #d1fae5;
+            text-shadow: 0 0 10px rgba(16,185,129,0.5);
+        }
+        .tal-plugin-frame.tal-theme-delay .tal-header-bar {
+            background: #0d1410;
+            border-bottom-color: #050a07;
+        }
+        .tal-plugin-frame.tal-theme-delay .tal-top-panel {
+            background: #16201a;
+            border-bottom-color: #0a110d;
+        }
+        .tal-plugin-frame.tal-theme-delay .tal-bottom-panel {
+            background: #121915;
+            border-top-color: #1a2820;
+        }
+        .tal-plugin-frame.tal-theme-delay .tal-sh-main { background: #134e38; color: #6ee7b7; }
+        .tal-plugin-frame.tal-theme-delay .tal-sh-mix { background: #064e3b; color: #a7f3d0; }
+        .tal-plugin-frame.tal-theme-delay .tal-sh-mod { background: #14532d; color: #86efac; }
+        .tal-plugin-frame.tal-theme-delay .tal-sh-tune { background: #164e63; color: #67e8f9; }
+        .tal-plugin-frame.tal-theme-delay .tal-sh-eq { background: #0e7490; color: #cffafe; }
+        .tal-plugin-frame.tal-theme-delay .tal-sh-lofi { background: #713f12; color: #fde047; }
+        .tal-plugin-frame.tal-theme-delay .tal-footer-title { color: #34d399; }
+
+        /* ============================================================
+           TAL-REVERB-4 EXACT 1:1 AUTHENTIC GUI SKIN
+           Exact replica of TAL-Reverb-4 plugin interface:
+           - Header with preset browser, disk, undo/redo
+           - Top Section: MAIN (faders for Size, Damp, Delay, Diffuse, Stereo)
+             + DUCKING knob + S-Chain + MIX (faders for Dry, Wet)
+           - Bottom Section: MOD (Rate, Amount), TUNE (Tune, Amount),
+             EQ (Low Cut, High Cut, Peak), LO-FI (Bits, SR)
+           - Authentic textured dark chassis, glowing blue/purple/orange indicator rings,
+             brushed metallic fader caps with position readout
+           ============================================================ */
+        .tal-plugin-frame {
+            background: #17181a;
+            border: 2px solid #2d3035;
+            border-radius: 8px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.08);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            color: #d1d5db;
+            overflow: hidden;
+            user-select: none;
+            max-width: 780px;
+            margin: 0 auto;
+        }
+        .tal-title-banner {
+            background: #8b8e89;
+            color: #17181a;
+            font-family: 'Arial Black', Impact, sans-serif;
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+            text-align: right;
+            padding: 8px 18px 4px;
+            text-transform: uppercase;
+            font-weight: 900;
+            line-height: 1;
+        }
+        .tal-header-bar {
+            background: #111214;
+            border-bottom: 2px solid #000;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .tal-preset-box {
+            display: flex;
+            align-items: center;
+            background: #1d2024;
+            border: 1px solid #363b42;
+            border-radius: 4px;
+            overflow: hidden;
+            flex: 0 0 250px;
+        }
+        .tal-preset-arrow {
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+        .tal-preset-arrow:hover { color: #fff; background: #282d33; }
+        .tal-preset-name {
+            flex: 1;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #e5e7eb;
+            white-space: nowrap;
+        }
+        .tal-icon-btn {
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .tal-icon-btn:hover { color: #fff; background: #22262c; }
+        .tal-top-panel {
+            background: #1c1e22;
+            border-bottom: 2px solid #111315;
+            padding: 12px 14px 14px;
+            display: flex;
+            gap: 12px;
+        }
+        .tal-section-box {
+            background: #15171a;
+            border: 1px solid #282c32;
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+        .tal-section-header {
+            font-size: 0.72rem;
+            font-weight: 900;
+            text-align: center;
+            padding: 3px;
+            border-radius: 3px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .tal-sh-main { background: #5a1c1d; color: #fca5a5; }
+        .tal-sh-mix { background: #164e52; color: #99f6e4; }
+        .tal-fader-row {
+            display: flex;
+            gap: 6px;
+            align-items: stretch;
+            justify-content: space-around;
+            flex: 1;
+        }
+        .tal-fader-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 50px;
+        }
+        .tal-fader-val {
+            font-size: 0.62rem;
+            font-family: monospace;
+            color: #9ca3af;
+            text-align: center;
+            min-height: 14px;
+            margin-bottom: 2px;
+        }
+        .tal-vtrack {
+            position: relative;
+            width: 28px;
+            height: 130px;
+            background: #0d0e10;
+            border: 1px solid #23272e;
+            border-radius: 3px;
+            display: flex;
+            justify-content: center;
+            touch-action: none;
+            cursor: pointer;
+        }
+        .tal-vtrack-groove {
+            position: absolute;
+            width: 2px;
+            top: 8px;
+            bottom: 8px;
+            background: #000;
+            border-right: 1px solid #22262d;
+        }
+        .tal-vtrack-ticks {
+            position: absolute;
+            left: 2px;
+            right: 2px;
+            top: 8px;
+            bottom: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+        .tal-tick {
+            width: 100%;
+            height: 1px;
+            background: #1f232a;
+        }
+        .tal-tick.major {
+            background: #374151;
+        }
+        .tal-fader-handle {
+            position: absolute;
+            left: 2px;
+            right: 2px;
+            height: 20px;
+            margin-bottom: -10px;
+            background: linear-gradient(180deg, #373b42 0%, #1f2226 50%, #2f333a 100%);
+            border: 1px solid #4a505a;
+            border-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.2);
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        .tal-fader-handle::after {
+            content: '';
+            width: 14px;
+            height: 2px;
+            background: #9ca3af;
+            box-shadow: 0 0 3px #fff;
+        }
+        .tal-fader-label {
+            font-size: 0.64rem;
+            font-weight: 800;
+            color: #d1d5db;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 6px;
+            text-align: center;
+        }
+        .tal-mid-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 80px;
+            padding: 8px 4px;
+        }
+        .tal-schain-btn {
+            background: #2a2e34;
+            border: 1px solid #404650;
+            color: #9ca3af;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 6px 8px;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+        }
+        .tal-schain-btn.active {
+            background: #2563eb;
+            color: #fff;
+            border-color: #60a5fa;
+            box-shadow: 0 0 8px rgba(37,99,235,0.6);
+        }
+        .tal-rotary-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .tal-rotary-val {
+            font-size: 0.6rem;
+            font-family: monospace;
+            color: #9ca3af;
+        }
+        .tal-knob-canvas {
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            touch-action: none;
+        }
+        .tal-rotary-label {
+            font-size: 0.64rem;
+            font-weight: 800;
+            color: #d1d5db;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tal-bottom-panel {
+            background: #17181c;
+            padding: 12px 14px 14px;
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid #23272e;
+        }
+        .tal-btm-sub {
+            flex: 1;
+            background: #131417;
+            border: 1px solid #24282f;
+            border-radius: 6px;
+            padding: 8px 6px;
+            display: flex;
+            flex-direction: column;
+        }
+        .tal-sh-mod { background: #3b2a52; color: #d8b4fe; }
+        .tal-sh-tune { background: #3c2a38; color: #f472b6; }
+        .tal-sh-eq { background: #1e3552; color: #93c5fd; }
+        .tal-sh-lofi { background: #4a3822; color: #fcd34d; }
+        .tal-btm-knobs {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-top: 6px;
+            align-items: center;
+            justify-items: center;
+        }
+        .tal-btm-knobs.dual-col {
+            grid-template-columns: 1fr 1fr;
+        }
+        .tal-footer-bar {
+            background: #101113;
+            border-top: 1px solid #1a1c20;
+            padding: 6px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.65rem;
+            color: #6b7280;
+        }
+        .tal-footer-title {
+            font-family: 'Arial Black', Impact, sans-serif;
+            font-size: 1.4rem;
+            color: #8b8e89;
+            letter-spacing: 1px;
+            line-height: 1;
+        }
+
+        /* ============================================================
+           ATLANTIS / CONVOLVER IR REVERB AUTHENTIC GUI
+           - Real acoustic impulse space display with waveform/envelope
+           - Drop-zone style circular space selector
+           - Pre-delay, Wet, Dry faders / controls
+           - Pre-EQ & Post-EQ sculpt filters
+           - Acoustic Damping & Room Size parameters
+           ============================================================ */
+        .ir-plugin-frame {
+            background: #14171d;
+            border: 2px solid #252b36;
+            border-radius: 8px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.85);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            color: #d1d5db;
+            overflow: hidden;
+            max-width: 780px;
+            margin: 0 auto;
+        }
+        .ir-header-bar {
+            background: #0f1217;
+            border-bottom: 2px solid #1f2530;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ir-display-area {
+            background: #0b0d11;
+            border: 1px solid #1d222b;
+            border-radius: 6px;
+            margin: 12px;
+            padding: 10px;
+            position: relative;
+        }
+        .ir-waveform-canvas {
+            width: 100%;
+            height: 120px;
+            display: block;
+            border-radius: 4px;
+            background: #07080b;
+        }
+        .ir-hud-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.72rem;
+            color: #94a3b8;
+        }
+        .ir-controls-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 0 12px 14px;
+        }
+        .ir-card {
+            background: #11141a;
+            border: 1px solid #202633;
+            border-radius: 6px;
+            padding: 10px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .ir-card-label {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #818cf8;
+            text-transform: uppercase;
+        }
+        .ir-card-val {
+            font-size: 0.75rem;
+            font-family: monospace;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        /* ============================================================
+           ANALOG OBSESSION VINTAGE HARDWARE SUITE CSS
+           - LALA Leveling Amplifier: Brushed champagne/silver chassis,
+             amber illuminated backlit VU meter, bakelite fluted knobs,
+             red toggle, rocker limit switch, dual-stage optical physics.
+           - BUSTER Stereo Bus Limiter: Vintage slate-grey / black faceplate,
+             twin illuminated GR meters, crush/brickwall protection.
+           - FETISH 76: Classic black anodized brushed faceplate with blue/silver
+             inlays, ultra-fast attack/release, Dr. Pepper & All-Buttons ratio mode.
+           - ANALOG CONSOLE SUMMING: Discrete API / Neve / SSL transformer drive
+             with saturation, warmth harmonic saturation and crosstalk.
+           ============================================================ */
+        .dsp-modal.lala-modal, .dsp-modal.fetish-modal, .dsp-modal.limiter-modal, .dsp-modal.summing-modal {
+            width: 960px;
+            max-width: 98vw;
+            padding: 16px;
+            background: #111317;
+            border: 2px solid #374151;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.95);
+        }
+
+        /* Analog Obsession LALA Chassis */
+        .ao-chassis {
+            background: linear-gradient(180deg, #e7e5e4 0%, #d6d3d1 15%, #e7e5e4 50%, #d6d3d1 85%, #a8a29e 100%);
+            border: 3px solid #78716c;
+            border-radius: 8px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.9), inset 0 2px 3px rgba(255,255,255,0.8), inset 0 -2px 3px rgba(0,0,0,0.4);
+            color: #1c1917;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            position: relative;
+            padding: 18px 24px 22px;
+            user-select: none;
+        }
+        .ao-chassis.dark-theme {
+            background: linear-gradient(180deg, #262626 0%, #171717 30%, #262626 70%, #0a0a0a 100%);
+            border-color: #404040;
+            color: #f5f5f5;
+        }
+        .ao-chassis.limiter-theme {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 40%, #1e293b 80%, #020617 100%);
+            border-color: #334155;
+            color: #f8fafc;
+        }
+        .ao-chassis.summing-theme {
+            background: linear-gradient(180deg, #27272a 0%, #18181b 30%, #27272a 70%, #09090b 100%);
+            border-color: #3f3f46;
+            color: #fafafa;
+        }
+
+        /* Screws on corner of rack unit */
+        .ao-screw {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #a8a29e 30%, #57534e 90%);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ao-screw::after {
+            content: '';
+            width: 9px;
+            height: 2px;
+            background: #292524;
+            transform: rotate(35deg);
+        }
+        .ao-screw.top-left { top: 8px; left: 8px; }
+        .ao-screw.top-right { top: 8px; right: 8px; }
+        .ao-screw.bottom-left { bottom: 8px; left: 8px; }
+        .ao-screw.bottom-right { bottom: 8px; right: 8px; }
+
+        /* LALA Brand Badge */
+        .ao-brand-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .ao-brand-logo {
+            font-size: 0.82rem;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            line-height: 1.1;
+            color: #1c1917;
+            text-transform: uppercase;
+            border-bottom: 2px solid #dc2626;
+            padding-bottom: 2px;
+        }
+        .dark-theme .ao-brand-logo, .limiter-theme .ao-brand-logo, .summing-theme .ao-brand-logo {
+            color: #f5f5f5;
+        }
+        .ao-model-title {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #dc2626;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+        .ao-model-sub {
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+            font-weight: 800;
+            color: #57534e;
+            text-transform: uppercase;
+        }
+        .dark-theme .ao-model-sub, .limiter-theme .ao-model-sub, .summing-theme .ao-model-sub {
+            color: #94a3b8;
+        }
+
+        /* LALA Main Panel Grid */
+        .ao-main-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr 340px;
+            gap: 18px;
+            align-items: center;
+            margin-top: 14px;
+        }
+
+        /* Analog VU Meter Display (Warm Glowing Glass Frame) */
+        .ao-meter-housing {
+            background: #1c1917;
+            border: 4px solid #292524;
+            border-radius: 10px;
+            padding: 4px;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.85), inset 0 2px 6px rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .ao-vu-glass {
+            width: 100%;
+            height: 130px;
+            background: radial-gradient(ellipse at 50% 120%, #fed7aa 0%, #fef3c7 45%, #fde68a 80%, #d97706 100%);
+            border-radius: 6px;
+            position: relative;
+            box-shadow: inset 0 0 25px rgba(217, 119, 6, 0.4), inset 0 3px 6px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+        }
+        .ao-vu-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Large Bakelite Rotary Knob Styling (Touch-friendly 10" Tablet Target) */
+        .ao-knob-cluster {
+            display: flex;
+            gap: 22px;
+            justify-content: center;
+            align-items: center;
+        }
+        .ao-knob-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+        .ao-knob-title {
+            font-size: 0.76rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #292524;
+            text-align: center;
+        }
+        .dark-theme .ao-knob-title, .limiter-theme .ao-knob-title, .summing-theme .ao-knob-title {
+            color: #e2e8f0;
+        }
+        .ao-knob-canvas {
+            touch-action: none;
+            cursor: pointer;
+        }
+        .ao-knob-readout {
+            font-size: 0.72rem;
+            font-family: monospace;
+            font-weight: 900;
+            color: #dc2626;
+            min-height: 16px;
+        }
+
+        /* LALA Switch Cluster */
+        .ao-switch-cluster {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 10px;
+        }
+        .ao-toggle-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .ao-toggle-label {
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #44403c;
+        }
+        .dark-theme .ao-toggle-label, .limiter-theme .ao-toggle-label, .summing-theme .ao-toggle-label {
+            color: #cbd5e1;
+        }
+        .ao-toggle-btn {
+            background: linear-gradient(180deg, #f5f5f4 0%, #d6d3d1 100%);
+            border: 2px solid #78716c;
+            width: 48px;
+            height: 34px;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.9);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68rem;
+            font-weight: 900;
+            color: #292524;
+            touch-action: manipulation;
+            transition: all 0.12s ease;
+        }
+        .ao-toggle-btn:active { transform: scale(0.95); }
+        .ao-toggle-btn.power {
+            background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+            border-color: #991b1b;
+            color: #fff;
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.7);
+        }
+        .ao-toggle-btn.power.off {
+            background: #44403c;
+            border-color: #292524;
+            color: #78716c;
+            box-shadow: none;
+        }
+        .ao-toggle-btn.active {
+            background: #2563eb;
+            border-color: #1d4ed8;
+            color: #fff;
+            box-shadow: 0 0 12px rgba(37,99,235,0.6);
+        }
+
+        /* Analog Console Summing & Transformer Section */
+        .summing-deck {
+            background: #18181b;
+            border: 1px solid #3f3f46;
+            border-radius: 8px;
+            padding: 14px;
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        .summing-card {
+            background: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .summing-card-title {
+            font-size: 0.7rem;
+            font-weight: 900;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .summing-selector {
+            background: #18181b;
+            color: #f4f4f5;
+            border: 1px solid #3f3f46;
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* Credit signature in bottom corner like Analog Obsession */
+        .ao-credit {
+            position: absolute;
+            bottom: 6px;
+            right: 14px;
+            font-size: 0.62rem;
+            color: #78716c;
+            font-style: italic;
+            font-weight: 600;
+        }
+        .dark-theme .ao-credit, .limiter-theme .ao-credit, .summing-theme .ao-credit {
+            color: #64748b;
+        }
+
+        /* Ratio button row for 1176 FET compressor */
+        .ao-ratio-group {
+            display: flex;
+            gap: 6px;
+            background: #111;
+            padding: 4px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+        .ao-ratio-btn {
+            background: #222;
+            color: #94a3b8;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .ao-ratio-btn:hover { color: #fff; border-color: #666; }
+        .ao-ratio-btn.active {
+            background: #0284c7;
+            border-color: #38bdf8;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(56,189,248,0.5);
+        }
+        .ao-ratio-btn.all-in.active {
+            background: #dc2626;
+            border-color: #ef4444;
+            color: #fff;
+            box-shadow: 0 0 12px rgba(239,68,68,0.7);
+        }
+
+/* Inactive Channel Strips (Channels with no active hardware physical capture) */
+.channel-strip.inactive,
+.channel-strip[data-active=false] {
+    opacity: 0.35 !important;
+    filter: grayscale(85%) !important;
+    pointer-events: none !important;
+    transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+/* Keep ONLY hardware input router selector 100% active, bright, and interactive */
+.channel-strip.inactive select,
+.channel-strip.inactive .soft-patch-select,
+.channel-strip.inactive .input-router-select,
+.channel-strip.inactive [class*=router],
+.channel-strip.inactive [class*=input-select] {
+    opacity: 1 !important;
+    filter: none !important;
+    pointer-events: auto !important;
+    border: 1px solid #00e5ff !important;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.5) !important;
+}
+
+.channel-strip.inactive select:focus,
+.channel-strip.inactive .soft-patch-select:focus,
+.channel-strip.inactive .input-router-select:focus {
+    outline: none !important;
+    border-color: #00e5ff !important;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.8) !important;
+}
+
+
+/* ==========================================================================
+   DUAL-MODE CHANNEL DSP (LINEAR RACK VS. MODULAR CANVAS)
+   ========================================================================== */
+.dsp-mode-bar {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 6px;
+    background: #0f141c;
+    padding: 2px;
+    border-radius: 5px;
+    border: 1px solid #1f2937;
+}
+
+.btn-dsp-mode {
+    flex: 1;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #64748b;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 3px 2px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.btn-dsp-mode:hover {
+    color: #cbd5e1;
+}
+
+.btn-dsp-mode.active {
+    background: #1e293b;
+    border-color: #38bdf8;
+    color: #38bdf8;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.35);
+}
+
+.dsp-container {
+    width: 100%;
+    margin-bottom: 6px;
+}
+
+/* Linear Insert Rack Container */
+.linear-slot-container .insert-slots-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 5px;
+}
+
+.insert-slot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 4px;
+    padding: 2px 4px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    min-height: 22px;
+}
+
+.insert-slot:hover {
+    border-color: #38bdf8;
+    background: #1e293b;
+}
+
+.insert-slot.bypassed {
+    opacity: 0.55;
+    border-color: #374151;
+}
+
+.insert-slot.bypassed .slot-name {
+    text-decoration: line-through;
+    color: #64748b;
+}
+
+.slot-num {
+    font-size: 0.58rem;
+    font-weight: 900;
+    color: #38bdf8;
+    width: 12px;
+}
+
+.slot-name {
+    flex: 1;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 4px;
+}
+
+.slot-bypass {
+    background: #1f242d;
+    border: 1px solid #374151;
+    color: #94a3b8;
+    font-size: 0.55rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.slot-bypass.active {
+    background: #065f46;
+    border-color: #10b981;
+    color: #a7f3d0;
+}
+
+.slot-bypass:hover {
+    filter: brightness(1.2);
+}
+
+/* Canvas Router Container */
+.canvas-router-container {
+    background: #0b111a;
+    border: 1px solid #1e293b;
+    border-radius: 6px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.canvas-rack-select-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.canvas-rack-select-row label {
+    font-size: 0.58rem;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+}
+
+.canvas-rack-dropdown {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #38bdf8;
+    font-size: 0.62rem;
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 3px 2px;
+    cursor: pointer;
+}
+
+.canvas-rack-dropdown:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+}
+
+.canvas-actions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 2px;
+}
+
+.btn-open-canvas {
+    width: 100%;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border: 1.5px solid #10b981;
+    color: #34d399;
+    border-radius: 5px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    min-height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+}
+
+.btn-open-canvas:hover {
+    background: #065f46;
+    color: #fff;
+}
+
+.btn-open-canvas:active {
+    transform: scale(0.97);
+}
+
+.btn-canvas-hard-bypass {
+    width: 100%;
+    background: #181f2a;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    border-radius: 4px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    padding: 3px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    text-align: center;
+}
+
+.btn-canvas-hard-bypass.bypassed {
+    background: #7f1d1d;
+    border-color: #ef4444;
+    color: #fecaca;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+/* Plugin Picker Modal Card */
+.plugin-picker-card {
+    background: #111827;
+    border: 1.5px solid #38bdf8;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 440px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.plugin-picker-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.plugin-picker-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.plugin-picker-item:hover {
+    background: #2563eb;
+    border-color: #60a5fa;
+    color: #fff;
+}
+
+.plugin-picker-item .item-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.plugin-picker-item .item-cat {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+}

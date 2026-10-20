@@ -1,0 +1,3 @@
+@echo off
+echo Opening MODEP Web Interface in default browser...
+start http://localhost:8080/

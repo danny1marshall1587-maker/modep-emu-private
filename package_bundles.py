@@ -1,0 +1,124 @@
+import os
+import shutil
+import tarfile
+import zipfile
+
+def package_plugin_bundles():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    plugins_dir = os.path.join(base_dir, 'plugins')
+    dist_dir = os.path.join(base_dir, 'dist')
+    os.makedirs(dist_dir, exist_ok=True)
+
+    plugins = [
+        ('harmonic-tremolo', 'harmonic-tremolo.lv2'),
+        ('cyber-denoiser', 'cyber-denoiser.lv2'),
+        ('cyber-denoiser-mono.lv2', 'cyber-denoiser-mono.lv2'),
+        ('galaxy-strobe-tune', 'galaxy-strobe-tune.lv2'),
+        ('dimension-c', 'dimension-c.lv2'),
+        ('guitar-midi', 'guitar-midi.lv2'),
+        ('bluesbreaker.lv2', 'bluesbreaker.lv2'),
+        ('nam-loader.lv2', 'nam-loader.lv2'),
+        ('cyber-hum-killer.lv2', 'cyber-hum-killer.lv2'),
+        ('cyber-hum-killer-mono.lv2', 'cyber-hum-killer-mono.lv2'),
+        ('smart-fizz-killer.lv2', 'smart-fizz-killer.lv2'),
+        ('smart-fizz-killer-mono.lv2', 'smart-fizz-killer-mono.lv2'),
+        ('aelapse.lv2', 'aelapse.lv2'),
+        ('aelapse-mono.lv2', 'aelapse-mono.lv2'),
+        ('cyber-stomp-box.lv2', 'cyber-stomp-box.lv2'),
+        ('cyber-puresustain-delay.lv2', 'cyber-puresustain-delay.lv2'),
+        ('cyber-puresustain-delay-mono.lv2', 'cyber-puresustain-delay-mono.lv2'),
+        ('cyber-cloud-bloom.lv2', 'cyber-cloud-bloom.lv2'),
+        ('cyber-cloud-bloom-mono.lv2', 'cyber-cloud-bloom-mono.lv2'),
+        ('cyber-spring-reverb.lv2', 'cyber-spring-reverb.lv2'),
+        ('cyber-spring-reverb-stereo.lv2', 'cyber-spring-reverb-stereo.lv2'),
+        ('cyber-acoustic-feedbacker.lv2', 'cyber-acoustic-feedbacker.lv2'),
+        ('cyber-acoustic-feedbacker-mono.lv2', 'cyber-acoustic-feedbacker-mono.lv2'),
+        ('cyber-feedback-room.lv2', 'cyber-feedback-room.lv2'),
+        ('cyber-feedback-room-mono.lv2', 'cyber-feedback-room-mono.lv2'),
+        ('cyber-cv-reverser.lv2', 'cyber-cv-reverser.lv2'),
+        ('cyber-cv-splitter.lv2', 'cyber-cv-splitter.lv2'),
+        ('cyber-ycv40.lv2', 'cyber-ycv40.lv2'),
+        ('cyber-dumble-ods.lv2', 'cyber-dumble-ods.lv2'),
+        ('cyber-fender-bassman59.lv2', 'cyber-fender-bassman59.lv2'),
+        ('cyber-fender-deluxe6g3.lv2', 'cyber-fender-deluxe6g3.lv2'),
+        ('cyber-fender-vibrolux6g11.lv2', 'cyber-fender-vibrolux6g11.lv2'),
+        ('cyber-fender-vibroverb63.lv2', 'cyber-fender-vibroverb63.lv2'),
+        ('cyber-friedman-be100.lv2', 'cyber-friedman-be100.lv2'),
+        ('cyber-hiwatt-dr504.lv2', 'cyber-hiwatt-dr504.lv2'),
+        ('cyber-koch-the-greg.lv2', 'cyber-koch-the-greg.lv2'),
+        ('cyber-magnatone-280.lv2', 'cyber-magnatone-280.lv2'),
+        ('cyber-marshall-jtm45.lv2', 'cyber-marshall-jtm45.lv2'),
+        ('cyber-matchless-dc30.lv2', 'cyber-matchless-dc30.lv2'),
+        ('cyber-orange-or120.lv2', 'cyber-orange-or120.lv2'),
+        ('cyber-rockman-x100.lv2', 'cyber-rockman-x100.lv2'),
+        ('cyber-roland-jc120.lv2', 'cyber-roland-jc120.lv2'),
+        ('cyber-toneking-imperial.lv2', 'cyber-toneking-imperial.lv2'),
+        ('cyber-trainwreck-express.lv2', 'cyber-trainwreck-express.lv2'),
+        ('cyber-tworock-crs.lv2', 'cyber-tworock-crs.lv2'),
+        ('cyber-vox-ac30pa.lv2', 'cyber-vox-ac30pa.lv2'),
+        ('cyber-vox-ac30tb.lv2', 'cyber-vox-ac30tb.lv2'),
+        ('cyber-slide-driver.lv2', 'cyber-slide-driver.lv2'),
+        ('cyber-organ9.lv2', 'cyber-organ9.lv2'),
+        ('cyber-mel9.lv2', 'cyber-mel9.lv2'),
+        ('cyber-synth9.lv2', 'cyber-synth9.lv2'),
+        ('cyber-string9.lv2', 'cyber-string9.lv2'),
+        ('cyber-bass9.lv2', 'cyber-bass9.lv2'),
+        ('cyber-tone3000.lv2', 'cyber-tone3000.lv2'),
+        ('lv2-psx-reverb.lv2', 'lv2-psx-reverb.lv2'),
+        ('dfjpverb.lv2', 'dfjpverb.lv2'),
+        ('duskverb.lv2', 'duskverb.lv2'),
+        ('invada-delay-munge.lv2', 'invada-delay-munge.lv2'),
+        ('infamous-stuck.lv2', 'infamous-stuck.lv2'),
+        ('grains-of-sand.lv2', 'grains-of-sand.lv2'),
+        ('dusk-tape-echo.lv2', 'dusk-tape-echo.lv2')
+    ]
+
+    print("================================================================")
+    print("       Packaging MODEP Bundles for MODEP Cloud / Store          ")
+    print("================================================================")
+
+    for p_name, bundle_name in plugins:
+        src_p = os.path.join(plugins_dir, p_name)
+        target_bundle = os.path.join(dist_dir, bundle_name)
+        
+        # Clean and create bundle folder
+        if os.path.exists(target_bundle):
+            shutil.rmtree(target_bundle)
+        os.makedirs(target_bundle, exist_ok=True)
+
+        for root, dirs, files in os.walk(src_p):
+            rel = os.path.relpath(root, src_p)
+            if 'src' in rel.split(os.sep):
+                continue
+            dest_dir = os.path.join(target_bundle, rel) if rel != '.' else target_bundle
+            os.makedirs(dest_dir, exist_ok=True)
+            for f in files:
+                if f.endswith(('.ttl', '.so', '.dll', '.png', '.html', '.css', '.js', '.ttf', '.txt')):
+                    shutil.copy2(os.path.join(root, f), os.path.join(dest_dir, f))
+
+        print(f"Created bundle: dist/{bundle_name}")
+
+    # Create All-in-one ZIP and TAR.GZ for MODEP Cloud distribution
+    zip_path = os.path.join(base_dir, 'modep_guitar_plugins_bundle.zip')
+    tar_path = os.path.join(base_dir, 'modep_guitar_plugins_bundle.tar.gz')
+
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(dist_dir):
+            for f in files:
+                full_path = os.path.join(root, f)
+                rel_path = os.path.relpath(full_path, dist_dir)
+                zf.write(full_path, rel_path)
+    print(f"Generated: {os.path.basename(zip_path)}")
+
+    with tarfile.open(tar_path, 'w:gz') as tf:
+        for root, dirs, files in os.walk(dist_dir):
+            for f in files:
+                full_path = os.path.join(root, f)
+                rel_path = os.path.relpath(full_path, dist_dir)
+                tf.add(full_path, arcname=rel_path)
+    print(f"Generated: {os.path.basename(tar_path)}")
+
+    print("\nPackage generation complete! Ready for MODEP Cloud & Patchbox OS.")
+
+if __name__ == '__main__':
+    package_plugin_bundles()

@@ -1,0 +1,10 @@
+{
+  "name": "Patchbox Prime — Lenovo Tab M11 Live Mixer & 2\" Tape Console",
+  "short_name": "Patchbox Prime",
+  "description": "Full-screen zero-scroll 16:10 / 10:16 multi-touch mixing console and 2-inch multitrack tape deck for Lenovo Tab M11.",
+  "start_url": "/index.html",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#121417",
+  "theme_color": "#121417"
+}
