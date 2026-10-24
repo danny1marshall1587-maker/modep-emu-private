@@ -812,10 +812,14 @@ static RECT g_recSampleBtnRect = { 1010, 12, 1088, 48 };
 static RECT g_riffBtnRect = { 1094, 12, 1168, 48 };
 static RECT g_audioSettingsBtnRect = { 1174, 12, 1264, 48 };
 
-static RECT      g_fuzzMorphMeterRect    = { 1004, 376, 1148, 392 };
-static RECT      g_btnFuzzLearnMaxRect   = { 1004, 398, 1072, 424 };
-static RECT      g_btnFuzzLearnCleanRect = { 1080, 398, 1148, 424 };
+static RECT      g_fuzzMorphMeterRect    = { 1076 - 65, 366, 1076 + 65, 380 };
+static RECT      g_btnFuzzLearnCleanRect = { 1076 - 65, 386, 1076 - 3, 406 };
+static RECT      g_btnFuzzLearnMaxRect   = { 1076 + 3, 386, 1076 + 65, 406 };
 static ULONGLONG g_fuzzLearnStartTime   = 0;
+
+static RECT      g_mstrVolMinusRect      = { 0, 0, 0, 0 };
+static RECT      g_mstrVolPillRect       = { 0, 0, 0, 0 };
+static RECT      g_mstrVolPlusRect       = { 0, 0, 0, 0 };
 
 static std::atomic<bool> g_recSampleActive{false};
 static ULONGLONG         g_recSampleStartTime = 0;
@@ -1664,40 +1668,40 @@ static void layoutPageKnobs() {
             g_knobs[K_KLON_GAIN].rect   = { 152 - 22, 206, 152 + 22, 292 };
             g_knobs[K_KLON_TREBLE].rect = { 204 - 22, 206, 204 + 22, 292 };
             g_knobs[K_KLON_OUTPUT].rect = { 256 - 22, 206, 256 + 22, 292 };
-            g_knobs[K_KLON_BLEND].rect  = { 160 - 38, 320, 160 + 38, 412 };
-            g_knobs[K_KLON_HYPER].rect  = { 248 - 38, 320, 248 + 38, 412 };
+            g_knobs[K_KLON_BLEND].rect  = { 160 - 24, 314, 160 + 24, 386 };
+            g_knobs[K_KLON_HYPER].rect  = { 248 - 28, 314, 248 + 28, 362 };
             g_knobs[K_KLON_ON].rect     = { 0, 0, 0, 0 };
 
             // Pedal 2: TS808 Screamer (Center X = 422)
             g_knobs[K_TS_DRIVE].rect    = { 370 - 22, 206, 370 + 22, 292 };
             g_knobs[K_TS_TONE].rect     = { 422 - 22, 206, 422 + 22, 292 };
             g_knobs[K_TS_LEVEL].rect    = { 474 - 22, 206, 474 + 22, 292 };
-            g_knobs[K_TS_MOD].rect      = { 422 - 44 - 38, 320, 422 - 44 + 38, 412 };
-            g_knobs[K_TS_HYPER].rect    = { 422 + 44 - 38, 320, 422 + 44 + 38, 412 };
+            g_knobs[K_TS_MOD].rect      = { 422 - 38 - 28, 314, 422 - 38 + 28, 362 };
+            g_knobs[K_TS_HYPER].rect    = { 422 + 38 - 28, 314, 422 + 38 + 28, 362 };
             g_knobs[K_TS_ON].rect       = { 0, 0, 0, 0 };
 
             // Pedal 3: BD-2 Blues Driver (Center X = 640)
             g_knobs[K_BD_GAIN].rect     = { 588 - 22, 206, 588 + 22, 292 };
             g_knobs[K_BD_TONE].rect     = { 640 - 22, 206, 640 + 22, 292 };
             g_knobs[K_BD_LEVEL].rect    = { 692 - 22, 206, 692 + 22, 292 };
-            g_knobs[K_BD_PHAT].rect     = { 640 - 44 - 38, 320, 640 - 44 + 38, 412 };
-            g_knobs[K_BD_HYPER].rect    = { 640 + 44 - 38, 320, 640 + 44 + 38, 412 };
+            g_knobs[K_BD_PHAT].rect     = { 640 - 38 - 28, 314, 640 - 38 + 28, 362 };
+            g_knobs[K_BD_HYPER].rect    = { 640 + 38 - 28, 314, 640 + 38 + 28, 362 };
             g_knobs[K_BD_ON].rect       = { 0, 0, 0, 0 };
 
             // Pedal 4: Fluid Rodent (1978 ProCo Rat) (Center X = 858)
             g_knobs[K_RAT_DIST].rect    = { 806 - 22, 206, 806 + 22, 292 };
             g_knobs[K_RAT_FILTER].rect  = { 858 - 22, 206, 858 + 22, 292 };
             g_knobs[K_RAT_VOL].rect     = { 910 - 22, 206, 910 + 22, 292 };
-            g_knobs[K_RAT_TURBO].rect   = { 858 - 44 - 38, 320, 858 - 44 + 38, 412 };
-            g_knobs[K_RAT_HYPER].rect   = { 858 + 44 - 38, 320, 858 + 44 + 38, 412 };
+            g_knobs[K_RAT_TURBO].rect   = { 858 - 38 - 28, 314, 858 - 38 + 28, 362 };
+            g_knobs[K_RAT_HYPER].rect   = { 858 + 38 - 28, 314, 858 + 38 + 28, 362 };
             g_knobs[K_RAT_ON].rect      = { 0, 0, 0, 0 };
 
             // Pedal 5: Fluid Fuzz Face (Center X = 1076)
             g_knobs[K_FUZZ_GAIN].rect       = { 1024 - 22, 206, 1024 + 22, 292 };
             g_knobs[K_FUZZ_SAG].rect        = { 1076 - 22, 206, 1076 + 22, 292 };
             g_knobs[K_FUZZ_LEVEL].rect      = { 1128 - 22, 206, 1128 + 22, 292 };
-            g_knobs[K_FUZZ_TRANSISTOR].rect = { 1076 - 44 - 38, 294, 1076 - 44 + 38, 370 };
-            g_knobs[K_FUZZ_HYPER].rect      = { 1076 + 44 - 38, 294, 1076 + 44 + 38, 370 };
+            g_knobs[K_FUZZ_TRANSISTOR].rect = { 1076 - 38 - 28, 314, 1076 - 38 + 28, 362 };
+            g_knobs[K_FUZZ_HYPER].rect      = { 1076 + 38 - 28, 314, 1076 + 38 + 28, 362 };
             g_knobs[K_FUZZ_ON].rect         = { 0, 0, 0, 0 };
             continue;
         }
@@ -2932,6 +2936,34 @@ static void drawBasketweaveGrille(HDC hdc, int x1, int y1, int x2, int y2, COLOR
     fillRoundRect(hdc, x1 + 2, y1 + 2, x2 - 2, y1 + 8, 4, RGB(8, 8, 8), RGB(8, 8, 8), 1);
 }
 
+static void draw3DStompFootswitchGdi(HDC hdc, int cx, int cy, bool active, COLORREF activeHaloCol) {
+    // 0. Soft drop shadow on pedal enclosure
+    fillRoundRect(hdc, cx - 24, cy - 21, cx + 24, cy + 27, 48, RGB(8, 10, 14), RGB(8, 10, 14), 1);
+
+    // 1. Halo Glow Ring when active
+    if (active) {
+        fillRoundRect(hdc, cx - 26, cy - 26, cx + 26, cy + 26, 52, activeHaloCol, activeHaloCol, 2);
+        fillRoundRect(hdc, cx - 23, cy - 23, cx + 23, cy + 23, 46, activeHaloCol, RGB(255, 255, 255), 1);
+    }
+
+    // 2. Beveled Metallic Hex Nut / Collar (42x42px)
+    fillRoundRect(hdc, cx - 21, cy - 21, cx + 21, cy + 21, 10, RGB(130, 140, 150), RGB(210, 220, 230), 1);
+    fillRoundRect(hdc, cx - 18, cy - 18, cx + 18, cy + 18, 8,  RGB(85, 95, 105), RGB(160, 170, 180), 1);
+
+    // 3. Knurled Threaded Base Washer (30x30px)
+    fillRoundRect(hdc, cx - 15, cy - 15, cx + 15, cy + 15, 15, RGB(45, 50, 60), RGB(100, 110, 125), 1);
+
+    // 4. Chrome Dome Plunger Button (24x24px)
+    fillRoundRect(hdc, cx - 12, cy - 12, cx + 12, cy + 12, 24, RGB(215, 225, 235), RGB(255, 255, 255), 2);
+
+    // Specular highlight crescent arc
+    HPEN specPen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
+    HGDIOBJ oldSp = SelectObject(hdc, specPen);
+    Arc(hdc, cx - 9, cy - 9, cx + 9, cy + 9, cx, cy - 9, cx - 9, cy);
+    SelectObject(hdc, oldSp);
+    DeleteObject(specPen);
+}
+
 // 3D Skeuomorphic Rotary & Chicken-Head Knobs with Conical Highlights and Drop Shadows
 static void drawStylizedKnob(HDC hdc, const KnobCtrl& k, int pageStyle) {
     int cx = (k.rect.left + k.rect.right) / 2;
@@ -2960,58 +2992,57 @@ static void drawStylizedKnob(HDC hdc, const KnobCtrl& k, int pageStyle) {
                           : ((cx < 992) ? (active ? RGB(254, 202, 202) : RGB(80, 20, 20))
                           : (active ? RGB(186, 230, 253) : RGB(35, 70, 100)))));
 
-        // 1. Switch Label at top
+        // 1. Compact Label above switch
         SetBkMode(hdc, TRANSPARENT);
         SetTextColor(hdc, labelCol);
         HFONT fontSw = CreateFontA(9, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Segoe UI");
         HGDIOBJ oldSwFont = SelectObject(hdc, fontSw);
-        RECT tr = { cx - 40, k.rect.top + 2, cx + 40, k.rect.top + 16 };
+        RECT tr = { cx - 28, k.rect.top, cx + 28, k.rect.top + 12 };
         DrawTextA(hdc, k.label, -1, &tr, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
 
-        // 2. Beveled Dark Machined Mounting Faceplate
-        int swTop = k.rect.top + 18;
-        int swBottom = k.rect.top + 50;
-        int swHalfW = 34;
-        fillRoundRect(hdc, cx - swHalfW + 2, swTop + 2, cx + swHalfW + 2, swBottom + 2, 6, RGB(8, 10, 12), RGB(8, 10, 12), 1); // shadow
-        fillRoundRect(hdc, cx - swHalfW, swTop, cx + swHalfW, swBottom, 6, RGB(22, 25, 30), RGB(71, 85, 105), 2); // plate
+        // 2. Beveled Dark Machined Mounting Faceplate (Half Size: 36px wide x 16px high)
+        int swTop = k.rect.top + 13;
+        int swBottom = k.rect.top + 29;
+        int swHalfW = 18;
+        fillRoundRect(hdc, cx - swHalfW + 1, swTop + 1, cx + swHalfW + 1, swBottom + 1, 4, RGB(8, 10, 12), RGB(8, 10, 12), 1); // shadow
+        fillRoundRect(hdc, cx - swHalfW, swTop, cx + swHalfW, swBottom, 4, RGB(22, 25, 30), RGB(71, 85, 105), 1); // plate
 
         // 4 Miniature Corner Hex Screws on plate
-        fillRoundRect(hdc, cx - swHalfW + 3, swTop + 3, cx - swHalfW + 6, swTop + 6, 3, RGB(148, 163, 184), RGB(100, 116, 139), 1);
-        fillRoundRect(hdc, cx + swHalfW - 6, swTop + 3, cx + swHalfW - 3, swTop + 6, 3, RGB(148, 163, 184), RGB(100, 116, 139), 1);
-        fillRoundRect(hdc, cx - swHalfW + 3, swBottom - 6, cx - swHalfW + 6, swBottom - 3, 3, RGB(148, 163, 184), RGB(100, 116, 139), 1);
-        fillRoundRect(hdc, cx + swHalfW - 6, swBottom - 6, cx + swHalfW - 3, swBottom - 3, 3, RGB(148, 163, 184), RGB(100, 116, 139), 1);
+        fillRoundRect(hdc, cx - swHalfW + 2, swTop + 2, cx - swHalfW + 4, swTop + 4, 2, RGB(148, 163, 184), RGB(100, 116, 139), 1);
+        fillRoundRect(hdc, cx + swHalfW - 4, swTop + 2, cx + swHalfW - 2, swTop + 4, 2, RGB(148, 163, 184), RGB(100, 116, 139), 1);
+        fillRoundRect(hdc, cx - swHalfW + 2, swBottom - 4, cx - swHalfW + 4, swBottom - 2, 2, RGB(148, 163, 184), RGB(100, 116, 139), 1);
+        fillRoundRect(hdc, cx + swHalfW - 4, swBottom - 4, cx + swHalfW - 2, swBottom - 2, 2, RGB(148, 163, 184), RGB(100, 116, 139), 1);
 
         // 3. Recessed Toggle Track Slot
-        int slotLeft = cx - 18, slotRight = cx + 18;
-        int slotTop = swTop + 7, slotBottom = swBottom - 7;
-        fillRoundRect(hdc, slotLeft, slotTop, slotRight, slotBottom, 8, RGB(10, 12, 16), RGB(30, 41, 59), 1);
+        int slotLeft = cx - 11, slotRight = cx + 11;
+        int slotTop = swTop + 4, slotBottom = swBottom - 4;
+        fillRoundRect(hdc, slotLeft, slotTop, slotRight, slotBottom, 4, RGB(10, 12, 16), RGB(30, 41, 59), 1);
 
         // 4. 3D Chrome Rocker / Toggle Bat
-        int batCenter = active ? (cx + 8) : (cx - 8);
-        int batHalfW = 8;
-        fillRoundRect(hdc, batCenter - batHalfW + 1, slotTop + 1, batCenter + batHalfW + 1, slotBottom, 6, RGB(10, 10, 12), RGB(10, 10, 12), 1); // bat shadow
-        fillRoundRect(hdc, batCenter - batHalfW, slotTop, batCenter + batHalfW, slotBottom - 1, 6, RGB(203, 213, 225), RGB(255, 255, 255), 2); // chrome bat
+        int batCenter = active ? (cx + 5) : (cx - 5);
+        int batHalfW = 4;
+        fillRoundRect(hdc, batCenter - batHalfW, slotTop, batCenter + batHalfW, slotBottom, 3, RGB(226, 232, 240), RGB(255, 255, 255), 1);
 
         // Specular highlight line on chrome bat
-        HPEN batSpecPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
+        HPEN batSpecPen = CreatePen(PS_SOLID, 1, RGB(100, 116, 139));
         HGDIOBJ oldSp = SelectObject(hdc, batSpecPen);
-        MoveToEx(hdc, batCenter - 2, slotTop + 3, nullptr);
-        LineTo(hdc, batCenter - 2, slotBottom - 4);
+        MoveToEx(hdc, batCenter, slotTop + 1, nullptr);
+        LineTo(hdc, batCenter, slotBottom - 1);
         SelectObject(hdc, oldSp);
         DeleteObject(batSpecPen);
 
-        // 5. LED Indicator Lamp (Left side for Step 0, Right side for Step 1)
-        int ledX = active ? (cx + 25) : (cx - 25);
+        // 5. LED Indicator Lamp (3x3 dot)
+        int ledX = active ? (cx + 13) : (cx - 13);
         int ledY = (swTop + swBottom) / 2;
-        fillRoundRect(hdc, ledX - 3, ledY - 3, ledX + 3, ledY + 3, 6, ledCol, ledGlow, 1);
+        fillRoundRect(hdc, ledX - 2, ledY - 2, ledX + 2, ledY + 2, 4, ledCol, ledGlow, 1);
         if (active) {
             fillRoundRect(hdc, ledX - 1, ledY - 1, ledX + 1, ledY + 1, 2, RGB(255, 255, 255), RGB(255, 255, 255), 1);
         }
 
-        // 6. Inset LED Value Pill
-        int pillHalfW = 38;
-        RECT vr = { cx - pillHalfW, k.rect.top + 54, cx + pillHalfW, k.rect.top + 70 };
-        fillRoundRect(hdc, vr.left, vr.top, vr.right, vr.bottom, 4, RGB(4, 16, 20), active ? ledGlow : RGB(30, 41, 59), 1);
+        // 6. Compact Inset Choice Pill (54px wide x 13px high)
+        int pillHalfW = 27;
+        RECT vr = { cx - pillHalfW, k.rect.top + 31, cx + pillHalfW, k.rect.top + 44 };
+        fillRoundRect(hdc, vr.left, vr.top, vr.right, vr.bottom, 3, RGB(4, 16, 20), active ? ledGlow : RGB(30, 41, 59), 1);
 
         char valBuf[64];
         std::snprintf(valBuf, sizeof(valBuf), "%s", k.stepLabels[step]);
@@ -3928,6 +3959,7 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
             DrawTextA(hdc, isHyp ? "HYPER 27V ADAA (+22dB)" : "(OLD) 18V VINTAGE KLON", -1, &klonBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
         }
 
+        draw3DStompFootswitchGdi(hdc, 204, 480, klonActive, RGB(245, 158, 11));
         SetTextColor(hdc, klonActive ? RGB(254, 240, 138) : RGB(140, 115, 75));
         RECT klonFootLblR = { p1X1, p1Y2 - 24, p1X2, p1Y2 - 6 };
         DrawTextA(hdc, klonActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", -1, &klonFootLblR, DT_CENTER | DT_SINGLELINE);
@@ -3998,6 +4030,7 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
             DrawTextA(hdc, tsBdg, -1, &tsBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
         }
 
+        draw3DStompFootswitchGdi(hdc, 422, 480, tsActive, RGB(34, 197, 94));
         SetTextColor(hdc, tsActive ? RGB(167, 243, 208) : RGB(100, 150, 120));
         RECT tsFootLblR = { p2X1, p2Y2 - 24, p2X2, p2Y2 - 6 };
         DrawTextA(hdc, tsActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", -1, &tsFootLblR, DT_CENTER | DT_SINGLELINE);
@@ -4071,6 +4104,7 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
             DrawTextA(hdc, bdBdg, -1, &bdBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
         }
 
+        draw3DStompFootswitchGdi(hdc, 640, 480, bdActive, RGB(56, 189, 248));
         SetTextColor(hdc, bdActive ? RGB(254, 240, 138) : RGB(130, 160, 200));
         RECT bdFootLblR = { p3X1, p3Y2 - 24, p3X2, p3Y2 - 6 };
         DrawTextA(hdc, bdActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", -1, &bdFootLblR, DT_CENTER | DT_SINGLELINE);
@@ -4136,6 +4170,7 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
             DrawTextA(hdc, ratBdg, -1, &ratBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
         }
 
+        draw3DStompFootswitchGdi(hdc, 858, 480, ratActive, RGB(239, 68, 68));
         SetTextColor(hdc, ratActive ? (ratIsTurbo ? RGB(252, 165, 165) : RGB(254, 240, 138)) : RGB(140, 140, 140));
         RECT ratFootLblR = { p4X1, p4Y2 - 24, p4X2, p4Y2 - 6 };
         DrawTextA(hdc, ratActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", -1, &ratFootLblR, DT_CENTER | DT_SINGLELINE);
@@ -4147,44 +4182,25 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         bool ffActive = (g_knobs[K_FUZZ_ON].curVal > 0.5f);
         bool ffIsSilicon = (g_knobs[K_FUZZ_TRANSISTOR].curVal > 0.5f);
 
-        if (g_assets3D.imgFuzz) {
-            Gdiplus::Graphics g(hdc);
-            g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-            g.DrawImage(g_assets3D.imgFuzz, p5X1, p5Y1, p5X2 - p5X1, p5Y2 - p5Y1);
-        } else {
-            // Cast shadow on hardwood floor
-            fillRoundRect(hdc, p5X1 + 7, p5Y1 + 9, p5X2 + 7, p5Y2 + 9, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
+        // Cast shadow on hardwood floor
+        fillRoundRect(hdc, p5X1 + 5, p5Y1 + 7, p5X2 + 5, p5Y2 + 7, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
 
-            // Vintage Scarlet / London Grey Enclosure
-            COLORREF ffChassisBg = ffActive ? (ffIsSilicon ? RGB(65, 75, 95) : RGB(165, 42, 42))
-                                            : (ffIsSilicon ? RGB(45, 52, 68) : RGB(105, 30, 30));
-            COLORREF ffBorder    = ffActive ? (ffIsSilicon ? RGB(147, 197, 253) : RGB(252, 165, 165))
-                                            : (ffIsSilicon ? RGB(96, 115, 145) : RGB(160, 60, 60));
+        // Rectangular Boutique Stompbox Enclosure (Vintage Scarlet / London Grey)
+        COLORREF ffChassisBg = ffActive ? (ffIsSilicon ? RGB(55, 65, 85) : RGB(165, 42, 42))
+                                        : (ffIsSilicon ? RGB(38, 45, 58) : RGB(105, 30, 30));
+        COLORREF ffBorder    = ffActive ? (ffIsSilicon ? RGB(147, 197, 253) : RGB(252, 165, 165))
+                                        : (ffIsSilicon ? RGB(96, 115, 145) : RGB(160, 60, 60));
+        fillRoundRect(hdc, p5X1, p5Y1, p5X2, p5Y2, 14, ffChassisBg, ffBorder, ffActive ? 2 : 1);
 
-            fillRoundRect(hdc, p5X1, p5Y1, p5X2, p5Y2, 14, ffChassisBg, ffBorder, ffActive ? 2 : 1);
+        // Circular Vintage Faceplate Disc Accent
+        fillRoundRect(hdc, 1076 - 72, p5Y1 + 42, 1076 + 72, p5Y2 - 110, 72,
+                      ffIsSilicon ? RGB(28, 34, 46) : RGB(42, 16, 18),
+                      ffIsSilicon ? RGB(65, 80, 105) : RGB(80, 30, 35), 1);
 
-            // Circular Vintage Faceplate Disc Accent
-            fillRoundRect(hdc, 1076 - 80, p5Y1 + 42, 1076 + 80, p5Y2 - 96, 80,
-                          ffIsSilicon ? RGB(32, 38, 50) : RGB(45, 18, 20),
-                          ffIsSilicon ? RGB(75, 90, 115) : RGB(90, 35, 40), 1);
-
-            // Header Plaque (Deep Crimson / Dark Slate)
-            fillRoundRect(hdc, p5X1 + 10, p5Y1 + 8, p5X2 - 10, p5Y1 + 48, 6,
-                          ffIsSilicon ? RGB(20, 26, 36) : RGB(55, 12, 15),
-                          ffIsSilicon ? RGB(96, 165, 250) : RGB(239, 68, 68), 1);
-
-            // Vintage Dallas Arbiter Smiley Arc above footswitch
-            HPEN smilePen = CreatePen(PS_SOLID, 2, ffActive ? RGB(254, 240, 138) : RGB(140, 100, 90));
-            HGDIOBJ oldSmileP = SelectObject(hdc, smilePen);
-            Arc(hdc, 1076 - 34, 466, 1076 + 34, 484, 1076 + 28, 474, 1076 - 28, 474);
-            SelectObject(hdc, oldSmileP);
-            DeleteObject(smilePen);
-
-            // Chrome 3PDT Footswitch (Center: 1076, 498)
-            fillRoundRect(hdc, 1076 - 28, 470, 1076 + 28, 526, 56, RGB(140, 140, 145), RGB(200, 200, 205), 2); // Hex washer
-            fillRoundRect(hdc, 1076 - 20, 478, 1076 + 20, 518, 40, RGB(215, 215, 220), RGB(255, 255, 255), 2); // Chrome button
-            fillRoundRect(hdc, 1076 - 12, 482, 1076 + 2, 496, 14, RGB(255, 255, 255), RGB(255, 255, 255), 1); // Specular highlight arc
-        }
+        // Header Plaque (Deep Crimson / Dark Slate)
+        fillRoundRect(hdc, p5X1 + 10, p5Y1 + 8, p5X2 - 10, p5Y1 + 48, 6,
+                      ffIsSilicon ? RGB(20, 26, 36) : RGB(55, 12, 15),
+                      ffIsSilicon ? RGB(96, 165, 250) : RGB(239, 68, 68), 1);
 
         SelectObject(hdc, fontTitle);
         SetTextColor(hdc, ffActive ? RGB(254, 240, 138) : RGB(220, 180, 160));
@@ -4310,6 +4326,7 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         }
         DrawTextA(hdc, clnTxt, -1, &g_btnFuzzLearnCleanRect, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 
+        draw3DStompFootswitchGdi(hdc, 1076, 480, ffActive, ffIsSilicon ? RGB(56, 189, 248) : RGB(239, 68, 68));
         SetTextColor(hdc, ffActive ? RGB(254, 240, 138) : RGB(160, 120, 120));
         RECT ffFootLblR = { p5X1, p5Y2 - 24, p5X2, p5Y2 - 6 };
         DrawTextA(hdc, ffActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", -1, &ffFootLblR, DT_CENTER | DT_SINGLELINE);
@@ -5588,12 +5605,47 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
     SetTextColor(hdc, RGB(251, 191, 36));
     DrawTextA(hdc, "MASTER OUT", -1, &outLblR, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
 
-    int outW = 100;
+    int outW = 95;
     int outBarX = outMeterX + 76;
     fillRoundRect(hdc, outBarX, h - 33, outBarX + outW, h - 23, 4, RGB(6, 34, 28), RGB(19, 78, 74), 1);
     fillRoundRect(hdc, outBarX, h - 19, outBarX + outW, h - 9,  4, RGB(6, 34, 28), RGB(19, 78, 74), 1);
     if (outL > 0.005f) fillRoundRect(hdc, outBarX, h - 33, outBarX + int(outW * std::min(1.0f, std::sqrt(outL))), h - 23, 4, RGB(245, 158, 11), RGB(245, 158, 11), 1);
     if (outR > 0.005f) fillRoundRect(hdc, outBarX, h - 19, outBarX + int(outW * std::min(1.0f, std::sqrt(outR))), h - 9,  4, RGB(245, 158, 11), RGB(245, 158, 11), 1);
+
+    // Interactive Master Output Volume Control [-] [VOL: 5.0] [+]
+    int mstrX = outBarX + outW + 12;
+    RECT mstrLblR = { mstrX, h - 34, mstrX + 28, h - 10 };
+    SetTextColor(hdc, RGB(251, 191, 36));
+    DrawTextA(hdc, "VOL", -1, &mstrLblR, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
+
+    g_mstrVolMinusRect = { mstrX + 30, h - 34, mstrX + 50, h - 10 };
+    g_mstrVolPillRect  = { mstrX + 53, h - 34, mstrX + 129, h - 10 };
+    g_mstrVolPlusRect  = { mstrX + 132, h - 34, mstrX + 152, h - 10 };
+
+    float curMstr = g_knobs[K_CLEAN_OUT].curVal;
+    fillRoundRect(hdc, g_mstrVolMinusRect.left, g_mstrVolMinusRect.top, g_mstrVolMinusRect.right, g_mstrVolMinusRect.bottom, 3, RGB(15, 23, 42), RGB(245, 158, 11), 1);
+    SetTextColor(hdc, RGB(254, 240, 138));
+    DrawTextA(hdc, "-", -1, &g_mstrVolMinusRect, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
+
+    fillRoundRect(hdc, g_mstrVolPillRect.left, g_mstrVolPillRect.top, g_mstrVolPillRect.right, g_mstrVolPillRect.bottom, 3, RGB(10, 20, 30), RGB(245, 158, 11), 1);
+    int pillW = (g_mstrVolPillRect.right - 2) - (g_mstrVolPillRect.left + 2);
+    int mstrFill = int(pillW * std::clamp(curMstr / 10.0f, 0.0f, 1.0f));
+    if (mstrFill > 2 && curMstr > 0.05f) {
+        fillRoundRect(hdc, g_mstrVolPillRect.left + 2, g_mstrVolPillRect.top + 2, g_mstrVolPillRect.left + 2 + mstrFill, g_mstrVolPillRect.bottom - 2, 2, RGB(70, 45, 10), RGB(180, 110, 20), 1);
+    }
+    char mstrBuf[32];
+    if (curMstr <= 0.05f) {
+        std::snprintf(mstrBuf, sizeof(mstrBuf), "MUTE");
+        SetTextColor(hdc, RGB(239, 68, 68));
+    } else {
+        std::snprintf(mstrBuf, sizeof(mstrBuf), "VOL: %.1f", curMstr);
+        SetTextColor(hdc, RGB(254, 240, 138));
+    }
+    DrawTextA(hdc, mstrBuf, -1, &g_mstrVolPillRect, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
+
+    fillRoundRect(hdc, g_mstrVolPlusRect.left, g_mstrVolPlusRect.top, g_mstrVolPlusRect.right, g_mstrVolPlusRect.bottom, 3, RGB(15, 23, 42), RGB(245, 158, 11), 1);
+    SetTextColor(hdc, RGB(254, 240, 138));
+    DrawTextA(hdc, "+", -1, &g_mstrVolPlusRect, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 
     BitBlt(hdcWin, 0, 0, w, h, hdc, 0, 0, SRCCOPY);
 
@@ -6035,31 +6087,31 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 }
 
                 // Interactive 3D Footswitches on Hardwood Pedalboard Deck
-                RECT rKlonFoot = { 204 - 35, 465, 204 + 35, 535 };
+                RECT rKlonFoot = { 204 - 45, 435, 204 + 45, 555 };
                 if (PtInRect(&rKlonFoot, pt)) {
                     g_knobs[K_KLON_ON].curVal = (g_knobs[K_KLON_ON].curVal > 0.5f) ? 0.0f : 1.0f;
                     InvalidateRect(hwnd, nullptr, FALSE);
                     return 0;
                 }
-                RECT rTsFoot = { 422 - 45, 465, 422 + 45, 535 };
+                RECT rTsFoot = { 422 - 45, 435, 422 + 45, 555 };
                 if (PtInRect(&rTsFoot, pt)) {
                     g_knobs[K_TS_ON].curVal = (g_knobs[K_TS_ON].curVal > 0.5f) ? 0.0f : 1.0f;
                     InvalidateRect(hwnd, nullptr, FALSE);
                     return 0;
                 }
-                RECT rBdFoot = { 640 - 45, 465, 640 + 45, 535 };
+                RECT rBdFoot = { 640 - 45, 435, 640 + 45, 555 };
                 if (PtInRect(&rBdFoot, pt)) {
                     g_knobs[K_BD_ON].curVal = (g_knobs[K_BD_ON].curVal > 0.5f) ? 0.0f : 1.0f;
                     InvalidateRect(hwnd, nullptr, FALSE);
                     return 0;
                 }
-                RECT rRatFoot = { 858 - 35, 465, 858 + 35, 535 };
+                RECT rRatFoot = { 858 - 45, 435, 858 + 45, 555 };
                 if (PtInRect(&rRatFoot, pt)) {
                     g_knobs[K_RAT_ON].curVal = (g_knobs[K_RAT_ON].curVal > 0.5f) ? 0.0f : 1.0f;
                     InvalidateRect(hwnd, nullptr, FALSE);
                     return 0;
                 }
-                RECT rFuzzFoot = { 1076 - 35, 465, 1076 + 35, 535 };
+                RECT rFuzzFoot = { 1076 - 45, 435, 1076 + 45, 555 };
                 if (PtInRect(&rFuzzFoot, pt)) {
                     g_knobs[K_FUZZ_ON].curVal = (g_knobs[K_FUZZ_ON].curVal > 0.5f) ? 0.0f : 1.0f;
                     InvalidateRect(hwnd, nullptr, FALSE);
@@ -6084,6 +6136,28 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                     return 0;
                 }
             }
+
+            // Interactive Master Output Volume Control
+            if (PtInRect(&g_mstrVolMinusRect, pt)) {
+                float v = std::clamp(g_knobs[K_CLEAN_OUT].curVal - 0.5f, 0.0f, 10.0f);
+                g_knobs[K_CLEAN_OUT].curVal = v;
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
+            if (PtInRect(&g_mstrVolPlusRect, pt)) {
+                float v = std::clamp(g_knobs[K_CLEAN_OUT].curVal + 0.5f, 0.0f, 10.0f);
+                g_knobs[K_CLEAN_OUT].curVal = v;
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
+            if (PtInRect(&g_mstrVolPillRect, pt)) {
+                g_dragKnob = K_CLEAN_OUT;
+                g_dragStartY = pt.y;
+                g_dragStartVal = g_knobs[K_CLEAN_OUT].curVal;
+                g_dragDidMove = false;
+                SetCapture(hwnd);
+                return 0;
+            }
             for (int i = 0; i < NUM_KNOBS; ++i) {
                 if (g_knobs[i].pageIdx != -1 && g_knobs[i].pageIdx != g_activePage) continue;
                 if (PtInRect(&g_knobs[i].rect, pt)) {
@@ -6104,6 +6178,11 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 g_inputTrimLinear.store(1.0f);
                 g_audioCfg.inputTrimDb = 0.0f;
                 saveAudioConfig();
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
+            if (PtInRect(&g_mstrVolPillRect, pt) || PtInRect(&g_mstrVolMinusRect, pt) || PtInRect(&g_mstrVolPlusRect, pt)) {
+                g_knobs[K_CLEAN_OUT].curVal = 5.0f;
                 InvalidateRect(hwnd, nullptr, FALSE);
                 return 0;
             }
@@ -6128,6 +6207,11 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 g_inputTrimLinear.store(1.0f);
                 g_audioCfg.inputTrimDb = 0.0f;
                 saveAudioConfig();
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
+            if (PtInRect(&g_mstrVolPillRect, pt) || PtInRect(&g_mstrVolMinusRect, pt) || PtInRect(&g_mstrVolPlusRect, pt)) {
+                g_knobs[K_CLEAN_OUT].curVal = 5.0f;
                 InvalidateRect(hwnd, nullptr, FALSE);
                 return 0;
             }

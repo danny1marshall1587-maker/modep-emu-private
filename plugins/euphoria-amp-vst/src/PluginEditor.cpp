@@ -44,14 +44,57 @@ static const juce::Rectangle<int> kRecSampleBtnRect  { 1010, 12, 78, 36 };
 static const juce::Rectangle<int> kRiffBtnRect       { 1094, 12, 74, 36 };
 static const juce::Rectangle<int> kAudioSettingsRect { 1174, 12, 90, 36 };
 
-static const juce::Rectangle<int> kFuzzMorphMeterRect    { 1004, 376, 144, 16 };
-static const juce::Rectangle<int> kBtnFuzzLearnMaxRect   { 1004, 398,  68, 26 };
-static const juce::Rectangle<int> kBtnFuzzLearnCleanRect { 1080, 398,  68, 26 };
+static const juce::Rectangle<int> kFuzzMorphMeterRect    { 1076 - 65, 366, 130, 14 };
+static const juce::Rectangle<int> kBtnFuzzLearnCleanRect { 1076 - 65, 386,  62, 20 };
+static const juce::Rectangle<int> kBtnFuzzLearnMaxRect   { 1076 +  3, 386,  62, 20 };
 
 static const juce::Rectangle<int> kBtnTunerMuteRect  { 1022, 140, 208, 95 };
 static const juce::Rectangle<int> kBtnTunerRefRect   { 1022, 245, 208, 80 };
 static const juce::Rectangle<int> kBtnTunerSpeedRect { 1022, 335, 208, 80 };
 static const juce::Rectangle<int> kTunerStatusPill   {  745, 686, 150, 24 };
+
+static const juce::Rectangle<int> kMasterVolMinusRect { 1118, 686, 20, 24 };
+static const juce::Rectangle<int> kMasterVolPillRect  { 1141, 686, 76, 24 };
+static const juce::Rectangle<int> kMasterVolPlusRect  { 1220, 686, 20, 24 };
+
+static void draw3DStompFootswitch(juce::Graphics& g, int cx, int cy, bool active, juce::Colour activeHaloCol) {
+    // 0. Soft drop shadow on pedal enclosure
+    g.setColour(RGBCol(8, 10, 14).withAlpha(0.7f));
+    g.fillEllipse((float)(cx - 24), (float)(cy - 21), 48.0f, 48.0f);
+
+    // 1. Halo Glow Ring when active
+    if (active) {
+        g.setColour(activeHaloCol.withAlpha(0.35f));
+        g.drawEllipse((float)(cx - 26), (float)(cy - 26), 52.0f, 52.0f, 3.5f);
+        g.setColour(activeHaloCol.withAlpha(0.65f));
+        g.drawEllipse((float)(cx - 23), (float)(cy - 23), 46.0f, 46.0f, 1.5f);
+    }
+
+    // 2. Beveled Metallic Hex Nut / Collar (42x42px)
+    fillRoundRectJuce(g, cx - 21, cy - 21, cx + 21, cy + 21, 10,
+                      RGBCol(130, 140, 150), RGBCol(210, 220, 230), 1);
+    fillRoundRectJuce(g, cx - 18, cy - 18, cx + 18, cy + 18, 8,
+                      RGBCol(85, 95, 105), RGBCol(160, 170, 180), 1);
+
+    // 3. Knurled Threaded Base Washer (30x30px)
+    fillRoundRectJuce(g, cx - 15, cy - 15, cx + 15, cy + 15, 15,
+                      RGBCol(45, 50, 60), RGBCol(100, 110, 125), 1);
+
+    // 4. Chrome Dome Plunger Button (24x24px)
+    juce::ColourGradient gradPlunger(
+        RGBCol(245, 250, 255), (float)cx, (float)(cy - 12),
+        RGBCol(110, 120, 135), (float)cx, (float)(cy + 12),
+        false
+    );
+    g.setGradientFill(gradPlunger);
+    g.fillEllipse((float)(cx - 12), (float)(cy - 12), 24.0f, 24.0f);
+    g.setColour(RGBCol(255, 255, 255));
+    g.drawEllipse((float)(cx - 12), (float)(cy - 12), 24.0f, 24.0f, 1.0f);
+
+    // Specular highlight crescent
+    g.setColour(RGBCol(255, 255, 255).withAlpha(0.85f));
+    g.drawEllipse((float)(cx - 9), (float)(cy - 9), 12.0f, 8.0f, 1.5f);
+}
 } // namespace
 
 EuphoriaAmpAudioProcessorEditor::EuphoriaAmpAudioProcessorEditor(EuphoriaAmpAudioProcessor& p)
@@ -126,44 +169,44 @@ void EuphoriaAmpAudioProcessorEditor::initKnobLayout() {
             auto setR = [this](int idx, int l, int t, int r, int b) {
                 knobLayout[(size_t)idx].rect = { l, t, r - l, b - t };
             };
-            // Pedal 1: Fluid Centaur
+            // Pedal 1: Fluid Centaur (cx = 204)
             setR(K_KLON_GAIN,   152 - 22, 206, 152 + 22, 292);
             setR(K_KLON_TREBLE, 204 - 22, 206, 204 + 22, 292);
             setR(K_KLON_OUTPUT, 256 - 22, 206, 256 + 22, 292);
-            setR(K_KLON_BLEND,  160 - 38, 320, 160 + 38, 412);
-            setR(K_KLON_HYPER,  248 - 38, 320, 248 + 38, 412);
+            setR(K_KLON_BLEND,  160 - 24, 314, 160 + 24, 386);
+            setR(K_KLON_HYPER,  248 - 28, 314, 248 + 28, 362);
             setR(K_KLON_ON,     0, 0, 0, 0);
 
-            // Pedal 2: TS808 Screamer
+            // Pedal 2: TS808 Screamer (cx = 422)
             setR(K_TS_DRIVE, 370 - 22, 206, 370 + 22, 292);
             setR(K_TS_TONE,  422 - 22, 206, 422 + 22, 292);
             setR(K_TS_LEVEL, 474 - 22, 206, 474 + 22, 292);
-            setR(K_TS_MOD,   422 - 44 - 38, 320, 422 - 44 + 38, 412);
-            setR(K_TS_HYPER, 422 + 44 - 38, 320, 422 + 44 + 38, 412);
+            setR(K_TS_MOD,   422 - 38 - 28, 314, 422 - 38 + 28, 362);
+            setR(K_TS_HYPER, 422 + 38 - 28, 314, 422 + 38 + 28, 362);
             setR(K_TS_ON,    0, 0, 0, 0);
 
-            // Pedal 3: BD-2 Blues Driver
+            // Pedal 3: BD-2 Blues Driver (cx = 640)
             setR(K_BD_GAIN,  588 - 22, 206, 588 + 22, 292);
             setR(K_BD_TONE,  640 - 22, 206, 640 + 22, 292);
             setR(K_BD_LEVEL, 692 - 22, 206, 692 + 22, 292);
-            setR(K_BD_PHAT,  640 - 44 - 38, 320, 640 - 44 + 38, 412);
-            setR(K_BD_HYPER, 640 + 44 - 38, 320, 640 + 44 + 38, 412);
+            setR(K_BD_PHAT,  640 - 38 - 28, 314, 640 - 38 + 28, 362);
+            setR(K_BD_HYPER, 640 + 38 - 28, 314, 640 + 38 + 28, 362);
             setR(K_BD_ON,    0, 0, 0, 0);
 
-            // Pedal 4: Fluid Rodent
+            // Pedal 4: Fluid Rodent (cx = 858)
             setR(K_RAT_DIST,   806 - 22, 206, 806 + 22, 292);
             setR(K_RAT_FILTER, 858 - 22, 206, 858 + 22, 292);
             setR(K_RAT_VOL,    910 - 22, 206, 910 + 22, 292);
-            setR(K_RAT_TURBO,  858 - 44 - 38, 320, 858 - 44 + 38, 412);
-            setR(K_RAT_HYPER,  858 + 44 - 38, 320, 858 + 44 + 38, 412);
+            setR(K_RAT_TURBO,  858 - 38 - 28, 314, 858 - 38 + 28, 362);
+            setR(K_RAT_HYPER,  858 + 38 - 28, 314, 858 + 38 + 28, 362);
             setR(K_RAT_ON,     0, 0, 0, 0);
 
-            // Pedal 5: Fluid Fuzz Face
+            // Pedal 5: Fluid Fuzz Face (cx = 1076, Rectangular Stompbox Chassis)
             setR(K_FUZZ_GAIN,       1024 - 22, 206, 1024 + 22, 292);
             setR(K_FUZZ_SAG,        1076 - 22, 206, 1076 + 22, 292);
             setR(K_FUZZ_LEVEL,      1128 - 22, 206, 1128 + 22, 292);
-            setR(K_FUZZ_TRANSISTOR, 1076 - 44 - 38, 294, 1076 - 44 + 38, 370);
-            setR(K_FUZZ_HYPER,      1076 + 44 - 38, 294, 1076 + 44 + 38, 370);
+            setR(K_FUZZ_TRANSISTOR, 1076 - 38 - 28, 314, 1076 - 38 + 28, 362);
+            setR(K_FUZZ_HYPER,      1076 + 38 - 28, 314, 1076 + 38 + 28, 362);
             setR(K_FUZZ_ON,         0, 0, 0, 0);
             continue;
         }
@@ -350,43 +393,51 @@ void EuphoriaAmpAudioProcessorEditor::drawStylizedKnob(juce::Graphics& g, int pa
                               : ((cx < 992) ? (active ? RGBCol(254, 202, 202) : RGBCol(80, 20, 20))
                               : (active ? RGBCol(186, 230, 253) : RGBCol(35, 70, 100)))));
 
-        g.setFont(juce::FontOptions(9.5f, juce::Font::bold));
+        // 1. Compact Label above switch
+        g.setFont(juce::FontOptions(9.0f, juce::Font::bold));
         g.setColour(labelCol);
-        g.drawText(dispLabel, cx - 40, topY + 2, 80, 14, juce::Justification::centred, false);
+        g.drawText(dispLabel, cx - 28, topY, 56, 12, juce::Justification::centred, false);
 
-        int swTop = topY + 18;
-        int swBottom = topY + 50;
-        int swHalfW = 34;
-        fillRoundRectJuce(g, cx - swHalfW + 2, swTop + 2, cx + swHalfW + 2, swBottom + 2, 6, RGBCol(8, 10, 12), RGBCol(8, 10, 12), 1);
-        fillRoundRectJuce(g, cx - swHalfW, swTop, cx + swHalfW, swBottom, 6, RGBCol(22, 25, 30), RGBCol(71, 85, 105), 2);
+        // 2. Beveled Dark Machined Switch Faceplate (Half Size: 36px wide x 16px high)
+        int swTop = topY + 13;
+        int swBottom = topY + 29;
+        int swHalfW = 18;
+        fillRoundRectJuce(g, cx - swHalfW + 1, swTop + 1, cx + swHalfW + 1, swBottom + 1, 4, RGBCol(8, 10, 12), RGBCol(8, 10, 12), 1);
+        fillRoundRectJuce(g, cx - swHalfW, swTop, cx + swHalfW, swBottom, 4, RGBCol(22, 25, 30), RGBCol(71, 85, 105), 1);
 
-        fillRoundRectJuce(g, cx - swHalfW + 3, swTop + 3, cx - swHalfW + 6, swTop + 6, 3, RGBCol(148, 163, 184), RGBCol(100, 116, 139), 1);
-        fillRoundRectJuce(g, cx + swHalfW - 6, swTop + 3, cx + swHalfW - 3, swTop + 6, 3, RGBCol(148, 163, 184), RGBCol(100, 116, 139), 1);
-        fillRoundRectJuce(g, cx - swHalfW + 3, swBottom - 6, cx - swHalfW + 6, swBottom - 3, 3, RGBCol(148, 163, 184), RGBCol(100, 116, 139), 1);
-        fillRoundRectJuce(g, cx + swHalfW - 6, swBottom - 6, cx + swHalfW - 3, swBottom - 3, 3, RGBCol(148, 163, 184), RGBCol(100, 116, 139), 1);
+        // Micro-screws
+        g.setColour(RGBCol(148, 163, 184));
+        g.fillRect(cx - swHalfW + 2, swTop + 2, 2, 2);
+        g.fillRect(cx + swHalfW - 4, swTop + 2, 2, 2);
+        g.fillRect(cx - swHalfW + 2, swBottom - 4, 2, 2);
+        g.fillRect(cx + swHalfW - 4, swBottom - 4, 2, 2);
 
-        int slotLeft = cx - 18, slotRight = cx + 18;
-        int slotTop = swTop + 7, slotBottom = swBottom - 7;
-        fillRoundRectJuce(g, slotLeft, slotTop, slotRight, slotBottom, 8, RGBCol(10, 12, 16), RGBCol(30, 41, 59), 1);
+        // Recessed slot
+        int slotLeft = cx - 11, slotRight = cx + 11;
+        int slotTop = swTop + 4, slotBottom = swBottom - 4;
+        fillRoundRectJuce(g, slotLeft, slotTop, slotRight, slotBottom, 4, RGBCol(10, 12, 16), RGBCol(30, 41, 59), 1);
 
-        int batCenter = active ? (cx + 8) : (cx - 8);
-        int batHalfW = 8;
-        fillRoundRectJuce(g, batCenter - batHalfW + 1, slotTop + 1, batCenter + batHalfW + 1, slotBottom, 6, RGBCol(10, 10, 12), RGBCol(10, 10, 12), 1);
-        fillRoundRectJuce(g, batCenter - batHalfW, slotTop, batCenter + batHalfW, slotBottom - 1, 6, RGBCol(203, 213, 225), RGBCol(255, 255, 255), 2);
-        g.setColour(RGBCol(255, 255, 255));
-        g.drawLine((float)(batCenter - 2), (float)(slotTop + 3), (float)(batCenter - 2), (float)(slotBottom - 4), 1.0f);
+        // 3D Chrome Bat
+        int batCenter = active ? (cx + 5) : (cx - 5);
+        int batHalfW = 4;
+        fillRoundRectJuce(g, batCenter - batHalfW, slotTop, batCenter + batHalfW, slotBottom, 3, RGBCol(226, 232, 240), RGBCol(255, 255, 255), 1);
+        g.setColour(RGBCol(100, 116, 139));
+        g.drawVerticalLine(batCenter, (float)(slotTop + 1), (float)(slotBottom - 1));
 
-        int ledX = active ? (cx + 25) : (cx - 25);
+        // LED Indicator (3x3 dot)
+        int ledX = active ? (cx + 13) : (cx - 13);
         int ledY = (swTop + swBottom) / 2;
-        fillRoundRectJuce(g, ledX - 3, ledY - 3, ledX + 3, ledY + 3, 6, ledCol, ledGlow, 1);
+        fillRoundRectJuce(g, ledX - 2, ledY - 2, ledX + 2, ledY + 2, 4, ledCol, ledGlow, 1);
         if (active)
             fillRoundRectJuce(g, ledX - 1, ledY - 1, ledX + 1, ledY + 1, 2, RGBCol(255, 255, 255), RGBCol(255, 255, 255), 1);
 
-        int pillHalfW = 38;
-        fillRoundRectJuce(g, cx - pillHalfW, topY + 54, cx + pillHalfW, topY + 70, 4,
+        // 3. Compact Choice Pill (54px wide x 13px high)
+        int pillHalfW = 27;
+        fillRoundRectJuce(g, cx - pillHalfW, topY + 31, cx + pillHalfW, topY + 44, 3,
                           RGBCol(4, 16, 20), active ? ledGlow : RGBCol(30, 41, 59), 1);
+        g.setFont(juce::FontOptions(8.5f, juce::Font::bold));
         g.setColour(active ? labelCol : RGBCol(148, 163, 184));
-        g.drawText(d.choices[(size_t)step], cx - pillHalfW, topY + 54, pillHalfW * 2, 16, juce::Justification::centred, false);
+        g.drawText(d.choices[(size_t)step], cx - pillHalfW, topY + 31, pillHalfW * 2, 13, juce::Justification::centred, false);
         return;
     }
 
@@ -818,6 +869,7 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
                           klonActive ? RGBCol(254, 202, 202) : RGBCol(80, 20, 20), 1);
         if (klonActive)
             fillRoundRectJuce(g, 204 - 3, p1Y1 + 56, 204 + 3, p1Y1 + 62, 6, RGBCol(255, 255, 255), RGBCol(255, 255, 255), 1);
+        draw3DStompFootswitch(g, 204, 480, klonActive, RGBCol(245, 158, 11));
         g.setColour(klonActive ? RGBCol(254, 240, 138) : RGBCol(140, 115, 75));
         g.drawText(klonActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", p1X1, p1Y2 - 24, p1X2 - p1X1, 18, juce::Justification::centred, false);
 
@@ -840,6 +892,7 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
                           tsActive ? RGBCol(254, 240, 138) : RGBCol(80, 48, 15), 1);
         if (tsActive)
             fillRoundRectJuce(g, 422 - 3, p2Y1 + 56, 422 + 3, p2Y1 + 62, 6, RGBCol(255, 255, 255), RGBCol(255, 255, 255), 1);
+        draw3DStompFootswitch(g, 422, 480, tsActive, RGBCol(34, 197, 94));
         g.setColour(tsActive ? RGBCol(167, 243, 208) : RGBCol(100, 150, 120));
         g.drawText(tsActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", p2X1, p2Y2 - 24, p2X2 - p2X1, 18, juce::Justification::centred, false);
 
@@ -862,6 +915,7 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
                           bdActive ? RGBCol(186, 230, 253) : RGBCol(25, 50, 95), 1);
         if (bdActive)
             fillRoundRectJuce(g, 640 - 3, p3Y1 + 56, 640 + 3, p3Y1 + 62, 6, RGBCol(255, 255, 255), RGBCol(255, 255, 255), 1);
+        draw3DStompFootswitch(g, 640, 480, bdActive, RGBCol(56, 189, 248));
         g.setColour(bdActive ? RGBCol(254, 240, 138) : RGBCol(130, 160, 200));
         g.drawText(bdActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", p3X1, p3Y2 - 24, p3X2 - p3X1, 18, juce::Justification::centred, false);
 
@@ -885,20 +939,37 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
                           ratActive ? RGBCol(254, 202, 202) : RGBCol(80, 20, 20), 1);
         if (ratActive)
             fillRoundRectJuce(g, 858 - 3, p4Y1 + 56, 858 + 3, p4Y1 + 62, 6, RGBCol(255, 255, 255), RGBCol(255, 255, 255), 1);
+        draw3DStompFootswitch(g, 858, 480, ratActive, RGBCol(239, 68, 68));
         g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
         g.setColour(ratActive ? (ratIsTurbo ? RGBCol(252, 165, 165) : RGBCol(254, 240, 138)) : RGBCol(140, 140, 140));
         g.drawText(ratActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", p4X1, p4Y2 - 24, p4X2 - p4X1, 18, juce::Justification::centred, false);
 
-        // PEDAL 5: FLUID FUZZ FACE
+        // PEDAL 5: FLUID FUZZ FACE (Rectangular Boutique Chassis)
         int p5X1 = 981, p5X2 = 1171, p5Y1 = 135, p5Y2 = 555;
         bool ffActive    = (processor.getParamValue(K_FUZZ_ON) > 0.5f);
         bool ffIsSilicon = (processor.getParamValue(K_FUZZ_TRANSISTOR) > 0.5f);
         bool ffHyp       = (processor.getParamValue(K_FUZZ_HYPER) > 0.5f);
-        if (imgFuzz.isValid()) {
-            g.drawImage(imgFuzz, p5X1, p5Y1, p5X2 - p5X1, p5Y2 - p5Y1, 0, 0, imgFuzz.getWidth(), imgFuzz.getHeight());
-        } else {
-            fillRoundRectJuce(g, p5X1, p5Y1, p5X2, p5Y2, 95, RGBCol(165, 42, 42), RGBCol(252, 165, 165), 2);
-        }
+
+        // Cast shadow on hardwood floor
+        fillRoundRectJuce(g, p5X1 + 5, p5Y1 + 7, p5X2 + 5, p5Y2 + 7, 14, RGBCol(18, 10, 6), RGBCol(18, 10, 6), 1);
+
+        // Rectangular Boutique Stompbox Enclosure
+        juce::Colour ffChassisBg = ffActive ? (ffIsSilicon ? RGBCol(55, 65, 85) : RGBCol(165, 42, 42))
+                                            : (ffIsSilicon ? RGBCol(38, 45, 58) : RGBCol(105, 30, 30));
+        juce::Colour ffBorder    = ffActive ? (ffIsSilicon ? RGBCol(147, 197, 253) : RGBCol(252, 165, 165))
+                                            : (ffIsSilicon ? RGBCol(96, 115, 145) : RGBCol(160, 60, 60));
+        fillRoundRectJuce(g, p5X1, p5Y1, p5X2, p5Y2, 14, ffChassisBg, ffBorder, ffActive ? 2 : 1);
+
+        // Circular Vintage Faceplate Disc Accent
+        fillRoundRectJuce(g, 1076 - 72, p5Y1 + 42, 1076 + 72, p5Y2 - 110, 72,
+                          ffIsSilicon ? RGBCol(28, 34, 46) : RGBCol(42, 16, 18),
+                          ffIsSilicon ? RGBCol(65, 80, 105) : RGBCol(80, 30, 35), 1);
+
+        // Header Plaque
+        fillRoundRectJuce(g, p5X1 + 10, p5Y1 + 8, p5X2 - 10, p5Y1 + 48, 6,
+                          ffIsSilicon ? RGBCol(20, 26, 36) : RGBCol(55, 12, 15),
+                          ffIsSilicon ? RGBCol(96, 165, 250) : RGBCol(239, 68, 68), 1);
+
         g.setFont(juce::FontOptions(20.0f, juce::Font::bold));
         g.setColour(ffActive ? RGBCol(254, 240, 138) : RGBCol(220, 180, 160));
         g.drawText("FUZZ FACE", p5X1 + 12, p5Y1 + 10, p5X2 - p5X1 - 24, 24, juce::Justification::centred, false);
@@ -972,6 +1043,7 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
         g.setColour(ffActive ? RGBCol(167, 243, 208) : RGBCol(180, 200, 190));
         g.drawText(clnTxt, kBtnFuzzLearnCleanRect, juce::Justification::centred, false);
 
+        draw3DStompFootswitch(g, 1076, 480, ffActive, ffIsSilicon ? RGBCol(56, 189, 248) : RGBCol(239, 68, 68));
         g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
         g.setColour(ffActive ? RGBCol(254, 240, 138) : RGBCol(160, 120, 120));
         g.drawText(ffActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", p5X1, p5Y2 - 24, p5X2 - p5X1, 18, juce::Justification::centred, false);
@@ -1652,13 +1724,51 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
     g.setColour(RGBCol(251, 191, 36));
     g.drawText("MASTER OUT", outMeterX, h - 34, 74, 24, juce::Justification::centredLeft, false);
 
-    int outW = 120, outBarX = outMeterX + 78;
+    int outW = 95, outBarX = outMeterX + 78;
     fillRoundRectJuce(g, outBarX, h - 33, outBarX + outW, h - 23, 4, RGBCol(6, 34, 28), RGBCol(19, 78, 74), 1);
     fillRoundRectJuce(g, outBarX, h - 19, outBarX + outW, h - 9,  4, RGBCol(6, 34, 28), RGBCol(19, 78, 74), 1);
     if (outL > 0.005f)
         fillRoundRectJuce(g, outBarX, h - 33, outBarX + (int)(outW * std::min(1.0f, std::sqrt(outL))), h - 23, 4, RGBCol(245, 158, 11), RGBCol(245, 158, 11), 1);
     if (outR > 0.005f)
         fillRoundRectJuce(g, outBarX, h - 19, outBarX + (int)(outW * std::min(1.0f, std::sqrt(outR))), h - 9,  4, RGBCol(245, 158, 11), RGBCol(245, 158, 11), 1);
+
+    // Interactive Master Output Volume Control [-] [VOL: 5.0] [+]
+    int mstrX = outBarX + outW + 12;
+    g.setColour(RGBCol(251, 191, 36));
+    g.drawText("VOL", mstrX, h - 34, 26, 24, juce::Justification::centredLeft, false);
+
+    fillRoundRectJuce(g, kMasterVolMinusRect.getX(), kMasterVolMinusRect.getY(),
+                      kMasterVolMinusRect.getRight(), kMasterVolMinusRect.getBottom(), 3,
+                      RGBCol(15, 23, 42), RGBCol(245, 158, 11), 1);
+    g.setColour(RGBCol(254, 240, 138));
+    g.drawText("-", kMasterVolMinusRect, juce::Justification::centred, false);
+
+    float curMstr = processor.getParamValue(K_CLEAN_OUT);
+    fillRoundRectJuce(g, kMasterVolPillRect.getX(), kMasterVolPillRect.getY(),
+                      kMasterVolPillRect.getRight(), kMasterVolPillRect.getBottom(), 3,
+                      RGBCol(10, 20, 30), RGBCol(245, 158, 11), 1);
+    int pillW = kMasterVolPillRect.getWidth() - 4;
+    int mstrFill = (int)(pillW * std::clamp(curMstr / 10.0f, 0.0f, 1.0f));
+    if (mstrFill > 2 && curMstr > 0.05f) {
+        fillRoundRectJuce(g, kMasterVolPillRect.getX() + 2, kMasterVolPillRect.getY() + 2,
+                          kMasterVolPillRect.getX() + 2 + mstrFill, kMasterVolPillRect.getBottom() - 2, 2,
+                          RGBCol(70, 45, 10), RGBCol(180, 110, 20), 1);
+    }
+    char mstrBuf[32];
+    if (curMstr <= 0.05f) {
+        std::snprintf(mstrBuf, sizeof(mstrBuf), "MUTE");
+        g.setColour(RGBCol(239, 68, 68));
+    } else {
+        std::snprintf(mstrBuf, sizeof(mstrBuf), "VOL: %.1f", curMstr);
+        g.setColour(RGBCol(254, 240, 138));
+    }
+    g.drawText(mstrBuf, kMasterVolPillRect, juce::Justification::centred, false);
+
+    fillRoundRectJuce(g, kMasterVolPlusRect.getX(), kMasterVolPlusRect.getY(),
+                      kMasterVolPlusRect.getRight(), kMasterVolPlusRect.getBottom(), 3,
+                      RGBCol(15, 23, 42), RGBCol(245, 158, 11), 1);
+    g.setColour(RGBCol(254, 240, 138));
+    g.drawText("+", kMasterVolPlusRect, juce::Justification::centred, false);
 }
 
 void EuphoriaAmpAudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
@@ -1799,31 +1909,31 @@ void EuphoriaAmpAudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
             return;
         }
 
-        const juce::Rectangle<int> rKlonFoot(204 - 35, 465, 70, 70);
+        const juce::Rectangle<int> rKlonFoot(204 - 45, 435, 90, 120);
         if (rKlonFoot.contains(pt)) {
             processor.setParamValueFromGui(K_KLON_ON, processor.getParamValue(K_KLON_ON) > 0.5f ? 0.0f : 1.0f);
             repaint();
             return;
         }
-        const juce::Rectangle<int> rTsFoot(422 - 45, 465, 90, 70);
+        const juce::Rectangle<int> rTsFoot(422 - 45, 435, 90, 120);
         if (rTsFoot.contains(pt)) {
             processor.setParamValueFromGui(K_TS_ON, processor.getParamValue(K_TS_ON) > 0.5f ? 0.0f : 1.0f);
             repaint();
             return;
         }
-        const juce::Rectangle<int> rBdFoot(640 - 45, 465, 90, 70);
+        const juce::Rectangle<int> rBdFoot(640 - 45, 435, 90, 120);
         if (rBdFoot.contains(pt)) {
             processor.setParamValueFromGui(K_BD_ON, processor.getParamValue(K_BD_ON) > 0.5f ? 0.0f : 1.0f);
             repaint();
             return;
         }
-        const juce::Rectangle<int> rRatFoot(858 - 35, 465, 70, 70);
+        const juce::Rectangle<int> rRatFoot(858 - 45, 435, 90, 120);
         if (rRatFoot.contains(pt)) {
             processor.setParamValueFromGui(K_RAT_ON, processor.getParamValue(K_RAT_ON) > 0.5f ? 0.0f : 1.0f);
             repaint();
             return;
         }
-        const juce::Rectangle<int> rFuzzFoot(1076 - 35, 465, 70, 70);
+        const juce::Rectangle<int> rFuzzFoot(1076 - 45, 435, 90, 120);
         if (rFuzzFoot.contains(pt)) {
             processor.setParamValueFromGui(K_FUZZ_ON, processor.getParamValue(K_FUZZ_ON) > 0.5f ? 0.0f : 1.0f);
             repaint();
@@ -1848,6 +1958,26 @@ void EuphoriaAmpAudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
             repaint();
             return;
         }
+    }
+
+    if (kMasterVolMinusRect.contains(pt)) {
+        float curVal = processor.getParamValue(K_CLEAN_OUT);
+        processor.setParamValueFromGui(K_CLEAN_OUT, std::clamp(curVal - 0.5f, 0.0f, 10.0f));
+        repaint();
+        return;
+    }
+    if (kMasterVolPlusRect.contains(pt)) {
+        float curVal = processor.getParamValue(K_CLEAN_OUT);
+        processor.setParamValueFromGui(K_CLEAN_OUT, std::clamp(curVal + 0.5f, 0.0f, 10.0f));
+        repaint();
+        return;
+    }
+    if (kMasterVolPillRect.contains(pt)) {
+        dragKnobIdx  = K_CLEAN_OUT;
+        dragStartY   = pt.y;
+        dragStartVal = processor.getParamValue(K_CLEAN_OUT);
+        dragDidMove  = false;
+        return;
     }
 
     for (int i = 0; i < (int)knobLayout.size(); ++i) {
@@ -1906,6 +2036,11 @@ void EuphoriaAmpAudioProcessorEditor::mouseUp(const juce::MouseEvent&) {
 
 void EuphoriaAmpAudioProcessorEditor::mouseDoubleClick(const juce::MouseEvent& e) {
     const auto pt = toVirtualPt(e.position);
+    if (kMasterVolPillRect.contains(pt) || kMasterVolMinusRect.contains(pt) || kMasterVolPlusRect.contains(pt)) {
+        processor.setParamValueFromGui(K_CLEAN_OUT, 5.0f);
+        repaint();
+        return;
+    }
     const auto& table = euphoriaParamTable();
     for (int i = 0; i < (int)knobLayout.size(); ++i) {
         if (knobLayout[(size_t)i].pageIdx != -1 && knobLayout[(size_t)i].pageIdx != activePage) continue;
@@ -1923,6 +2058,12 @@ void EuphoriaAmpAudioProcessorEditor::mouseDoubleClick(const juce::MouseEvent& e
 
 void EuphoriaAmpAudioProcessorEditor::mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) {
     const auto pt = toVirtualPt(e.position);
+    if (kMasterVolPillRect.contains(pt)) {
+        float curVal = processor.getParamValue(K_CLEAN_OUT);
+        processor.setParamValueFromGui(K_CLEAN_OUT, std::clamp(curVal + (wheel.deltaY > 0.0f ? 0.2f : -0.2f), 0.0f, 10.0f));
+        repaint();
+        return;
+    }
     const auto& table = euphoriaParamTable();
     for (int i = 0; i < (int)knobLayout.size(); ++i) {
         if (knobLayout[(size_t)i].pageIdx != -1 && knobLayout[(size_t)i].pageIdx != activePage) continue;

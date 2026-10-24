@@ -73,7 +73,7 @@ inline const std::vector<EuphoriaParamDef>& euphoriaParamTable() {
         {"clean_glass",    "GLASS AIR",     0, 0, 10, 6.5f, {}},
         {"clean_presence", "PRESENCE",      0, 0, 10, 5.5f, {}},
         {"clean_master",   "MASTER",        0, 0, 10, 5.5f, {}},
-        {"clean_out",      "OUTPUT TRIM",   0, 0, 10, 5.0f, {}},
+        {"clean_out",      "MASTER VOL",    0, 0, 10, 5.0f, {}},
 
         // ---- Page 1: '59 Bassman / '68 JMP Crunch ----
         {"bm_drive",    "PREAMP DRIVE",  1, 0, 10, 5.8f, {}},
