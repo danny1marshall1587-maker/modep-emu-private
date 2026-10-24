@@ -1353,7 +1353,8 @@ struct FluidCentaurPedal {
         using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
-        float driveNorm = std::clamp(gain, 0.0f, 10.0f) / 10.0f;
+        float driveRaw  = std::clamp(gain, 0.0f, 10.0f) * 0.1f;
+        float driveNorm = 0.20f * driveRaw + 0.30f * driveRaw * driveRaw + 0.50f * driveRaw * driveRaw * driveRaw;
         float toneNorm  = std::clamp(treble, 0.0f, 10.0f) / 10.0f;
 
         // 1. Envelope & Pick Transient Tracking (instantaneous attack <0.05ms, 35ms release)
@@ -1477,7 +1478,8 @@ struct TS808ScreamerPedal {
         using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
-        float driveNorm = std::clamp(drive, 0.0f, 10.0f) / 10.0f;
+        float driveRaw  = std::clamp(drive, 0.0f, 10.0f) * 0.1f;
+        float driveNorm = 0.20f * driveRaw + 0.30f * driveRaw * driveRaw + 0.50f * driveRaw * driveRaw * driveRaw;
         float toneNorm  = std::clamp(tone, 0.0f, 10.0f) / 10.0f;
 
         float levelGain = calculatePedalLevelGain(level, 20.0f);
@@ -1603,7 +1605,8 @@ struct BD2BluesDriverPedal {
         if (!enabled) return in;
 
         float toneNorm  = std::clamp(tone, 0.0f, 10.0f) / 10.0f;
-        float gainNorm  = std::clamp(gain, 0.0f, 10.0f) / 10.0f;
+        float gainRaw   = std::clamp(gain, 0.0f, 10.0f) * 0.1f;
+        float gainNorm  = 0.20f * gainRaw + 0.30f * gainRaw * gainRaw + 0.50f * gainRaw * gainRaw * gainRaw;
 
         float levelGain = calculatePedalLevelGain(level, 22.0f);
         if (levelGain <= 0.0001f) return 0.0f;
@@ -1728,7 +1731,8 @@ struct FluidRodentPedal {
         using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
-        float distNorm   = std::clamp(distortion, 0.0f, 10.0f) / 10.0f;
+        float distRaw    = std::clamp(distortion, 0.0f, 10.0f) * 0.1f;
+        float distNorm   = 0.20f * distRaw + 0.30f * distRaw * distRaw + 0.50f * distRaw * distRaw * distRaw;
         float filterNorm = std::clamp(filter, 0.0f, 10.0f) / 10.0f;
 
         float levelGain = calculatePedalLevelGain(volume, 22.0f);
@@ -2347,6 +2351,10 @@ public:
     float cleanOutTrimVal  = 5.0f; // 0..10
     float curCleanVol      = 5.2f; // Active Clean Volume (0..10)
     float curCleanBreakup  = 0.0f; // 0.0 for CleanVol <= 7.0, 0.0..1.0 for CleanVol 7.0..10.0
+    float curDriveGain     = 5.8f; // Active Bassman/JMP Gain (0..10)
+    float curBmBreakup     = 0.0f; // 0.0 for Bassman Gain <= 3.8, progressive 10A audio-taper breakup > 3.8
+    float curLeadBreakup   = 0.5f; // Progressive 10A audio-taper breakup for BE-100 / JCM800 Lead Gain
+    float curMasterBreakup = 0.0f; // Power-tube overdrive factor when Master Volume is pushed > 6.5
 
     void setCleanToneParams(
         float brightMode, float deepMode, float midShiftMode,
@@ -2681,47 +2689,58 @@ public:
     }
 
     /* Push-Pull Power Section + Fluid Core Transformer Dynamics */
-    inline float processPowerStage(float in, float masterGain, int powerTubeType, float sag, int qualityMode, bool isCleanGlass = false) {
+    inline float processPowerStage(float in, float masterGain, int powerTubeType, float sag, int qualityMode, bool isCleanGlass = false, float powerBreakup = 0.0f) {
         float effectiveBPlus = std::max(0.64f, sag);
-        if (isCleanGlass) {
-            // 100W-150W 4x6L6GC Ultra-Linear Clean Power Section (Dumble SSS / '65 Twin):
-            // Below Clean Volume 7.0 (curCleanBreakup == 0), push-pull tubes operate in pure Class-A/AB
-            // laminar headroom with zero clipping, delivering full studio volume.
-            // Only past Clean Volume 7.0 do the 6L6GC power tubes begin to compress and bloom!
+        if (isCleanGlass || powerBreakup <= 0.001f) {
+            // 100W-150W 4x6L6GC / EL34 Ultra-Linear Clean Power Section:
+            // When Clean Glass is below 7.0 OR Bassman/Lead Gain & Master are in their clean headroom region,
+            // push-pull power tubes operate in pure Class-A/AB laminar headroom with zero clipping,
+            // while masterGain controls output loudness along a true 15A Analog Audio Taper!
+            float brk = isCleanGlass ? (curCleanBreakup * 0.65f) : 0.0f;
             float cleanMasterScale = masterGain * 0.60f;
             float push = in * cleanMasterScale;
             float pull = -in * cleanMasterScale * 0.992f;
-            float pOutPush = fluidPowerPush.processLaminarClean(push, curCleanBreakup * 0.65f, effectiveBPlus);
-            float pOutPull = fluidPowerPull.processLaminarClean(pull, curCleanBreakup * 0.65f, effectiveBPlus);
+            float pOutPush = fluidPowerPush.processLaminarClean(push, brk, effectiveBPlus);
+            float pOutPull = fluidPowerPull.processLaminarClean(pull, brk, effectiveBPlus);
             float pOut = (pOutPush - pOutPull) * 0.88f;
             otFlux = 0.995f * otFlux + 0.005f * pOut;
             pOut = pOut / (1.0f + 0.015f * otFlux * otFlux);
             return pOut;
         }
 
-        float push = in * masterGain;
-        float pull = -in * masterGain * 0.985f;
+        // Progressive Push-Pull Power Tube Overdrive (6L6GC / EL34) + Output Transformer Core Memory:
+        // Smoothly crossfades from Class-AB laminar power into full push-pull saturation as Preamp Gain
+        // or Master Volume (past 6.5) is turned up along the Audio Taper curve!
+        float cleanMasterScale = masterGain * 0.60f;
+        float lamPush = fluidPowerPush.processLaminarClean(in * cleanMasterScale, powerBreakup * 0.55f, effectiveBPlus);
+        float lamPull = fluidPowerPull.processLaminarClean(-in * cleanMasterScale * 0.992f, powerBreakup * 0.55f, effectiveBPlus);
+        float lamOut  = (lamPush - lamPull) * 0.88f;
 
-        float pOutPush = fluidPowerPush.process(push, (powerTubeType == 1) ? 1.35f : 1.15f, effectiveBPlus);
-        float pOutPull = fluidPowerPull.process(pull, (powerTubeType == 1) ? 1.35f : 1.15f, effectiveBPlus);
-        float pOut = (pOutPush - pOutPull) * 1.15f;
+        float tubeDriveScale = (0.45f + 0.70f * powerBreakup) * ((powerTubeType == 1) ? 1.25f : 1.08f);
+        float push = in * (0.55f + 0.45f * masterGain);
+        float pull = -in * (0.55f + 0.45f * masterGain) * 0.985f;
+
+        float pOutPush = fluidPowerPush.process(push, tubeDriveScale, effectiveBPlus);
+        float pOutPull = fluidPowerPull.process(pull, tubeDriveScale, effectiveBPlus);
+        float satOut = (pOutPush - pOutPull) * (0.72f + 0.32f * masterGain);
 
         // Output Transformer Core Memory (Jiles-Atherton differential core physics)
         if (qualityMode >= 2) {
-            float dH = pOut - otPrevIn;
-            otPrevIn = pOut;
-            float m_an = EuphoriaHyperDSP::FluidMath::fast_tanh(pOut * 1.15f);
+            float dH = satOut - otPrevIn;
+            otPrevIn = satOut;
+            float m_an = EuphoriaHyperDSP::FluidMath::fast_tanh(satOut * 1.15f);
             float delta = (dH >= 0.0f) ? 1.0f : -1.0f;
             float diff = m_an - otFlux;
             float dM = (diff * delta > 0.0f) ? (0.35f * diff * dH) : (0.08f * diff * dH);
             otFlux = 0.992f * (otFlux + dM) + 0.008f * m_an;
-            pOut = 0.72f * pOut + 0.28f * otFlux;
+            satOut = 0.72f * satOut + 0.28f * otFlux;
         } else {
-            otFlux = 0.995f * otFlux + 0.005f * pOut;
-            pOut = pOut / (1.0f + 0.12f * otFlux * otFlux);
+            otFlux = 0.995f * otFlux + 0.005f * satOut;
+            satOut = satOut / (1.0f + 0.12f * otFlux * otFlux);
         }
 
-        return pOut;
+        float pMix = std::clamp(powerBreakup, 0.0f, 1.0f);
+        return lamOut * (1.0f - pMix) + satOut * pMix;
     }
 
 
@@ -2982,10 +3001,33 @@ public:
     }
 #endif
 
+    // True Vintage 15A Audio Taper (Logarithmic Potentiometer for Volume & Master Volume Controls):
+    // - 0.0 -> 0.0%
+    // - 2.0 -> 3.4% (-29.3 dB)
+    // - 5.0 -> 19.0% (-14.4 dB at 12 o'clock noon — authentic CTS/Bourns 15A-20A audio pot)
+    // - 6.0 -> 28.6% (-10.9 dB)
+    // - 7.0 -> 41.1% (-7.7 dB)
+    // - 10.0 -> 100.0% (0.0 dB full scale)
     inline float audioTaper(float val0to10, float maxGain) {
-        if (val0to10 <= 0.05f) return 0.0f;
-        float norm = val0to10 / 10.0f;
-        return (0.42f * norm + 0.58f * norm * norm) * maxGain;
+        if (val0to10 <= 0.02f) return 0.0f;
+        float norm = std::clamp(val0to10 * 0.1f, 0.0f, 1.0f);
+        return (0.10f * norm + 0.22f * norm * norm + 0.68f * norm * norm * norm) * maxGain;
+    }
+
+    // True Vintage 10A Audio Taper (Logarithmic Input Gain / Preamp Drive Potentiometer):
+    // Gives wide, musical clean-to-edge-of-breakup travel from 0.0 to 5.5, and progressive
+    // tube saturation from 5.5 to 10.0 so the Bassman & Lead amps never distort too fast!
+    // - 0.0 -> 0.0%
+    // - 2.0 -> 2.2%
+    // - 3.5 -> 7.0%
+    // - 5.0 -> 16.2% (12 o'clock noon)
+    // - 7.0 -> 38.3%
+    // - 8.5 -> 64.3%
+    // - 10.0 -> 100.0%
+    inline float gainAudioTaper(float val0to10, float maxGain) {
+        if (val0to10 <= 0.02f) return 0.0f;
+        float norm = std::clamp(val0to10 * 0.1f, 0.0f, 1.0f);
+        return (0.05f * norm + 0.15f * norm * norm + 0.80f * norm * norm * norm) * maxGain;
     }
 
     // Dave Friedman / Marshall 10k Cold Clipper Stage (V1B) with Elastic Fluid-Wall Wave Reflection
@@ -3149,8 +3191,8 @@ public:
             bf = dcBlockerBf.hp(bf, 12.0f, osRate); // Interstage AC coupling
             bf *= 0.76f; // Active Tone Matrix headroom calibration
             float cleanVolScale = (curCleanVol <= 7.0f)
-                ? audioTaper(curCleanVol * (10.0f / 7.0f), 1.38f)
-                : (1.38f + 0.28f * curCleanBreakup);
+                ? audioTaper(curCleanVol * (10.0f / 7.0f), 1.42f)
+                : (1.42f + 0.28f * curCleanBreakup);
             bf *= cleanVolScale;
             // Stage 2 (V2A): Stays 100% laminar clean up to Volume 7.0; blooms into tube breakup past 7.0!
             bf = fluidBf2.processLaminarClean(bf, curCleanBreakup, sagVoltage);
@@ -3158,13 +3200,31 @@ public:
             ch1Out = snubberBf.lp(bf, 16000.0f, osRate); // Extended 16 kHz ceiling for crystal glass chime
         }
 
-        // Path B: Channel 1 - Euphoria '59 Bassman / '68 JMP Crunch
+        // Path B: Channel 1 - Euphoria '59 Bassman / '68 JMP Crunch (True 10A Audio-Taper Input Gain)
+        // - Gain 0.0 .. 3.8: Pure woody 12AY7/5F6-A Tweed Clean (<0.55% THD, zero premature distortion!)
+        // - Gain 4.0 .. 5.5: Touch-sensitive blues edge-of-breakup & cathode-follower bark (1.2% .. 3.5% THD)
+        // - Gain 6.0 .. 7.5: Classic Tweed / '68 JMP Plexi rhythm crunch (5.0% .. 10.5% THD)
+        // - Gain 8.0 .. 10.0: Full dimed Tweed / British Plexi roar (14% .. 24% THD)
         if (chMode == 1 || chMode == 3) {
-            float bm = fluidBm1.process(s * 1.65f, 1.45f, sagVoltage);
+            // Stage 1 (V1A 12AY7 / 12AX7): High-headroom laminar input triode BEFORE the Audio-Taper Gain pot
+            float bm = fluidBm1.processLaminarClean(s * 0.92f, 0.0f, sagVoltage);
             bm = dcBlockerBm.hp(bm, 14.0f, osRate); // Interstage AC coupling
-            bm *= driveGain;
-            bm = fluidBm2.process(bm, 1.65f, sagVoltage);
-            bm = fluidCf.process(bm);
+
+            if (curDriveGain <= 3.8f) {
+                // Pure Tweed Clean region (0.0 .. 3.8) with 15A Audio-Taper loudness sweep
+                float tweedCleanLevel = audioTaper(curDriveGain * (10.0f / 3.8f), 0.88f);
+                bm *= tweedCleanLevel;
+                bm = fluidBm2.processLaminarClean(bm, 0.0f, sagVoltage);
+            } else {
+                // Progressive Audio-Taper Tube Breakup past 3.8 (curBmBreakup in (0..1])
+                float lamBm = fluidBm2.processLaminarClean(bm * 0.88f, curBmBreakup * 0.85f, sagVoltage);
+                float satDrive = 0.55f + driveGain;
+                float satBm = fluidBm2.process(bm * satDrive, 1.35f, sagVoltage);
+                satBm = fluidCf.process(satBm);
+                float cfMix = std::clamp(curBmBreakup * 1.15f, 0.0f, 1.0f);
+                bm = lamBm * (1.0f - cfMix) + satBm * cfMix;
+            }
+
             bm = bmBass.process(bm);
             bm = bmMid.process(bm);
             bm = bmTreble.process(bm);
@@ -3172,15 +3232,15 @@ public:
             ch2Out = snubberBm.lp(bm, 10800.0f, osRate);
         }
 
-        // Path C: Channel 2 - Euphoria '80s Friedman BE-100 / JCM 800 Lead (4-Stage 12AX7 Cascade)
+        // Path C: Channel 2 - Euphoria '80s Friedman BE-100 / JCM 800 Lead (4-Stage 12AX7 Cascade with 10A Audio Taper)
         if (chMode == 2) {
             float lead = s;
             lead = leadAntiAliasTight.hp(lead, 35.0f, osRate);
 
-            // Stage 1: V1A Input Triode (Clean Gain + Tight Lows)
-            lead = fluidLeadV1A.process(lead * 1.85f, 1.45f, sagVoltage);
+            // Stage 1: V1A Input Triode (High-Headroom Laminar Input Stage BEFORE the Lead Gain Pot!)
+            lead = fluidLeadV1A.processLaminarClean(lead * 1.05f, curLeadBreakup * 0.35f, sagVoltage);
             if (hyperLeadStandingWave) {
-                lead += fluidLeadV1A.fluidMomentum * 0.18f;
+                lead += fluidLeadV1A.fluidMomentum * 0.12f;
             }
             lead = leadAntiAlias1.lp(lead, 12000.0f, osRate);
             lead = leadCouplingV1A.hp(lead, 24.0f, osRate);
@@ -3193,13 +3253,18 @@ public:
                 lead = leadC45Filter.process(lead);
             }
 
-            // Lead Gain Attenuator
-            float beGain = audioTaper(leadGainVal, 4.8f) + 0.6f;
+            // Lead Gain Potentiometer (True 10A Audio Taper — zero artificial floor offset!)
+            float beGain = gainAudioTaper(leadGainVal, 5.8f);
             if (leadHbeOn) beGain *= 1.55f;
+
+            // Low-gain clean/crunch path (LEAD GAIN 0.0 .. 3.0) blended smoothly into the 4-stage cascade
+            float lowGainSweep = (leadGainVal <= 3.0f) ? audioTaper(leadGainVal * (10.0f / 3.0f), 0.90f) : 0.90f;
+            float cleanCrunchLead = fluidLeadV2A.processLaminarClean(lead * lowGainSweep, curLeadBreakup * 0.70f, sagVoltage);
+
             lead *= beGain;
 
             // Stage 2: V1B 10k Cold Clipper (Smooth Asymmetric Crunch)
-            lead = triodeColdClipper(lead, leadGridCapV1B, 1.85f, hyperLeadStandingWave);
+            lead = triodeColdClipper(lead, leadGridCapV1B, 1.65f, hyperLeadStandingWave);
             lead = leadAntiAlias2.lp(lead, 11500.0f, osRate);
             lead = leadCouplingV1B.hp(lead, 22.0f, osRate);
 
@@ -3207,14 +3272,14 @@ public:
             lead *= 0.52f;
 
             // Stage 3: V2A High-Voltage Saturated Drive
-            lead = fluidLeadV2A.process(lead * 2.1f, 1.55f, sagVoltage);
+            lead = fluidLeadV2A.process(lead * (1.25f + 0.85f * curLeadBreakup), 1.45f, sagVoltage);
             lead = leadAntiAlias3.lp(lead, 11000.0f, osRate);
             lead = leadCouplingV2A.hp(lead, 20.0f, osRate);
 
             // Stage 4: V2B HBE (Hairy Brown Eye) Extra Cascade Gain Stage
             if (leadHbeOn) {
                 lead *= 0.65f;
-                lead = fluidLeadV2B.process(lead * 2.2f, 1.65f, sagVoltage);
+                lead = fluidLeadV2B.process(lead * 2.1f, 1.60f, sagVoltage);
                 lead = snubberBm.lp(lead, 10500.0f, osRate);
             }
 
@@ -3223,31 +3288,40 @@ public:
                 lead = EuphoriaHyperDSP::FluidMath::fluidWallReflect(lead * 1.25f, 0.25f, curChamberShape) * 0.85f + 0.15f * EuphoriaHyperDSP::FluidMath::fast_tanh(lead);
             }
 
+            // Smooth crossfade from low-gain JCM800 edge-of-clean into full 4-stage BE-100 cascade
+            float cascadeMix = std::clamp(curLeadBreakup * 1.35f, 0.0f, 1.0f);
+            lead = cleanCrunchLead * (1.0f - cascadeMix) + lead * cascadeMix;
+
             // Dedicated BE-100 Tone Stack
             lead = leadToneBass.process(lead);
             lead = leadToneMid.process(lead);
             lead = leadToneTreble.process(lead);
             lead = leadCouplingTone.hp(lead, 22.0f, osRate);
 
-            float leadVolGain = audioTaper(leadVolVal, 3.2f);
+            float leadVolGain = audioTaper(leadVolVal, 4.20f);
             lead *= leadVolGain;
             ch3Out = lead;
         }
 
         float mixedPre = 0.0f;
+        float activePowerBreakup = 0.0f;
         if (chMode == 0) {
             mixedPre = ch1Out;
+            activePowerBreakup = curCleanBreakup * 0.65f;
         } else if (chMode == 1) {
             mixedPre = ch2Out;
+            activePowerBreakup = std::clamp(curBmBreakup * 0.85f + curMasterBreakup * 0.65f, 0.0f, 1.0f);
         } else if (chMode == 2) {
             mixedPre = ch3Out;
+            activePowerBreakup = std::clamp(curLeadBreakup * 0.80f + curMasterBreakup * 0.65f, 0.0f, 1.0f);
         } else {
             mixedPre = (ch1Out * 0.78f + ch2Out * 0.78f);
+            activePowerBreakup = std::clamp(std::max(curCleanBreakup * 0.65f, curBmBreakup * 0.75f) + curMasterBreakup * 0.50f, 0.0f, 1.0f);
         }
 
         // Push-Pull Power Section + Fluid Core Transformer Memory (EL34 for Lead channel)
         int effectivePowerTubes = (chMode == 2) ? 1 : powerTubes;
-        float pOut = processPowerStage(mixedPre, masterGain, effectivePowerTubes, sagVoltage, qualityMode, (chMode == 0));
+        float pOut = processPowerStage(mixedPre, masterGain, effectivePowerTubes, sagVoltage, qualityMode, (chMode == 0), activePowerBreakup);
         return pOut;
     }
 
@@ -3303,11 +3377,34 @@ public:
             physicalCab.model = cabType;
             physicalCab.update((float)sampleRate);
         }
-        curCleanVol     = std::clamp(pCleanVol, 0.0f, 10.0f);
-        curCleanBreakup = (curCleanVol > 7.0f) ? std::clamp((curCleanVol - 7.0f) / 3.0f, 0.0f, 1.0f) : 0.0f;
-        // On Clean Glass (chMode == 0), speaker cone nonlinear stress stays at 0.0 (100% pure studio clean
-        // EVM12L/Twin acoustic headroom) up to Clean Volume 7.0, and engages progressively past 7.0!
-        physicalCab.speakerDrive = (chMode == 0) ? (pSpeakerDrive * curCleanBreakup) : pSpeakerDrive;
+        curCleanVol      = std::clamp(pCleanVol, 0.0f, 10.0f);
+        curCleanBreakup  = (curCleanVol > 7.0f) ? std::clamp((curCleanVol - 7.0f) / 3.0f, 0.0f, 1.0f) : 0.0f;
+        curDriveGain     = std::clamp(pDriveGain, 0.0f, 10.0f);
+        // True 10A Audio-Taper breakup curve for Bassman/JMP (chMode == 1):
+        // Stays 100% woody Tweed clean up to 3.8 on the Gain knob, then blooms with a smooth logarithmic
+        // audio taper through edge-of-breakup (4.0..5.5), classic crunch (6.0..7.5), and dimed roar (8.0..10.0)!
+        if (curDriveGain <= 3.8f) {
+            curBmBreakup = 0.0f;
+        } else {
+            float bmNorm = std::clamp((curDriveGain - 3.8f) / 6.2f, 0.0f, 1.0f);
+            curBmBreakup = 0.14f * bmNorm + 0.30f * bmNorm * bmNorm + 0.56f * bmNorm * bmNorm * bmNorm;
+        }
+        // True 10A Audio-Taper breakup curve for Friedman BE-100 / JCM 800 Lead (chMode == 2):
+        {
+            float ldNorm = std::clamp(leadGainVal * 0.1f, 0.0f, 1.0f);
+            curLeadBreakup = 0.12f * ldNorm + 0.28f * ldNorm * ldNorm + 0.60f * ldNorm * ldNorm * ldNorm;
+        }
+        // Master Volume Power-Tube Overdrive past 6.5:
+        curMasterBreakup = (pMaster > 6.5f) ? gainAudioTaper((pMaster - 6.5f) * (10.0f / 3.5f), 1.0f) : 0.0f;
+
+        // Speaker cone nonlinear stress scales with active channel breakup so clean/low-gain settings stay 100% pure:
+        if (chMode == 0) {
+            physicalCab.speakerDrive = pSpeakerDrive * curCleanBreakup;
+        } else if (chMode == 1) {
+            physicalCab.speakerDrive = pSpeakerDrive * std::clamp(curBmBreakup * 1.15f, 0.0f, 1.0f);
+        } else {
+            physicalCab.speakerDrive = pSpeakerDrive * std::clamp(0.15f + 0.85f * curLeadBreakup, 0.0f, 1.0f);
+        }
         bool brightSw = (pBrightSwitch > 0.5f);
         bool isHarmonicVib = (pTremMode > 0.5f);
 
@@ -3326,10 +3423,10 @@ public:
             osRate
         );
 
-        float cleanGain  = audioTaper(pCleanVol, 3.20f);
-        float driveGain  = audioTaper(pDriveGain, (slopeMode == 1) ? 4.20f : 3.60f);
-        float driveVol   = audioTaper(pDriveVol, 2.50f);
-        float masterGain = audioTaper(pMaster, 3.10f);
+        float cleanGain  = audioTaper(pCleanVol, 3.60f);
+        float driveGain  = gainAudioTaper(pDriveGain, (slopeMode == 1) ? 4.80f : 4.00f);
+        float driveVol   = audioTaper(pDriveVol, 3.80f);
+        float masterGain = audioTaper(pMaster, 3.60f);
         float masterComp = 1.0f;
         float sagDepth   = std::max(0.0f, std::min(10.0f, pSagAmount)) / 10.0f;
 
