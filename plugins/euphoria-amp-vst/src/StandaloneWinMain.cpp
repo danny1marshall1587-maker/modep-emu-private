@@ -18,6 +18,7 @@
 #include <gdiplus.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
+#include <avrt.h>
 #include <functiondiscoverykeys_devpkey.h>
 #include <mmsystem.h>
 #include <ksmedia.h>
@@ -39,6 +40,7 @@ using namespace EuphoriaDSP;
 #pragma comment(lib, "uuid.lib")
 #pragma comment(lib, "propsys.lib")
 #pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "avrt.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "user32.lib")
@@ -49,7 +51,7 @@ struct AudioDeviceConfig {
     int inDevId = -1;        // -1 = Default Windows Device, 0..N = device index
     int outDevId = -1;       // -1 = Default Windows Device, 0..N = device index
     int inChannel = 0;       // 0 = Ch 1 (Left / Inst 1), 1 = Ch 2 (Right / Inst 2), 2 = Stereo Sum
-    int bufferFrames = 256;  // 128 (2.7ms), 256 (5.3ms), 512 (10.7ms)
+    int bufferFrames = 64;   // 32 (0.7ms), 64 (1.3ms ToneDirect), 128 (2.7ms), 256 (5.3ms), 512 (10.7ms)
     char inDevName[128] = "Default Windows Recording Device";
     char outDevName[128] = "Default Windows Playback Device";
 };
@@ -189,10 +191,21 @@ static void loadAudioConfig() {
     GetPrivateProfileStringA("Audio", "InDevName", "", inName, sizeof(inName), path.c_str());
     GetPrivateProfileStringA("Audio", "OutDevName", "", outName, sizeof(outName), path.c_str());
     g_audioCfg.inChannel = GetPrivateProfileIntA("Audio", "InChannel", 0, path.c_str());
-    g_audioCfg.bufferFrames = GetPrivateProfileIntA("Audio", "BufferFrames", 256, path.c_str());
-    if (g_audioCfg.bufferFrames != 128 && g_audioCfg.bufferFrames != 256 && g_audioCfg.bufferFrames != 512) {
-        g_audioCfg.bufferFrames = 256;
+    g_audioCfg.bufferFrames = GetPrivateProfileIntA("Audio", "BufferFrames", 64, path.c_str());
+    if (g_audioCfg.bufferFrames != 32 && g_audioCfg.bufferFrames != 64 &&
+        g_audioCfg.bufferFrames != 128 && g_audioCfg.bufferFrames != 256 && g_audioCfg.bufferFrames != 512) {
+        g_audioCfg.bufferFrames = 64;
     }
+
+    auto isProAudioInterface = [](const char* name) -> bool {
+        return std::strstr(name, "EVO") != nullptr ||
+               std::strstr(name, "Audient") != nullptr ||
+               std::strstr(name, "Line 6") != nullptr ||
+               std::strstr(name, "Focusrite") != nullptr ||
+               std::strstr(name, "Scarlett") != nullptr ||
+               std::strstr(name, "USB Audio") != nullptr ||
+               std::strstr(name, "CODEC") != nullptr;
+    };
 
     if (std::strlen(inName) > 0) {
         for (const auto& dev : g_inDevList) {
@@ -203,9 +216,9 @@ static void loadAudioConfig() {
             }
         }
     } else {
-        // Auto-detect USB Audio CODEC / interface if connected
+        // Auto-detect Audient EVO / Focusrite / Line 6 / USB Audio CODEC interface if connected
         for (const auto& dev : g_inDevList) {
-            if (std::strstr(dev.name, "USB Audio") != nullptr || std::strstr(dev.name, "CODEC") != nullptr) {
+            if (isProAudioInterface(dev.name)) {
                 g_audioCfg.inDevId = dev.id;
                 std::strncpy(g_audioCfg.inDevName, dev.name, sizeof(g_audioCfg.inDevName) - 1);
                 break;
@@ -222,9 +235,9 @@ static void loadAudioConfig() {
             }
         }
     } else {
-        // Auto-detect USB Audio CODEC / interface for playback if connected
+        // Auto-detect Audient EVO / Focusrite / Line 6 / USB Audio CODEC interface for playback if connected
         for (const auto& dev : g_outDevList) {
-            if (std::strstr(dev.name, "USB Audio") != nullptr || std::strstr(dev.name, "CODEC") != nullptr) {
+            if (isProAudioInterface(dev.name)) {
                 g_audioCfg.outDevId = dev.id;
                 std::strncpy(g_audioCfg.outDevName, dev.name, sizeof(g_audioCfg.outDevName) - 1);
                 break;
@@ -392,6 +405,7 @@ struct StrobeTunerEngine {
     int   m_candidateMidi = -1;
     int   m_candidateConfirm = 0;
     int   m_holdFrames = 0;
+    int   m_samplesSinceLastRun = 0;
 
     std::atomic<float> detectedFreq{0.0f};
     std::atomic<float> detectedPitch{0.0f};
@@ -434,6 +448,7 @@ struct StrobeTunerEngine {
         m_candidateMidi = -1;
         m_candidateConfirm = 0;
         m_holdFrames = 0;
+        m_samplesSinceLastRun = 0;
 
         detectedFreq.store(0.0f);
         detectedPitch.store(0.0f);
@@ -480,9 +495,15 @@ struct StrobeTunerEngine {
 
             if (++m_writeIdx >= BUF_SIZE) m_writeIdx = 0;
         }
+        m_samplesSinceLastRun += numSamples;
     }
 
     void process(float refA4 = 440.0f) {
+        // Decimate YIN pitch detector to once every 1024 samples (~47 Hz at 48kHz)
+        // Eliminates >95% of tuner CPU overhead on small low-latency ToneDirect buffers!
+        if (m_samplesSinceLastRun < 1024) return;
+        m_samplesSinceLastRun = 0;
+
         float effectiveRef = (refFreq.load() > 400.0f) ? refFreq.load() : refA4;
         constexpr int N = 2048;
         float x[N];
@@ -520,13 +541,13 @@ struct StrobeTunerEngine {
         int maxLag = int(m_sampleRate / 30.0f);   // Low B0 ~ 30.87 Hz
         if (maxLag > N / 2) maxLag = N / 2;
 
-        std::vector<float> d(maxLag + 1, 0.0f);
+        float d[(N / 2) + 2] = {};
         d[0] = 1.0f;
         float runningSum = 0.0f;
 
         for (int tau = 1; tau <= maxLag; ++tau) {
             float sum = 0.0f;
-            for (int j = 0; j < N - tau; ++j) {
+            for (int j = 0; j < N - tau; j += 2) {
                 float delta = x[j] - x[j + tau];
                 sum += delta * delta;
             }
@@ -1934,9 +1955,19 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
     timeBeginPeriod(1);
 
+    // Register with Windows Multimedia Class Scheduler Service (MMCSS) "Pro Audio"
+    // to prevent Windows P/E-core thread demotion and scheduler quantum jitter (e.g. on i5-12400F)
+    DWORD mmcssTaskIdx = 0;
+    HANDLE hMmcss = AvSetMmThreadCharacteristicsA("Pro Audio", &mmcssTaskIdx);
+    if (hMmcss) {
+        AvSetMmThreadPriority(hMmcss, AVRT_PRIORITY_CRITICAL);
+    }
+    EuphoriaHyperDSP::FluidMath::disableDenormals();
+
     IMMDeviceEnumerator* pEnum = nullptr;
     HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pEnum);
     if (FAILED(hr) || !pEnum) {
+        if (hMmcss) AvRevertMmThreadCharacteristics(hMmcss);
         timeEndPeriod(1);
         CoUninitialize();
         return 1;
@@ -2011,7 +2042,17 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
             if (pAudioClientIn) pAudioClientIn->GetMixFormat(&pWfxIn);
         }
 
-        REFERENCE_TIME hnsReq = (g_audioCfg.bufferFrames == 128) ? 30000 : ((g_audioCfg.bufferFrames == 512) ? 120000 : 60000);
+        REFERENCE_TIME hnsReq = 14000;
+        if (g_audioCfg.bufferFrames <= 32)       hnsReq = 7000;
+        else if (g_audioCfg.bufferFrames <= 64)  hnsReq = 14000;
+        else if (g_audioCfg.bufferFrames <= 128) hnsReq = 28000;
+        else if (g_audioCfg.bufferFrames <= 256) hnsReq = 55000;
+        else                                     hnsReq = 110000;
+
+        REFERENCE_TIME hnsDefaultOut = 0, hnsMinOut = 0;
+        if (SUCCEEDED(pAudioClientOut->GetDevicePeriod(&hnsDefaultOut, &hnsMinOut)) && hnsMinOut > 0) {
+            if (hnsReq < hnsMinOut) hnsReq = hnsMinOut;
+        }
 
         hEventOut = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         hr = pAudioClientOut->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, hnsReq, 0, pWfxOut, nullptr);
@@ -2029,8 +2070,13 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
 
         // Initialize capture if available
         if (pAudioClientIn && pWfxIn) {
+            REFERENCE_TIME hnsReqIn = hnsReq;
+            REFERENCE_TIME hnsDefaultIn = 0, hnsMinIn = 0;
+            if (SUCCEEDED(pAudioClientIn->GetDevicePeriod(&hnsDefaultIn, &hnsMinIn)) && hnsMinIn > 0) {
+                if (hnsReqIn < hnsMinIn) hnsReqIn = hnsMinIn;
+            }
             hEventIn = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-            hr = pAudioClientIn->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, hnsReq, 0, pWfxIn, nullptr);
+            hr = pAudioClientIn->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, hnsReqIn, 0, pWfxIn, nullptr);
             if (SUCCEEDED(hr)) {
                 pAudioClientIn->SetEventHandle(hEventIn);
                 pAudioClientIn->GetService(__uuidof(IAudioCaptureClient), (void**)&pCaptureClient);
@@ -2038,9 +2084,8 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
             }
         }
 
-        // Pre-fill ring buffer with 1024 samples of silence cushion to guarantee zero initial underrun
-        std::vector<float> silence(1024, 0.0f);
-        g_ringBuffer.write(silence.data(), silence.size());
+        // ToneDirect Zero-Pre-Fill Direct Monitoring: do NOT pre-fill 1024 samples (21.3ms) of silence.
+        // Capture packets drain immediately into the render block on the very first hardware interrupt.
 
         // Synchronize tuner engine to true negotiated hardware sample rate
         float hwSampleRate = 48000.0f;
@@ -2164,9 +2209,10 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
                     for (size_t i = readCount; i < framesNeeded; ++i) inFloat[i] = 0.0f;
                 }
 
-                // Clock drift compensation: keep cushion locked around ~1024 samples
-                if (avail > 2560) {
-                    g_ringBuffer.drop(1); // Gently slip 1 sample
+                // ToneDirect Ultra-Tight Clock Drift Lock: never allow more than 2 blocks of ringbuffer queue
+                size_t maxCushion = std::max((size_t)128, (size_t)framesNeeded * 2);
+                if (avail > maxCushion) {
+                    g_ringBuffer.drop(avail - framesNeeded);
                 }
 
                 // Inject test riff synth if enabled
@@ -2222,8 +2268,8 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
                     if (isFloat) {
                         float* pFloat = reinterpret_cast<float*>(pOutData);
                         for (UINT32 i = 0; i < framesNeeded; ++i) {
-                            float l = std::tanh(outFloatL[i]);
-                            float r = std::tanh(outFloatR[i]);
+                            float l = EuphoriaHyperDSP::FluidMath::fast_tanh(outFloatL[i]);
+                            float r = EuphoriaHyperDSP::FluidMath::fast_tanh(outFloatR[i]);
                             if (std::fabs(l) > peakL) peakL = std::fabs(l);
                             if (std::fabs(r) > peakR) peakR = std::fabs(r);
                             pFloat[i * outChannels + 0] = l;
@@ -2234,8 +2280,8 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
                     } else if (pWfxOut->wBitsPerSample == 16) {
                         int16_t* p16 = reinterpret_cast<int16_t*>(pOutData);
                         for (UINT32 i = 0; i < framesNeeded; ++i) {
-                            float l = std::tanh(outFloatL[i]);
-                            float r = std::tanh(outFloatR[i]);
+                            float l = EuphoriaHyperDSP::FluidMath::fast_tanh(outFloatL[i]);
+                            float r = EuphoriaHyperDSP::FluidMath::fast_tanh(outFloatR[i]);
                             if (std::fabs(l) > peakL) peakL = std::fabs(l);
                             if (std::fabs(r) > peakR) peakR = std::fabs(r);
                             p16[i * outChannels + 0] = int16_t(std::clamp(l, -1.0f, 1.0f) * 32760.0f);
@@ -2255,6 +2301,7 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
 
     closeAudioHardware();
     if (pEnum) pEnum->Release();
+    if (hMmcss) AvRevertMmThreadCharacteristics(hMmcss);
     timeEndPeriod(1);
     CoUninitialize();
     return 0;
@@ -5048,13 +5095,20 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
                 SendMessageA(g_hOutCombo, CB_SETCURSEL, 0, 0);
             }
 
-            CreateWindowA("STATIC", "3. Audio Buffer Latency (Sample Rate: 48,000 Hz):", WS_CHILD | WS_VISIBLE, 24, 248, 460, 20, hwnd, nullptr, nullptr, nullptr);
-            g_hBufCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 24, 272, 470, 150, hwnd, (HMENU)104, nullptr, nullptr);
+            CreateWindowA("STATIC", "3. Audio Buffer Latency / ToneDirect Direct Monitoring (48,000 Hz):", WS_CHILD | WS_VISIBLE, 24, 248, 460, 20, hwnd, nullptr, nullptr, nullptr);
+            g_hBufCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 24, 272, 470, 180, hwnd, (HMENU)104, nullptr, nullptr);
             SendMessageA(g_hBufCombo, WM_SETFONT, (WPARAM)hf, TRUE);
-            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"128 frames (~2.7 ms) - Ultra Low Latency (Fast Guitar Response)");
-            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"256 frames (~5.3 ms) - Balanced Studio (Recommended)");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"32 frames (~0.7 ms) - ToneDirect Ultra (Line 6 / EVO 4 Fast)");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"64 frames (~1.3 ms) - ToneDirect Fast (Default Direct Monitor)");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"128 frames (~2.7 ms) - Low Latency (Fast Guitar Response)");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"256 frames (~5.3 ms) - Balanced Studio");
             SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"512 frames (~10.7 ms) - High Stability Safe Mode");
-            int selBuf = (g_audioCfg.bufferFrames == 128) ? 0 : ((g_audioCfg.bufferFrames == 512) ? 2 : 1);
+            int selBuf = 1;
+            if (g_audioCfg.bufferFrames <= 32)       selBuf = 0;
+            else if (g_audioCfg.bufferFrames <= 64)  selBuf = 1;
+            else if (g_audioCfg.bufferFrames <= 128) selBuf = 2;
+            else if (g_audioCfg.bufferFrames <= 256) selBuf = 3;
+            else                                     selBuf = 4;
             SendMessageA(g_hBufCombo, CB_SETCURSEL, (WPARAM)selBuf, 0);
 
             HWND hBtnOk = CreateWindowA("BUTTON", "APPLY & SAVE SETTINGS", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 120, 336, 180, 36, hwnd, (HMENU)IDOK, nullptr, nullptr);
@@ -5118,7 +5172,8 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
                     std::strncpy(g_audioCfg.outDevName, g_outDevList[outSel].name, sizeof(g_audioCfg.outDevName) - 1);
                 }
                 int bufSel = (int)SendMessageA(g_hBufCombo, CB_GETCURSEL, 0, 0);
-                g_audioCfg.bufferFrames = (bufSel == 0) ? 128 : ((bufSel == 2) ? 512 : 256);
+                const int bufSizes[5] = { 32, 64, 128, 256, 512 };
+                g_audioCfg.bufferFrames = (bufSel >= 0 && bufSel < 5) ? bufSizes[bufSel] : 64;
 
                 saveAudioConfig();
                 g_audioConfigChanged.store(true);

@@ -220,10 +220,11 @@ public:
         const float sRate = static_cast<float>(mSampleRate);
         const bool isStereo = (inR && outR && inR != inL);
 
-        // Envelope coefficients (matched to VST denoiser)
+        // Envelope coefficients (matched to VST denoiser, precomputed once per block)
         const float levelAtt = 1.0f - std::exp(-1.0f / (2.0f * sRate / 1000.0f));   // 2ms attack
         const float levelRel = 1.0f - std::exp(-1.0f / (60.0f * sRate / 1000.0f));  // 60ms decay
         const float gainAtt  = 1.0f - std::exp(-1.0f / (0.1f * sRate / 1000.0f));   // 0.1ms gain attack
+        const float baseRel10ms = 1.0f - std::exp(-1.0f / (10.0f * sRate / 1000.0f)); // 10ms base release
 
         // Learning: capture peak hum levels over 1.2 seconds & auto-center grid frequency
         const int totalLearnSamples = static_cast<int>(mSampleRate * 1.2);
@@ -309,60 +310,53 @@ public:
             float totalCancelledHumL = 0.0f;
             float totalCancelledHumR = 0.0f;
 
-            // 2. Per-band spectral subtraction (same formula as VST denoiser)
+            // 2. Per-band spectral subtraction (zero per-sample transcendentals)
             for (int b = 0; b < NUM_HUM_BANDS; ++b) {
                 float bandSigL = mFiltersL[b].process(dcCleanL);
-                float bandSigR = isStereo ? mFiltersR[b].process(dcCleanR) : bandSigL;
-
                 float absBandL = std::abs(bandSigL);
-                float absBandR = std::abs(bandSigR);
 
-                // Envelope followers
                 float coeffL = (absBandL > mBandEnvelopesL[b]) ? levelAtt : levelRel;
                 mBandEnvelopesL[b] += (absBandL - mBandEnvelopesL[b]) * coeffL;
 
-                float coeffR = (absBandR > mBandEnvelopesR[b]) ? levelAtt : levelRel;
-                mBandEnvelopesR[b] += (absBandR - mBandEnvelopesR[b]) * coeffR;
-
-                mOutputLevels[b] = 0.5f * (mBandEnvelopesL[b] + mBandEnvelopesR[b]);
-
-                // Spectral subtraction gain: gain = 1 - noise/signal
-                // This is the same proven formula from the Cyber Denoiser VST.
                 float targetGainL = 1.0f - (tLinear[b] / (mBandEnvelopesL[b] + 1e-9f));
-                targetGainL = std::max(0.0f, std::min(1.0f, targetGainL));
-
-                float targetGainR = 1.0f - (tLinear[b] / (mBandEnvelopesR[b] + 1e-9f));
-                targetGainR = std::max(0.0f, std::min(1.0f, targetGainR));
-
-                // Scale by reduction amount
+                targetGainL = std::clamp(targetGainL, 0.0f, 1.0f);
                 float scaledTargetL = 1.0f - mReduction * (1.0f - targetGainL);
-                float scaledTargetR = 1.0f - mReduction * (1.0f - targetGainR);
 
-                // Adaptive release with tail stabilization
-                float gainCoeffL, gainCoeffR;
+                float gainCoeffL;
                 if (scaledTargetL > mCurrentGainsL[b]) {
                     gainCoeffL = gainAtt;
                 } else {
                     float tailDist = mCurrentGainsL[b] / 1.01f;
                     float tailStab = 1.0f + (1.0f - std::min(1.0f, tailDist)) * 8.0f;
-                    float adaptRel = 10.0f * tailStab; // 10-90ms
-                    gainCoeffL = 1.0f - std::exp(-1.0f / (adaptRel * sRate / 1000.0f));
+                    gainCoeffL = baseRel10ms / tailStab;
                 }
                 mCurrentGainsL[b] += (scaledTargetL - mCurrentGainsL[b]) * gainCoeffL;
-
-                if (scaledTargetR > mCurrentGainsR[b]) {
-                    gainCoeffR = gainAtt;
-                } else {
-                    float tailDist = mCurrentGainsR[b] / 1.01f;
-                    float tailStab = 1.0f + (1.0f - std::min(1.0f, tailDist)) * 8.0f;
-                    float adaptRel = 10.0f * tailStab;
-                    gainCoeffR = 1.0f - std::exp(-1.0f / (adaptRel * sRate / 1000.0f));
-                }
-                mCurrentGainsR[b] += (scaledTargetR - mCurrentGainsR[b]) * gainCoeffR;
-
-                // The hum we cancel = bandpass signal * (1 - gain)
                 totalCancelledHumL += bandSigL * (1.0f - mCurrentGainsL[b]);
-                totalCancelledHumR += bandSigR * (1.0f - mCurrentGainsR[b]);
+
+                if (isStereo) {
+                    float bandSigR = mFiltersR[b].process(dcCleanR);
+                    float absBandR = std::abs(bandSigR);
+                    float coeffR = (absBandR > mBandEnvelopesR[b]) ? levelAtt : levelRel;
+                    mBandEnvelopesR[b] += (absBandR - mBandEnvelopesR[b]) * coeffR;
+
+                    float targetGainR = 1.0f - (tLinear[b] / (mBandEnvelopesR[b] + 1e-9f));
+                    targetGainR = std::clamp(targetGainR, 0.0f, 1.0f);
+                    float scaledTargetR = 1.0f - mReduction * (1.0f - targetGainR);
+
+                    float gainCoeffR;
+                    if (scaledTargetR > mCurrentGainsR[b]) {
+                        gainCoeffR = gainAtt;
+                    } else {
+                        float tailDist = mCurrentGainsR[b] / 1.01f;
+                        float tailStab = 1.0f + (1.0f - std::min(1.0f, tailDist)) * 8.0f;
+                        gainCoeffR = baseRel10ms / tailStab;
+                    }
+                    mCurrentGainsR[b] += (scaledTargetR - mCurrentGainsR[b]) * gainCoeffR;
+                    totalCancelledHumR += bandSigR * (1.0f - mCurrentGainsR[b]);
+                    mOutputLevels[b] = 0.5f * (mBandEnvelopesL[b] + mBandEnvelopesR[b]);
+                } else {
+                    mOutputLevels[b] = mBandEnvelopesL[b];
+                }
             }
 
             // 3. Subtract cancelled hum from full signal

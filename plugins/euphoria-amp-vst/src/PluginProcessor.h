@@ -30,6 +30,7 @@ struct EuphoriaStrobeTunerEngine {
     int   m_candidateMidi = -1;
     int   m_candidateConfirm = 0;
     int   m_holdFrames = 0;
+    int   m_samplesSinceLastRun = 0;
 
     std::atomic<float> detectedFreq{0.0f};
     std::atomic<float> detectedPitch{0.0f};
@@ -69,6 +70,7 @@ struct EuphoriaStrobeTunerEngine {
         m_candidateMidi = -1;
         m_candidateConfirm = 0;
         m_holdFrames = 0;
+        m_samplesSinceLastRun = 0;
 
         detectedFreq.store(0.0f);
         detectedPitch.store(0.0f);
@@ -107,9 +109,15 @@ struct EuphoriaStrobeTunerEngine {
 
             if (++m_writeIdx >= BUF_SIZE) m_writeIdx = 0;
         }
+        m_samplesSinceLastRun += numSamples;
     }
 
     void process(float refA4 = 440.0f) {
+        // Decimate YIN pitch detector to once every 1024 samples (~47 Hz at 48kHz)
+        // Eliminates >95% of tuner CPU overhead on small low-latency buffers!
+        if (m_samplesSinceLastRun < 1024) return;
+        m_samplesSinceLastRun = 0;
+
         float effectiveRef = (refFreq.load() > 400.0f) ? refFreq.load() : refA4;
         constexpr int N = 2048;
         float x[N];
@@ -147,13 +155,13 @@ struct EuphoriaStrobeTunerEngine {
         int maxLag = int(m_sampleRate / 30.0f);
         if (maxLag > N / 2) maxLag = N / 2;
 
-        std::vector<float> d(maxLag + 1, 0.0f);
+        float d[(N / 2) + 2] = {};
         d[0] = 1.0f;
         float runningSum = 0.0f;
 
         for (int tau = 1; tau <= maxLag; ++tau) {
             float sum = 0.0f;
-            for (int j = 0; j < N - tau; ++j) {
+            for (int j = 0; j < N - tau; j += 2) {
                 float delta = x[j] - x[j + tau];
                 sum += delta * delta;
             }

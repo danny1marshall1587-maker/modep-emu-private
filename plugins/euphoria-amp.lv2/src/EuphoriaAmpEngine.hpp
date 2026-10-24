@@ -234,8 +234,9 @@ struct FluidDynamicsCell {
     }
 
     inline float process(float inPressure, float driveLevel, float externalSag = 1.0f) {
+        using namespace EuphoriaHyperDSP;
         // 1. Fluid Velocity & Kinetic Momentum
-        float boundedInput = std::tanh(inPressure);
+        float boundedInput = FluidMath::fast_tanh(inPressure);
         float currentVelocity = boundedInput - prevInPressure;
         prevInPressure = boundedInput;
 
@@ -259,35 +260,28 @@ struct FluidDynamicsCell {
 
         float effChamber = chamberPressure * (0.86f + 0.14f * externalSag);
 
-        // 3. Asymmetrical Fluid Harmonic Generation with Chamber Shape Boundary Physics
+        // 3. Asymmetrical Fluid Harmonic Generation with Elastic Fluid-Wall Wave Reflection
         // Circle (shapeFactor = 0): smooth concentric boundary, high even-order purity, soft quadratic knee
         // Square (shapeFactor = 1): 4 corner recirculation eddy vortices, cubic odd-harmonic bite
+        // Virtual Unlimited Internal Headroom: When driven hard (e.g. Fuzz Face +22 dB into Lead Amp),
+        // the wave never hits a flat clipping rail or cuts out; excess kinetic pressure folds/reflects
+        // back off the chamber boundary like water hitting the side of a tank and returning as harmonics!
         float cornerStress = (boundedInput * boundedInput * boundedInput - boundedInput * 0.35f) * shapeFactor;
         cornerEddy = std::clamp(cornerEddy * 0.72f + cornerStress * 0.28f, -1.0f, 1.0f);
 
         float amplifiedSignal = (inPressure + cornerEddy * 0.30f) * driveLevel * effChamber;
-        float tanhSig = std::tanh(amplifiedSignal);
-        float outputPhase = 0.0f;
-
         float effPurity = std::clamp(harmonicPurity * (1.0f - shapeFactor * 0.35f), 0.10f, 0.50f);
-        float effAsym = std::clamp(asymPower - shapeFactor * 0.65f, 1.85f, 2.5f);
 
-        if (tanhSig > 0.0f) {
-            // Positive pressure: smooth fluid compression with even-order bloom
-            // Strictly bounded in [0, 1.15] by evaluating on tanhSig
-            outputPhase = tanhSig + (effPurity * (tanhSig * tanhSig) * (1.0f - tanhSig) * 0.85f);
-        } else {
-            // Negative pressure: sharper fluid boundary generating warm harmonic richness
-            float absSig = -tanhSig;
-            outputPhase = tanhSig - (effPurity * std::pow(absSig, effAsym) * (1.0f - absSig) * 0.45f);
-        }
+        float outputPhase = FluidMath::fluidWallReflect(amplifiedSignal, effPurity, shapeFactor, fluidMomentum);
 
-        // 4. Inject Fluid Momentum (scaled by chamber inertia)
-        float effMomentumInject = momentumInject * (0.6f + 0.35f * std::sqrt(std::min(4.0f, sizeFactor)));
-        outputPhase += std::tanh(fluidMomentum) * effMomentumInject;
+        // 4. Inject Fluid Momentum (scaled by chamber inertia using fast rational curve instead of std::sqrt)
+        float clampedSz = std::min(4.0f, sizeFactor);
+        float fastSqrtSz = clampedSz * (1.5f / (0.5f + 0.5f * clampedSz));
+        float effMomentumInject = momentumInject * (0.6f + 0.35f * fastSqrtSz);
+        outputPhase += FluidMath::fast_tanh(fluidMomentum) * effMomentumInject;
 
         // Soft limit to absolute max pressure to guarantee stability
-        return std::tanh(outputPhase);
+        return FluidMath::fast_tanh(outputPhase);
     }
 };
 
@@ -308,7 +302,8 @@ struct FluidCathodeFollowerCell {
     }
 
     inline float process(float inPressure) {
-        float boundedIn = std::tanh(inPressure);
+        using namespace EuphoriaHyperDSP;
+        float boundedIn = FluidMath::fast_tanh(inPressure);
         if (boundedIn > 0.0f) {
             gridBias += (boundedIn - gridBias) * 0.0085f;
         } else {
@@ -317,7 +312,7 @@ struct FluidCathodeFollowerCell {
         gridBias = std::clamp(gridBias, -1.0f, 1.0f);
 
         float netInput = inPressure - gridBias * 0.32f;
-        float boundedNet = std::tanh(netInput);
+        float boundedNet = FluidMath::fast_tanh(netInput);
         float vel = boundedNet - prevNetInput;
         prevNetInput = boundedNet;
 
@@ -325,9 +320,9 @@ struct FluidCathodeFollowerCell {
         fluidMomentum = (fluidMomentum * effVisc) + (vel * (1.0f - effVisc));
         fluidMomentum = std::clamp(fluidMomentum, -1.0f, 1.0f);
 
-        float cornerEddy = std::tanh(netInput * netInput * netInput) * shapeFactor * 0.20f;
-        float u = (netInput + cornerEddy + std::tanh(fluidMomentum) * 0.32f) * 1.25f;
-        float th = std::tanh(u);
+        float cornerEddy = FluidMath::fast_tanh(netInput * netInput * netInput) * shapeFactor * 0.20f;
+        float u = (netInput + cornerEddy + FluidMath::fast_tanh(fluidMomentum) * 0.32f) * 1.25f;
+        float th = FluidMath::fast_tanh(u);
         float out = th - 0.12f * (th * th);
         return out;
     }
@@ -514,6 +509,7 @@ struct FluidSpeakerCabinetDSP {
     }
 
     inline float processSample(float in, float sampleRate) {
+        using namespace EuphoriaHyperDSP;
         if (model == 8) return in;
 
         float driveAmount = std::max(0.0f, std::min(10.0f, speakerDrive)) / 10.0f;
@@ -531,7 +527,7 @@ struct FluidSpeakerCabinetDSP {
             float s = in * comp * thermalComp;
 
             float coneStress = s * (1.0f + driveAmount * 1.10f);
-            float t = std::tanh(coneStress);
+            float t = FluidMath::fast_tanh(coneStress);
             float coneOut = (t - 0.04f * (t * t)) / (1.0f + driveAmount * 0.25f);
 
             float baseDamping = (model == 3) ? 5700.0f : ((model == 1) ? 6200.0f : 6600.0f);
@@ -546,7 +542,7 @@ struct FluidSpeakerCabinetDSP {
             if (absS > 0.55f && driveAmount > 0.05f) {
                 float excess = absS - 0.55f;
                 float bloom = excess * excess;
-                float ripple = std::sin(excess * 18.0f) * 0.08f * bloom * driveAmount;
+                float ripple = FluidMath::fast_sin(excess * 18.0f) * 0.08f * bloom * driveAmount;
                 s += ripple;
             }
 
@@ -576,7 +572,7 @@ struct FluidSpeakerCabinetDSP {
 
         // 2. Duffing Non-Linear Suspension Stiffening
         float coneStress = s * (1.0f + driveAmount * 1.15f);
-        float t = std::tanh(coneStress);
+        float t = FluidMath::fast_tanh(coneStress);
         float asymm = (model == 6) ? 0.025f : 0.045f;
         float coneOut = (t - asymm * (t * t)) / (1.0f + driveAmount * 0.22f);
 
@@ -597,21 +593,21 @@ struct FluidSpeakerCabinetDSP {
 
             if (model == 5) {
                 // Hyper Greenback: 3rd and 5th harmonics (Woody British bite)
-                float tHarm = std::tanh(s * 1.8f);
+                float tHarm = FluidMath::fast_tanh(s * 1.8f);
                 float t2 = tHarm * tHarm;
                 float h3 = (4.0f * t2 - 3.0f) * tHarm;                 // 3rd Chebyshev
                 float h5 = ((16.0f * t2 - 20.0f) * t2 + 5.0f) * tHarm; // 5th Chebyshev
                 chladni = (0.055f * h3 + 0.025f * h5) * bloom * driveAmount;
             } else if (model == 6) {
                 // Euphoric Alnico: 2nd and 4th even harmonics (Silky glass/bell chime)
-                float tHarm = std::tanh(s * 1.5f);
+                float tHarm = FluidMath::fast_tanh(s * 1.5f);
                 float t2 = tHarm * tHarm;
                 float h2 = (2.0f * t2 - 1.0f);                          // 2nd Chebyshev
                 float h4 = (8.0f * t2 * (t2 - 1.0f) + 1.0f);           // 4th Chebyshev
                 chladni = (0.065f * h2 + 0.030f * h4) * bloom * driveAmount;
             } else {
                 // 432Hz Golden Ratio Projector: Golden harmonic overtone series
-                float tHarm = std::tanh(s * 1.618f);
+                float tHarm = FluidMath::fast_tanh(s * 1.618f);
                 float t2 = tHarm * tHarm;
                 float h2 = (2.0f * t2 - 1.0f);
                 float h3 = (4.0f * t2 - 3.0f) * tHarm;
@@ -648,12 +644,14 @@ struct StudioDownwardExpander {
     }
 
     inline float process(float in, float sampleRate, bool enabled = true, float thresholdDb = -68.0f, float maxAttenDb = -36.0f) {
+        using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
         float absIn = std::fabs(in);
         // Instantaneous attack (0.6ms), musical smooth release (60ms)
-        float attackCoeff  = 1.0f - std::exp(-1.0f / (0.0006f * sampleRate));
-        float releaseCoeff = 1.0f - std::exp(-1.0f / (0.0600f * sampleRate));
+        float rateScale = 48000.0f / sampleRate;
+        float attackCoeff  = 0.0341f * rateScale;
+        float releaseCoeff = 0.000347f * rateScale;
 
         if (absIn > env) {
             env += attackCoeff * (absIn - env);
@@ -661,12 +659,12 @@ struct StudioDownwardExpander {
             env += releaseCoeff * (absIn - env);
         }
 
-        float envDb = (env > 1e-5f) ? (20.0f * std::log10(env)) : -100.0f;
+        float envDb = (env > 1e-5f) ? FluidMath::fast_db(env) : -100.0f;
         float targetGain = 1.0f;
         if (envDb < thresholdDb) {
             float delta = thresholdDb - envDb;
             float attDb = -std::min(-maxAttenDb, delta * 1.5f);
-            targetGain = std::pow(10.0f, attDb / 20.0f);
+            targetGain = FluidMath::fast_db_to_lin(attDb);
         }
 
         float gCoeff = (targetGain > currentGain) ? attackCoeff : releaseCoeff;
@@ -686,6 +684,8 @@ struct FluidAcousticChamberSpace {
 
     FluidBiquad cavityFilterL;
     FluidBiquad cavityFilterR;
+    float lastCurSize = -1.0f;
+    float lastShapeFactor = -1.0f;
 
     void reset() {
         std::fill(chamberBufferL, chamberBufferL + BUF_SIZE, 0.0f);
@@ -693,6 +693,8 @@ struct FluidAcousticChamberSpace {
         writeIdx = 0;
         cavityFilterL.reset();
         cavityFilterR.reset();
+        lastCurSize = -1.0f;
+        lastShapeFactor = -1.0f;
     }
 
     inline void process(
@@ -747,10 +749,15 @@ struct FluidAcousticChamberSpace {
         if (++writeIdx >= BUF_SIZE) writeIdx = 0;
 
         // Acoustic cavity resonance (Helmholtz frequency = 432 Hz / sqrt(size))
-        float cavityFreq = std::clamp(432.0f / std::sqrt(std::max(0.10f, curSize)), 50.0f, 5200.0f);
-        float cavityQ = 1.15f + shapeFactor * 1.35f;
-        cavityFilterL.setPeaking(cavityFreq, 2.5f, cavityQ, sampleRate);
-        cavityFilterR.setPeaking(cavityFreq, 2.5f, cavityQ, sampleRate);
+        // Cached: only recompute Biquad coefficients when size or shape moves by > 0.002f!
+        if (std::fabs(curSize - lastCurSize) > 0.002f || std::fabs(shapeFactor - lastShapeFactor) > 0.002f) {
+            lastCurSize = curSize;
+            lastShapeFactor = shapeFactor;
+            float cavityFreq = std::clamp(432.0f / std::sqrt(std::max(0.10f, curSize)), 50.0f, 5200.0f);
+            float cavityQ = 1.15f + shapeFactor * 1.35f;
+            cavityFilterL.setPeaking(cavityFreq, 2.5f, cavityQ, sampleRate);
+            cavityFilterR.setPeaking(cavityFreq, 2.5f, cavityQ, sampleRate);
+        }
 
         float resL = cavityFilterL.process(delayedL);
         float resR = cavityFilterR.process(delayedR);
@@ -779,6 +786,8 @@ struct FluidReverbSpace {
 
     FluidBiquad sendHp;
     FluidBiquad sendLp;
+    float lastLowCut = -1.0f;
+    float lastHighCut = -1.0f;
 
     float apBuf1[211] = {};
     float apBuf2[379] = {};
@@ -798,6 +807,8 @@ struct FluidReverbSpace {
         apIdx1 = apIdx2 = 0;
         sendHp.reset();
         sendLp.reset();
+        lastLowCut = -1.0f;
+        lastHighCut = -1.0f;
     }
 
     inline void process(
@@ -808,22 +819,29 @@ struct FluidReverbSpace {
         float sampleRate,
         float& outL, float& outR
     ) {
+        using namespace EuphoriaHyperDSP;
         if (mixNorm <= 0.001f) {
             outL = inL;
             outR = inR;
             return;
         }
 
-        // 1. Abbey Road Pre-Tank Send Conditioning Filter
-        sendHp.setHighpass(std::clamp(sendLowCutHz, 20.0f, 1000.0f), 0.7071f, sampleRate);
-        sendLp.setLowpass(std::clamp(sendHighCutHz, 1500.0f, 18000.0f), 0.7071f, sampleRate);
+        // 1. Abbey Road Pre-Tank Send Conditioning Filter (Cached: zero per-sample trig when unchanged)
+        if (std::fabs(sendLowCutHz - lastLowCut) > 0.25f) {
+            lastLowCut = sendLowCutHz;
+            sendHp.setHighpass(std::clamp(sendLowCutHz, 20.0f, 1000.0f), 0.7071f, sampleRate);
+        }
+        if (std::fabs(sendHighCutHz - lastHighCut) > 1.0f) {
+            lastHighCut = sendHighCutHz;
+            sendLp.setLowpass(std::clamp(sendHighCutHz, 1500.0f, 18000.0f), 0.7071f, sampleRate);
+        }
 
         float inMono = (inL + inR) * 0.5f;
         float conditioned = sendLp.process(sendHp.process(inMono));
 
         // 2. 12AT7 / 6K6 Tube Pre-Driver Stage (soft saturation)
         float driveGain = 0.75f + dwellNorm * 1.50f;
-        float driven = std::tanh(conditioned * driveGain);
+        float driven = FluidMath::fast_tanh(conditioned * driveGain);
 
         // 3. Dual Allpass Diffuser Stage (breaks up specular reflections)
         float b1 = apBuf1[apIdx1];
@@ -883,9 +901,9 @@ struct FluidReverbSpace {
             float damped = dampingLp[k];
 
             // Corner eddy turbulence: x^2(1 - x) bounded non-linearity (Rule 32)
-            float xNorm = std::tanh(damped);
+            float xNorm = FluidMath::fast_tanh(damped);
             float eddy = curShape * 0.12f * (xNorm * xNorm * (1.0f - xNorm));
-            float fbSignal = std::tanh(damped * feedbackFactor) - eddy;
+            float fbSignal = FluidMath::fast_tanh(damped * feedbackFactor) - eddy;
 
             delayBuffers[k][writeIndices[k]] = diff2 + fbSignal;
             if (++writeIndices[k] >= BUF_SIZE) writeIndices[k] = 0;
@@ -897,8 +915,8 @@ struct FluidReverbSpace {
 
         // 8. Equal-Power Dry/Wet Blend
         float mixAngle = mixNorm * 1.5707963f; // 0 .. pi/2
-        float dryG = std::cos(mixAngle);
-        float wetG = std::sin(mixAngle);
+        float dryG = FluidMath::fast_cos(mixAngle);
+        float wetG = FluidMath::fast_sin(mixAngle);
 
         outL = inL * dryG + wetL * wetG;
         outR = inR * dryG + wetR * wetG;
@@ -944,6 +962,7 @@ struct FluidHarmonicTremolo {
         bool isHarmonicMode, bool enabled,
         float sampleRate
     ) {
+        using namespace EuphoriaHyperDSP;
         if (!enabled || depthNorm <= 0.005f) return inSample;
 
         // Advance LFO
@@ -951,8 +970,8 @@ struct FluidHarmonicTremolo {
         lfoPhase += lfoInc;
         if (lfoPhase > 2.0f * (float)M_PI) lfoPhase -= 2.0f * (float)M_PI;
 
-        float lfoLow = sinf(lfoPhase);
-        float lfoHigh = sinf(lfoPhase + (float)M_PI); // 180 deg anti-phase!
+        float lfoLow = FluidMath::fast_sin(lfoPhase);
+        float lfoHigh = -lfoLow; // 180 deg anti-phase!
 
         if (isHarmonicMode) {
             // Split audio into Low and High frequency bands at ~750 Hz
@@ -985,13 +1004,6 @@ struct FluidHarmonicTremolo {
 // ============================================================================
 // Transient-Decoupled High-Band De-Hisser & Adaptive Phase Cancellation (Rule 35)
 // ============================================================================
-// Preserves 100% of guitar high-frequency chime, pick attack transients, and
-// glassiness by using an instantaneous peak-assisted detector (tau_atk <= 0.4 ms).
-// Employs a 4th-order (24 dB/octave) Linkwitz-Riley phase-aligned crossover
-// (>106 dB sub-harmonic rejection at 90 Hz) so low-frequency string thumps
-// cannot leak into the high-band detector or trigger gate release tails.
-// Features adaptive 180° anti-phase noise profile subtraction to eliminate
-// the stationary background noise floor under active playing.
 struct DynamicDeHiss {
     float sr = 48000.0f;
     float splitFc = 3200.0f;
@@ -1002,6 +1014,11 @@ struct DynamicDeHiss {
     float envSlow = 0.0f;
     float gainSmooth = 1.0f;
     float lastHighSig = 0.0f;
+    float atkCoeff = 0.0507f;
+    float relCoeff = 0.000379f;
+    float relSlowCoeff = 0.000174f;
+    float smoothOpenCoeff = 0.0578f;
+    float smoothCloseCoeff = 0.000833f;
     inline float getLastHighSig() const { return lastHighSig; }
 
     void init(double sampleRate, float fc = 3200.0f) {
@@ -1012,6 +1029,11 @@ struct DynamicDeHiss {
         lp2.setLowPass(splitFc, Q_butterworth, sr);
         hp1.setHighPass(splitFc, Q_butterworth, sr);
         hp2.setHighPass(splitFc, Q_butterworth, sr);
+        atkCoeff         = 1.0f - expf(-1.0f / (sr * 0.0004f));
+        relCoeff         = 1.0f - expf(-1.0f / (sr * 0.055f));
+        relSlowCoeff     = 1.0f - expf(-1.0f / (sr * 0.120f));
+        smoothOpenCoeff  = 1.0f - expf(-1.0f / (sr * 0.00035f));
+        smoothCloseCoeff = 1.0f - expf(-1.0f / (sr * 0.025f));
         reset();
     }
 
@@ -1027,6 +1049,7 @@ struct DynamicDeHiss {
     // Dual-Keyed expansion: keyed by clean guitar input to cleanly suppress idle amp/pedal hiss
     // while leaving 100% of guitar pick attack, chime, treble, and Glass Air untouched.
     inline float processSample(float in, float inEnvDb, float thresholdDb = -60.0f, float maxReductionDb = -36.0f, bool enabled = true) {
+        using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
         // 1. Phase-aligned 4th-order Linkwitz-Riley crossover (flat magnitude sum)
@@ -1036,10 +1059,6 @@ struct DynamicDeHiss {
 
         // 2. High-pass band peak detection with instantaneous attack (<0.4ms)
         float absHf = fabsf(highSig);
-        float atkCoeff = 1.0f - expf(-1.0f / (sr * 0.0004f)); // 0.40 ms attack
-        float relCoeff = 1.0f - expf(-1.0f / (sr * 0.055f));  // 55 ms musical smooth release
-        float relSlowCoeff = 1.0f - expf(-1.0f / (sr * 0.120f));
-
         if (absHf > envFast) {
             envFast += atkCoeff * (absHf - envFast);
         } else {
@@ -1053,20 +1072,15 @@ struct DynamicDeHiss {
         }
 
         // 3. Input-keyed downward expansion gain computation:
-        // When clean guitar input is active (inEnvDb >= thresholdDb), targetGainLinear = 1.0 (100% open).
-        // When clean guitar input is idle (inEnvDb < thresholdDb), high-frequency hiss from the amp/effects
-        // is smoothly attenuated down to match the clean input noise floor.
         float targetGainLinear = 1.0f;
         if (inEnvDb < thresholdDb) {
             float deltaDb = thresholdDb - inEnvDb;
             float attDb = -std::min(-maxReductionDb, deltaDb * 2.5f);
-            targetGainLinear = powf(10.0f, attDb / 20.0f);
+            targetGainLinear = FluidMath::fast_db_to_lin(attDb);
         }
 
         // Fast opening (0.35ms), musical closing (25ms)
-        float smoothCoeff = (targetGainLinear > gainSmooth)
-                          ? (1.0f - expf(-1.0f / (sr * 0.00035f)))
-                          : (1.0f - expf(-1.0f / (sr * 0.025f)));
+        float smoothCoeff = (targetGainLinear > gainSmooth) ? smoothOpenCoeff : smoothCloseCoeff;
         gainSmooth += smoothCoeff * (targetGainLinear - gainSmooth);
 
         // 4. Pure linear high-band gain (NO CENTER CLIPPING!)
@@ -1078,6 +1092,7 @@ struct DynamicDeHiss {
 
     // Single-input overload for standalone / unit tests
     inline float processSample(float in, float thresholdDb = -62.0f, float maxReductionDb = -28.0f, bool enabled = true) {
+        using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
         float lowSig  = lp2.process(lp1.process(in));
@@ -1085,10 +1100,6 @@ struct DynamicDeHiss {
         lastHighSig = highSig;
 
         float absHf = fabsf(highSig);
-        float atkCoeff = 1.0f - expf(-1.0f / (sr * 0.0004f));
-        float relCoeff = 1.0f - expf(-1.0f / (sr * 0.055f));
-        float relSlowCoeff = 1.0f - expf(-1.0f / (sr * 0.120f));
-
         if (absHf > envFast) {
             envFast += atkCoeff * (absHf - envFast);
         } else {
@@ -1102,18 +1113,16 @@ struct DynamicDeHiss {
         }
 
         float detLevel = std::max(envFast, envSlow * 0.85f);
-        float detDb = (detLevel > 1e-6f) ? (20.0f * log10f(detLevel)) : -120.0f;
+        float detDb = (detLevel > 1e-6f) ? FluidMath::fast_db(detLevel) : -120.0f;
 
         float targetGainLinear = 1.0f;
         if (detDb < thresholdDb) {
             float deltaDb = detDb - thresholdDb;
             float attDb = std::max(maxReductionDb, deltaDb * 1.5f);
-            targetGainLinear = powf(10.0f, attDb / 20.0f);
+            targetGainLinear = FluidMath::fast_db_to_lin(attDb);
         }
 
-        float smoothCoeff = (targetGainLinear > gainSmooth)
-                          ? (1.0f - expf(-1.0f / (sr * 0.00035f)))
-                          : (1.0f - expf(-1.0f / (sr * 0.025f)));
+        float smoothCoeff = (targetGainLinear > gainSmooth) ? smoothOpenCoeff : smoothCloseCoeff;
         gainSmooth += smoothCoeff * (targetGainLinear - gainSmooth);
 
         float cleanHigh = highSig * gainSmooth;
@@ -1124,11 +1133,6 @@ struct DynamicDeHiss {
 // ============================================================================
 // Calibrated Pedal Level / Output Potentiometer Taper (Rule 34)
 // ============================================================================
-// Stompbox Level pots are wired as passive voltage dividers to ground:
-// - Fully counter-clockwise (0.0): Wiper is grounded, output is strictly 0.0 (silence).
-// - Halfway / 12 o'clock (5.0): Nominal Unity Gain (1.0x / 0.0 dB) matching bypass.
-// - Fully clockwise (10.0): Massive High-Headroom Clean Boost (+20 dB .. +22 dB).
-// ============================================================================
 inline float calculatePedalLevelGain(float levelKnob, float maxBoostDb = 22.0f) {
     float l = std::clamp(levelKnob, 0.0f, 10.0f);
     if (l <= 0.0001f) return 0.0f;
@@ -1137,7 +1141,7 @@ inline float calculatePedalLevelGain(float levelKnob, float maxBoostDb = 22.0f) 
         return norm * norm; // 0.0 at 0.0, 1.0 (unity, 0.0 dB) at 5.0
     } else {
         float boostDb = ((l - 5.0f) / 5.0f) * maxBoostDb;
-        return std::pow(10.0f, boostDb / 20.0f); // 1.0 (0.0 dB) at 5.0, maxBoostDb at 10.0
+        return EuphoriaHyperDSP::FluidMath::fast_db_to_lin(boostDb);
     }
 }
 
@@ -1168,7 +1172,8 @@ struct FluidTransistorCell {
 
     // JFET Emulation: Quadratic pinch-off with dynamic self-bias and fluid momentum
     inline float processJfet(float inSig, float drive, float shapeFactor = 0.05f) {
-        float boundedIn = std::tanh(inSig);
+        using namespace EuphoriaHyperDSP;
+        float boundedIn = FluidMath::fast_tanh(inSig);
         float vel = boundedIn - prevPressure;
         prevPressure = boundedIn;
 
@@ -1188,22 +1193,21 @@ struct FluidTransistorCell {
         float vEffective = (boundedIn - gateBiasSag * 0.28f + fluidMomentum * 0.30f) * drive;
 
         // Ideal JFET Quadratic Transfer Curve (square-law conduction)
-        // For positive swing: parabolic compression with rich 2nd harmonic bloom
-        // For negative swing: softer cutoff pinch-off
         float sat;
         if (vEffective >= 0.0f) {
-            float x = std::tanh(vEffective * 0.85f);
+            float x = FluidMath::fast_tanh(vEffective * 0.85f);
             sat = x - 0.18f * (x * x) * (1.0f - shapeFactor);
         } else {
-            float x = std::tanh(vEffective * 0.72f);
+            float x = FluidMath::fast_tanh(vEffective * 0.72f);
             sat = x + 0.12f * (x * x) * (1.0f - shapeFactor);
         }
-        return std::tanh(sat * 1.15f) * 1.02f;
+        return FluidMath::fast_tanh(sat * 1.15f) * 1.02f;
     }
 
     // Germanium Diode Bridge (Klon): Ultra-soft knee, 18V charge pump headroom
     inline float processGermanium(float midSig, float driveNorm, bool asymmetric = false) {
-        float boundedIn = std::tanh(midSig);
+        using namespace EuphoriaHyperDSP;
+        float boundedIn = FluidMath::fast_tanh(midSig);
         float vel = boundedIn - prevPressure;
         prevPressure = boundedIn;
 
@@ -1221,21 +1225,22 @@ struct FluidTransistorCell {
         float clipped;
         if (asymmetric) {
             if (amplified >= 0.0f) {
-                clipped = std::tanh(amplified * 2.2f) * 0.52f;
+                clipped = FluidMath::fast_tanh(amplified * 2.2f) * 0.52f;
             } else {
-                clipped = -std::tanh(-amplified * 1.35f) * 0.65f;
+                clipped = -FluidMath::fast_tanh(-amplified * 1.35f) * 0.65f;
             }
         } else {
             // Pure symmetrical Germanium pair
             float x = amplified * 1.75f;
-            clipped = std::tanh(x) * 0.58f;
+            clipped = FluidMath::fast_tanh(x) * 0.58f;
         }
         return clipped;
     }
 
     // Op-Amp Silicon Diode Loop (TS808): Feedback loop clipping with fluid momentum
     inline float processSiliconOpAmp(float loopSig, float driveNorm) {
-        float boundedIn = std::tanh(loopSig);
+        using namespace EuphoriaHyperDSP;
+        float boundedIn = FluidMath::fast_tanh(loopSig);
         float vel = boundedIn - prevPressure;
         prevPressure = boundedIn;
 
@@ -1245,21 +1250,14 @@ struct FluidTransistorCell {
         float driven = (loopSig + fluidMomentum * 0.22f) * driveAmp;
 
         // Symmetrical 1N4148 Silicon Diode clipping (Vf ~ 0.65V)
-        // Sharper knee than Germanium, but rounded by fluid viscosity to eliminate buzz
         float x = driven * 1.25f;
-        float clipped = std::tanh(x) * 0.68f;
+        float clipped = FluidMath::fast_tanh(x) * 0.68f;
         return clipped;
     }
 };
 
 // ============================================================================
 // STOMPBOX 1: FLUID CENTAUR (KLON CENTAUR PROFESSIONAL OVERDRIVE)
-// Authentic dual-ganged circuit:
-// 1. Transparent Clean Buffer Path (VR1B attenuates clean as drive increases)
-// 2. Focused Mid-Band Germanium Overdrive Path (360 Hz high-pass with warm low-mids)
-// 3. Parallel Clean + Germanium blend (The Mythical Transparent Overdrive)
-// 4. Active Baxandall Treble & Tone Darkening Control (corner sweeps 1400..2000 Hz, -22 dB cut at 0.0)
-// 5. Calibrated Level Taper: 0 at 0.0, 1.0 (0.0 dB unity) at 5.0, +22 dB at 10.0
 // ============================================================================
 struct FluidCentaurPedal {
     bool enabled = false;
@@ -1280,11 +1278,11 @@ struct FluidCentaurPedal {
     FluidTransistorCell germanCell; // Germanium diode bridge fluid cell
     EuphoriaHyperDSP::HyperCentaurPedal hyperPedal;
 
-    // Pick-Transient Preservation, Dynamic Volume Roll-Off & Idle Self-Noise Squelch (Rule 36 & 39)
     float peakTrackEnv = 0.0f;
     float rmsSquaredFiltered = 0.0f;
     float currentRMS = 0.0f;
     float smoothedDriveMorph = 1.0f;
+    float lastToneNorm = -1.0f;
 
     void reset() {
         klonHpClean.reset();
@@ -1300,34 +1298,33 @@ struct FluidCentaurPedal {
         rmsSquaredFiltered = 0.0f;
         currentRMS = 0.0f;
         smoothedDriveMorph = 1.0f;
+        lastToneNorm = -1.0f;
     }
 
     inline float processSample(float in, float sampleRate) {
+        using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
         float driveNorm = std::clamp(gain, 0.0f, 10.0f) / 10.0f;
         float toneNorm  = std::clamp(treble, 0.0f, 10.0f) / 10.0f;
-        float levelNorm = std::clamp(output, 0.0f, 10.0f) / 10.0f;
 
         // 1. Envelope & Pick Transient Tracking (instantaneous attack <0.05ms, 35ms release)
         float absIn = std::abs(in);
         if (absIn > peakTrackEnv) {
             peakTrackEnv = absIn;
         } else {
-            float pkRelCoeff = 1.0f - std::exp(-1.0f / (sampleRate * 0.035f));
+            float pkRelCoeff = 0.000595f * (48000.0f / sampleRate);
             peakTrackEnv += pkRelCoeff * (absIn - peakTrackEnv);
         }
 
         float squared = in * in;
         const float rmsCoeff = 0.0006f * (48000.0f / sampleRate);
         rmsSquaredFiltered += (squared - rmsSquaredFiltered) * rmsCoeff;
-        currentRMS = std::sqrt(std::max(0.0f, rmsSquaredFiltered));
-        float effectiveRMS = std::max(currentRMS, peakTrackEnv * 0.707f);
-
-        // 2. Dynamic Volume Roll-Off & Idle Self-Noise Squelch
-        float currentDB = 20.0f * std::log10(std::max(0.00001f, effectiveRMS));
-        float cleanRefDB = -36.0f; // Typical clean volume 7 level
-        float maxRefDB   = -22.0f; // Typical gunned volume 10 level
+        // Fast decibel extraction directly from squared RMS or peak without std::sqrt or std::log10!
+        float effectiveSq = std::max(rmsSquaredFiltered, (peakTrackEnv * peakTrackEnv) * 0.5f);
+        float currentDB = (effectiveSq > 1e-10f) ? (10.0f * FluidMath::fast_log2(effectiveSq) * 0.301029995f) : -100.0f;
+        float cleanRefDB = -36.0f;
+        float maxRefDB   = -22.0f;
 
         // Rapid Drive Morph on Guitar Volume Pot (Vol 10 -> Vol 7 cleanup)
         float rawMorph = (currentDB - cleanRefDB) / (maxRefDB - cleanRefDB);
@@ -1338,11 +1335,6 @@ struct FluidCentaurPedal {
         float levelGain = calculatePedalLevelGain(output, 22.0f);
         if (levelGain <= 0.0001f) return 0.0f;
 
-        // Idle Self-Noise Floor Squelch:
-        // When guitar is actively played (> -46 dBFS), squelch is 1.0 (100% transparent).
-        // When guitar decays into background noise floor (< -62 dBFS),
-        // squelch gently attenuates pedal internal circuit hiss by -30 dB,
-        // while instantaneous pick detector (<0.05ms) opens squelch in 0ms on new string touch!
         float squelchFactor = std::clamp((currentDB - (-62.0f)) / 16.0f, 0.03f, 1.0f);
         float driveCurve = smoothedDriveMorph * smoothedDriveMorph * smoothedDriveMorph;
 
@@ -1355,61 +1347,46 @@ struct FluidCentaurPedal {
         bool effModSwitch = (mode == 1 || modSwitch);
         float dynamicDrive = driveNorm * (0.10f + 0.90f * driveCurve);
 
-        // 3. Dual-Ganged Clean Path (VR1B: authentic dual-ganged transparent pass-through)
+        // 3. Dual-Ganged Clean Path
         float cleanBuffered = klonHpClean.hp(in, 20.0f, sampleRate);
         float cleanGain = (1.0f - dynamicDrive * 0.82f) * (1.0f + 0.40f * (1.0f - driveCurve));
         float cleanPath = cleanBuffered * cleanGain;
 
-        // 4. Dual-Ganged Overdrive Path:
-        // Drive path high-passes at 360 Hz (authentic Klon body & warm low-mids; avoids thin icepick harshness)
+        // 4. Dual-Ganged Overdrive Path
         float midSig = klonHpDrive.hp(in, 360.0f, sampleRate);
         midSig = klonLpDrive.lp(midSig, 4200.0f, sampleRate);
 
         float clipped = germanCell.processGermanium(midSig, dynamicDrive, effModSwitch);
-        // Rich saturated bloom at high gain
         float odPath = clipped * (dynamicDrive * 3.4f);
-        // Pure un-gated sustain: natural bloom all the way to -inf
         float blended = cleanPath + odPath;
 
-        // 5. Active Baxandall Treble & Continuous Tone Darkening Filter:
-        // Sweeps smoothly across the entire range:
-        // At 0.0: deep dark singing cream (cutoff 850 Hz, -24 dB shelf cut)
-        // At 5.0: completely flat transparent overdrive (cutoff 6500 Hz, 0 dB shelf)
-        // At 10.0: sweet crystalline air shelf boost (+12 dB at 3.2 kHz, 18 kHz open)
-        float lpCut = 850.0f * std::pow(18000.0f / 850.0f, toneNorm);
-        klonBiquadLp.setLowPass(lpCut, 0.707f, sampleRate);
-        blended = klonBiquadLp.process(blended);
-
-        if (toneNorm <= 0.5f) {
-            float cutDb = (toneNorm - 0.5f) * 48.0f; // 0 dB at 0.5 down to -24 dB at 0.0
-            klonTreble.setHighShelf(1200.0f, cutDb, 0.707f, sampleRate);
-        } else {
-            float boostDb = (toneNorm - 0.5f) * 24.0f; // up to +12 dB at 1.0
-            klonTreble.setHighShelf(3200.0f, boostDb, 0.707f, sampleRate);
+        // 5. Active Baxandall Treble & Continuous Tone Darkening Filter (Cached when tone knob unchanged!)
+        if (std::fabs(toneNorm - lastToneNorm) > 0.0005f) {
+            lastToneNorm = toneNorm;
+            float lpCut = 850.0f * std::pow(18000.0f / 850.0f, toneNorm);
+            klonBiquadLp.setLowPass(lpCut, 0.707f, sampleRate);
+            if (toneNorm <= 0.5f) {
+                float cutDb = (toneNorm - 0.5f) * 48.0f;
+                klonTreble.setHighShelf(1200.0f, cutDb, 0.707f, sampleRate);
+            } else {
+                float boostDb = (toneNorm - 0.5f) * 24.0f;
+                klonTreble.setHighShelf(3200.0f, boostDb, 0.707f, sampleRate);
+            }
         }
+        blended = klonBiquadLp.process(blended);
         blended = klonTreble.process(blended);
 
-        // 6. Calibrated Master Output Stage (0 at 0.0, unity at 5.0, +22 dB at 10.0)
         return blended * levelGain * squelchFactor;
     }
 };
 
 // ============================================================================
 // STOMPBOX 2: TS808 SCREAMER (TUBE SCREAMER CLASSIC)
-// Authentic JRC4558 non-inverting circuit:
-// 1. High-pass in feedback loop at 720 Hz (lows stay unclipped & tight!)
-// 2. Feedback loop smoothing (51 pF capacitor roll-off across clipping diodes)
-// 3. Balanced clean body mix + saturated silicon clipping (zero icepick harshness)
-// 4. Post-clipping 723 Hz low-pass filter with 1.71x makeup gain
-// 5. Active Tone Control: turning down deeply darkens tone (680 Hz shelf down to -22 dB + 1.2 kHz low pass)
-// 6. Post-tone 5.5 kHz anti-icepick low-pass filter (strips harsh line-out spikes)
-// 7. Stock (720 Hz) vs Fat Mod (340 Hz) switch
-// 8. Calibrated Level Taper: 0 at 0.0, 1.0 (0.0 dB unity) at 5.0, +20 dB at 10.0
 // ============================================================================
 struct TS808ScreamerPedal {
     bool enabled = false;
     float drive = 5.0f;     // 0..10
-    float tone = 4.8f;      // 0..10 (default: musical warm side of flat)
+    float tone = 4.8f;      // 0..10
     float level = 7.0f;     // 0..10
     bool fatMod = false;    // Stock 720 Hz vs Fat Mod 340 Hz
     int  mode = 2;          // 0 = (OLD) Stock 720Hz, 1 = (OLD) Fat Mod 340Hz, 2 = HYPER Velvet, 3 = HYPER Fat
@@ -1424,11 +1401,11 @@ struct TS808ScreamerPedal {
     FluidOnePole tsToneLp;
     FluidTransistorCell opampCell;
 
-    // Pick-Transient Preservation, Dynamic Volume Roll-Off & Idle Self-Noise Squelch (Rule 36 & 39)
     float peakTrackEnv = 0.0f;
     float rmsSquaredFiltered = 0.0f;
     float currentRMS = 0.0f;
     float smoothedDriveMorph = 1.0f;
+    float lastToneNorm = -1.0f;
 
     void reset() {
         tsRfCut.reset();
@@ -1445,35 +1422,35 @@ struct TS808ScreamerPedal {
         rmsSquaredFiltered = 0.0f;
         currentRMS = 0.0f;
         smoothedDriveMorph = 1.0f;
+        lastToneNorm = -1.0f;
     }
 
     inline float processSample(float in, float sampleRate) {
+        using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
         float driveNorm = std::clamp(drive, 0.0f, 10.0f) / 10.0f;
         float toneNorm  = std::clamp(tone, 0.0f, 10.0f) / 10.0f;
-        float levelNorm = std::clamp(level, 0.0f, 10.0f) / 10.0f;
 
         float levelGain = calculatePedalLevelGain(level, 20.0f);
         if (levelGain <= 0.0001f) return 0.0f;
 
-        // 1. Envelope & Pick Transient Tracking (instantaneous attack <0.05ms, 35ms release)
+        // 1. Envelope & Pick Transient Tracking
         float absIn = std::abs(in);
         if (absIn > peakTrackEnv) {
             peakTrackEnv = absIn;
         } else {
-            float pkRelCoeff = 1.0f - std::exp(-1.0f / (sampleRate * 0.035f));
+            float pkRelCoeff = 0.000595f * (48000.0f / sampleRate);
             peakTrackEnv += pkRelCoeff * (absIn - peakTrackEnv);
         }
 
         float squared = in * in;
         const float rmsCoeff = 0.0006f * (48000.0f / sampleRate);
         rmsSquaredFiltered += (squared - rmsSquaredFiltered) * rmsCoeff;
-        currentRMS = std::sqrt(std::max(0.0f, rmsSquaredFiltered));
-        float effectiveRMS = std::max(currentRMS, peakTrackEnv * 0.707f);
+        float effectiveSq = std::max(rmsSquaredFiltered, (peakTrackEnv * peakTrackEnv) * 0.5f);
 
         // 2. Dynamic Volume Roll-Off & Idle Self-Noise Squelch
-        float currentDB = 20.0f * std::log10(std::max(0.00001f, effectiveRMS));
+        float currentDB = (effectiveSq > 1e-10f) ? (10.0f * FluidMath::fast_log2(effectiveSq) * 0.301029995f) : -100.0f;
         float cleanRefDB = -36.0f;
         float maxRefDB   = -22.0f;
 
@@ -1495,58 +1472,39 @@ struct TS808ScreamerPedal {
         bool effFatMod = (mode == 1 || fatMod);
         float dynamicDrive = driveNorm * (0.10f + 0.90f * driveCurve);
 
-        // 3. RF cut above 10.5 kHz
         float xIn = tsRfCut.lp(in, 10500.0f, sampleRate);
-
-        // 4. Non-inverting feedback loop with 720.5 Hz HPF (340 Hz in Fat Mod)
         float hpFreq = effFatMod ? 340.0f : 720.5f;
         float highs = tsHp720.hp(xIn, hpFreq, sampleRate);
 
         float clippedLoop = opampCell.processSiliconOpAmp(highs, dynamicDrive);
-        // 51 pF capacitor smoothing (~3.6 kHz roll-off across the diodes)
         float smoothedLoop = tsLoopSmoothing.lp(clippedLoop, 3600.0f, sampleRate);
-
-        // Authentic non-inverting op-amp summing: 1.0x dry signal + smoothed clipped feedback loop
-        // Plus clean boost compensation on volume rollback
         float opAmpOut = (xIn + smoothedLoop * (dynamicDrive * 1.8f)) * (1.0f + 0.35f * (1.0f - driveCurve));
-
-        // 5. Post-clipping 723 Hz low-pass filter with 1.75x recovery gain (calibrated 0.0 dB at 1kHz)
         float smoothed = tsLp723.lp(opAmpOut, 723.0f, sampleRate) * 1.75f;
 
-        // 6. Active Tone Control:
-        // Turning Tone DOWN considerably darkens the tone into a warm, creamy, dark tube screamer sound:
-        // Sweeps down to 750 Hz with up to -24 dB shelf cut, plus dynamic low-pass down to 750 Hz!
-        // At Tone = 5.0: classic balanced TS808 mid-hump vocal clarity (exact 0.0 dB unity).
-        // Above 5.0: focused presence bite peaking at 2.6 kHz (up to +9 dB).
+        if (std::fabs(toneNorm - lastToneNorm) > 0.0005f) {
+            lastToneNorm = toneNorm;
+            if (toneNorm <= 0.5f) {
+                float cutDb = (toneNorm - 0.5f) * 48.0f;
+                float corner = 650.0f + toneNorm * 900.0f;
+                tsTone.setHighShelf(corner, cutDb, 0.707f, sampleRate);
+            } else {
+                float boostDb = (toneNorm - 0.5f) * 18.0f;
+                tsTone.setPeaking(2600.0f, boostDb, 0.80f, sampleRate);
+            }
+        }
         if (toneNorm <= 0.5f) {
-            float cutDb = (toneNorm - 0.5f) * 48.0f; // 0 dB at 0.5 down to -24 dB at 0.0
-            float corner = 650.0f + toneNorm * 900.0f; // 650 Hz at 0.0 to 1100 Hz at 0.5
-            tsTone.setHighShelf(corner, cutDb, 0.707f, sampleRate);
-            float lpCut = 750.0f + toneNorm * 22500.0f; // 750 Hz at 0.0 to 12000 Hz at 0.5
+            float lpCut = 750.0f + toneNorm * 22500.0f;
             smoothed = tsToneLp.lp(smoothed, lpCut, sampleRate);
-        } else {
-            float boostDb = (toneNorm - 0.5f) * 18.0f; // up to +9 dB at 1.0
-            tsTone.setPeaking(2600.0f, boostDb, 0.80f, sampleRate);
         }
         float toned = tsTone.process(smoothed);
-
-        // 7. Post-tone 5.5 kHz anti-icepick low-pass filter (strips harsh line-out spikes)
         toned = tsAntiIcepick.lp(toned, 5500.0f, sampleRate);
 
-        // 8. Calibrated Master Output Stage (0 at 0.0, unity at 5.0, +20 dB at 10.0) — un-gated natural sustain
         return toned * levelGain * squelchFactor;
     }
 };
 
 // ============================================================================
 // STOMPBOX 3: BOSS BD-2 BLUES DRIVER (DISCRETE FLUID JFET EMULATION)
-// Authentic discrete multi-stage JFET/transistor circuit:
-// 1. Cascading discrete JFET gain stages with variable negative feedback
-// 2. Full-range frequency retention (no 720 Hz low cut; tight bass down to 42 Hz)
-// 3. Dynamic pick response: transitions from glassy edge-of-breakup to fuzzy crunch
-// 4. Active dual-filter tilt tone control: turning down darkens tone with -22 dB cut + warm 280 Hz body
-// 5. Keeley Phat Mod low-mid resonance boost (160 Hz)
-// 6. Calibrated Level Taper: 0 at 0.0, 1.0 (0.0 dB unity) at 5.0, +22 dB at 10.0
 // ============================================================================
 struct BD2BluesDriverPedal {
     bool enabled = false;
@@ -1566,11 +1524,12 @@ struct BD2BluesDriverPedal {
     FluidTransistorCell jfetStage1;
     FluidTransistorCell jfetStage2;
 
-    // Pick-Transient Preservation, Dynamic Volume Roll-Off & Idle Self-Noise Squelch (Rule 36 & 39)
     float peakTrackEnv = 0.0f;
     float rmsSquaredFiltered = 0.0f;
     float currentRMS = 0.0f;
     float smoothedDriveMorph = 1.0f;
+    float lastToneNorm = -1.0f;
+    bool phatInitialized = false;
 
     void reset() {
         bdSubCut.reset();
@@ -1587,35 +1546,36 @@ struct BD2BluesDriverPedal {
         rmsSquaredFiltered = 0.0f;
         currentRMS = 0.0f;
         smoothedDriveMorph = 1.0f;
+        lastToneNorm = -1.0f;
+        phatInitialized = false;
     }
 
     inline float processSample(float in, float sampleRate) {
+        using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
-        float levelNorm = std::clamp(level, 0.0f, 10.0f) / 10.0f;
         float toneNorm  = std::clamp(tone, 0.0f, 10.0f) / 10.0f;
         float gainNorm  = std::clamp(gain, 0.0f, 10.0f) / 10.0f;
 
         float levelGain = calculatePedalLevelGain(level, 22.0f);
         if (levelGain <= 0.0001f) return 0.0f;
 
-        // 1. Envelope & Pick Transient Tracking (instantaneous attack <0.05ms, 35ms release)
+        // 1. Envelope & Pick Transient Tracking
         float absIn = std::abs(in);
         if (absIn > peakTrackEnv) {
             peakTrackEnv = absIn;
         } else {
-            float pkRelCoeff = 1.0f - std::exp(-1.0f / (sampleRate * 0.035f));
+            float pkRelCoeff = 0.000595f * (48000.0f / sampleRate);
             peakTrackEnv += pkRelCoeff * (absIn - peakTrackEnv);
         }
 
         float squared = in * in;
         const float rmsCoeff = 0.0006f * (48000.0f / sampleRate);
         rmsSquaredFiltered += (squared - rmsSquaredFiltered) * rmsCoeff;
-        currentRMS = std::sqrt(std::max(0.0f, rmsSquaredFiltered));
-        float effectiveRMS = std::max(currentRMS, peakTrackEnv * 0.707f);
+        float effectiveSq = std::max(rmsSquaredFiltered, (peakTrackEnv * peakTrackEnv) * 0.5f);
 
         // 2. Dynamic Volume Roll-Off & Idle Self-Noise Squelch
-        float currentDB = 20.0f * std::log10(std::max(0.00001f, effectiveRMS));
+        float currentDB = (effectiveSq > 1e-10f) ? (10.0f * FluidMath::fast_log2(effectiveSq) * 0.301029995f) : -100.0f;
         float cleanRefDB = -36.0f;
         float maxRefDB   = -22.0f;
 
@@ -1637,65 +1597,52 @@ struct BD2BluesDriverPedal {
         bool effPhatMod = (mode == 1 || phatMod);
         float dynamicGain = gainNorm * (0.10f + 0.90f * driveCurve);
 
-        // 3. Input conditioning: sub-bass rumble cut (42 Hz) and RF cut (12 kHz)
         float xIn = bdSubCut.hp(in, 42.0f, sampleRate);
         xIn = bdRfCut.lp(xIn, 12000.0f, sampleRate);
 
-        // 4. Keeley Phat Mod: +3.5 dB low-mid boost around 160 Hz for thick single-coil body
         if (effPhatMod) {
-            bdPhatFilter.setPeaking(160.0f, 3.5f, 0.90f, sampleRate);
+            if (!phatInitialized) {
+                phatInitialized = true;
+                bdPhatFilter.setPeaking(160.0f, 3.5f, 0.90f, sampleRate);
+            }
             xIn = bdPhatFilter.process(xIn);
         }
 
-        // 5. Stage 1: Discrete JFET differential pre-amplifier
         float g1 = 1.0f + dynamicGain * 4.2f;
         float v1 = jfetStage1.processJfet(xIn * g1, 1.0f, 0.05f);
 
-        // 6. Stage 2: Second cascading JFET clipping stage
         float g2 = 1.0f + dynamicGain * dynamicGain * 12.0f + dynamicGain * 2.2f;
         float v2 = jfetStage2.processJfet(v1 * g2, 1.0f, 0.08f);
 
-        // Small-signal normalization for clean unity pass-through (0.0 dB at level 5.0)
-        // plus clean boost compensation on volume rollback
         float signalNorm = (v2 / (1.0f + dynamicGain * 1.5f)) * 0.935f * (1.0f + 0.35f * (1.0f - driveCurve));
 
-        // 7. Active Dual-Filter Tilt Tone Stage:
-        // Turning Tone DOWN (below 5.0) considerably darkens the tone:
-        // - Treble shelf cuts deeply (down to -22 dB from 1300 Hz up)
-        // - Low-mid warmth boost (+4.0 dB body at 280 Hz)
-        // - Dynamic smoothing low-pass sweeps from 1800 Hz up to 6000 Hz!
-        // At tone = 5.0: flat transparent response.
-        // Above 5.0: glassy blues bite (up to +13 dB) and tight bass mud scoop.
+        if (std::fabs(toneNorm - lastToneNorm) > 0.0005f) {
+            lastToneNorm = toneNorm;
+            if (toneNorm <= 0.5f) {
+                float tiltHiDb = (toneNorm - 0.5f) * 48.0f;
+                float tiltLoDb = (0.5f - toneNorm) * 12.0f;
+                float hiFreq = 850.0f + toneNorm * 1200.0f;
+                bdToneHi.setHighShelf(hiFreq, tiltHiDb, 0.707f, sampleRate);
+                bdToneLo.setLowShelf(250.0f, tiltLoDb, 0.707f, sampleRate);
+            } else {
+                float tiltHiDb = (toneNorm - 0.5f) * 26.0f;
+                float tiltLoDb = (0.5f - toneNorm) * 4.0f;
+                bdToneHi.setHighShelf(2200.0f, tiltHiDb, 0.707f, sampleRate);
+                bdToneLo.setLowShelf(350.0f, tiltLoDb, 0.707f, sampleRate);
+            }
+        }
         if (toneNorm <= 0.5f) {
-            float tiltHiDb = (toneNorm - 0.5f) * 48.0f; // 0 dB at 0.5 down to -24 dB at 0.0
-            float tiltLoDb = (0.5f - toneNorm) * 12.0f;  // up to +6.0 dB body boost at 250 Hz
-            float hiFreq = 850.0f + toneNorm * 1200.0f; // 850 Hz at 0.0 to 1450 Hz at 0.5
-            bdToneHi.setHighShelf(hiFreq, tiltHiDb, 0.707f, sampleRate);
-            bdToneLo.setLowShelf(250.0f, tiltLoDb, 0.707f, sampleRate);
-            float lpCut = 850.0f + toneNorm * 10300.0f; // 850 Hz at 0.0 to 6000 Hz at 0.5
+            float lpCut = 850.0f + toneNorm * 10300.0f;
             signalNorm = bdToneLp.lp(signalNorm, lpCut, sampleRate);
-        } else {
-            float tiltHiDb = (toneNorm - 0.5f) * 26.0f;
-            float tiltLoDb = (0.5f - toneNorm) * 4.0f;
-            bdToneHi.setHighShelf(2200.0f, tiltHiDb, 0.707f, sampleRate);
-            bdToneLo.setLowShelf(350.0f, tiltLoDb, 0.707f, sampleRate);
         }
         float toned = bdToneLo.process(bdToneHi.process(signalNorm));
 
-        // 8. Calibrated Master Output Stage (0 at 0.0, unity at 5.0, +22 dB at 10.0) — un-gated natural sustain
         return toned * levelGain * squelchFactor;
     }
 };
 
 // ============================================================================
 // STOMPBOX 4: FLUID RODENT (SUPER-TIGHT SMOOTH SYNTH-FUZZ MODEL)
-// Restored first fluid dual-transistor fuzz model with singing negative feedback:
-// 1. Super-Tight Sub-Bass High-Pass (60 Hz) - cuts low mud so fast runs & riffs track like an analog synth.
-// 2. Q1 Pre-amplifier Stage: High-gain fluid transistor with smooth asymmetric saturation.
-// 3. Negative Feedback Loop from Q2 back to Q1: Stabilizes bias and gives iconic blooming violin sustain.
-// 4. Q2 Saturated Clipping Stage: Deep saturated clipping (Vintage Silicon vs Turbo Red LED).
-// 5. 2nd-Order 12 dB/oct Steep Tone/Filter: Turning DOWN considerably darkens the tone (sweeps 20kHz down to 380Hz).
-// 6. Calibrated Master Output Stage: 0 at 0.0, 1.0 (0.0 dB unity) at 5.0, +22 dB clean boost at 10.0.
 // ============================================================================
 struct FluidRodentPedal {
     bool enabled = false;
@@ -1708,13 +1655,13 @@ struct FluidRodentPedal {
 
     FluidOnePole ratHpTight;
     FluidOnePole ratFeedbackLp;
-    FluidBiquad  ratLpFilter; // 2nd-order 12 dB/oct steep filter for dramatic dark-to-bright sweep!
+    FluidBiquad  ratLpFilter;
 
-    // Pick-Transient Preservation, Dynamic Volume Roll-Off & Idle Self-Noise Squelch (Rule 36 & 39)
     float peakTrackEnv = 0.0f;
     float rmsSquaredFiltered = 0.0f;
     float currentRMS = 0.0f;
     float smoothedDriveMorph = 1.0f;
+    float lastFilterNorm = -1.0f;
 
     void reset() {
         ratHpTight.reset();
@@ -1726,35 +1673,35 @@ struct FluidRodentPedal {
         rmsSquaredFiltered = 0.0f;
         currentRMS = 0.0f;
         smoothedDriveMorph = 1.0f;
+        lastFilterNorm = -1.0f;
     }
 
     inline float processSample(float in, float sampleRate) {
+        using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
 
         float distNorm   = std::clamp(distortion, 0.0f, 10.0f) / 10.0f;
         float filterNorm = std::clamp(filter, 0.0f, 10.0f) / 10.0f;
-        float volNorm    = std::clamp(volume, 0.0f, 10.0f) / 10.0f;
 
         float levelGain = calculatePedalLevelGain(volume, 22.0f);
         if (levelGain <= 0.0001f) return 0.0f;
 
-        // 1. Envelope & Pick Transient Tracking (instantaneous attack <0.05ms, 35ms release)
+        // 1. Envelope & Pick Transient Tracking
         float absIn = std::abs(in);
         if (absIn > peakTrackEnv) {
             peakTrackEnv = absIn;
         } else {
-            float pkRelCoeff = 1.0f - std::exp(-1.0f / (sampleRate * 0.035f));
+            float pkRelCoeff = 0.000595f * (48000.0f / sampleRate);
             peakTrackEnv += pkRelCoeff * (absIn - peakTrackEnv);
         }
 
         float squared = in * in;
         const float rmsCoeff = 0.0006f * (48000.0f / sampleRate);
         rmsSquaredFiltered += (squared - rmsSquaredFiltered) * rmsCoeff;
-        currentRMS = std::sqrt(std::max(0.0f, rmsSquaredFiltered));
-        float effectiveRMS = std::max(currentRMS, peakTrackEnv * 0.707f);
+        float effectiveSq = std::max(rmsSquaredFiltered, (peakTrackEnv * peakTrackEnv) * 0.5f);
 
         // 2. Dynamic Volume Roll-Off & Idle Self-Noise Squelch
-        float currentDB = 20.0f * std::log10(std::max(0.00001f, effectiveRMS));
+        float currentDB = (effectiveSq > 1e-10f) ? (10.0f * FluidMath::fast_log2(effectiveSq) * 0.301029995f) : -100.0f;
         float cleanRefDB = -36.0f;
         float maxRefDB   = -22.0f;
 
@@ -1776,51 +1723,45 @@ struct FluidRodentPedal {
         bool effTurbo = (mode == 1 || turboMode);
         float dynamicDist = distNorm * (0.08f + 0.92f * driveCurve);
 
-        // 3. Super-Tight Sub-Bass High-Pass (60 Hz) - cuts mud so fuzz tracks like a synthesizer
         float xIn = ratHpTight.hp(in, 60.0f, sampleRate);
 
-        // 4. Q1 Pre-amplifier Stage with aggressive gain
         float q1Gain = 2.0f + dynamicDist * 22.0f;
         float q1Driven = xIn * q1Gain;
         float q1Out;
         if (effTurbo) {
-            q1Out = std::tanh(q1Driven * 1.5f) * 0.88f;
+            q1Out = FluidMath::fast_tanh(q1Driven * 1.5f) * 0.88f;
         } else {
-            float u = std::tanh(q1Driven * 1.2f);
+            float u = FluidMath::fast_tanh(q1Driven * 1.2f);
             q1Out = (u - 0.15f * u * u) * 0.82f;
         }
 
-        // Negative feedback loop from Q2 back to Q1 (stabilizes bias and adds singing bloom)
         float fbSmoothed = ratFeedbackLp.lp(q1Out, 4500.0f, sampleRate);
 
-        // 5. Q2 Saturated Clipping Stage
         float q2Drive = 4.0f + (dynamicDist * dynamicDist) * 75.0f;
         float q2In = (q1Out - fbSmoothed * 0.24f) * q2Drive;
         float q2Out;
         if (effTurbo) {
-            float x = std::tanh(q2In * 1.85f);
+            float x = FluidMath::fast_tanh(q2In * 1.85f);
             q2Out = x * 0.90f;
         } else {
             if (q2In >= 0.0f) {
-                q2Out = std::tanh(q2In * 1.5f) * 0.72f;
+                q2Out = FluidMath::fast_tanh(q2In * 1.5f) * 0.72f;
             } else {
-                q2Out = -std::tanh(-q2In * 0.95f) * 0.85f;
+                q2Out = -FluidMath::fast_tanh(-q2In * 0.95f) * 0.85f;
             }
         }
         float fuzzRaw = q2Out * 0.85f;
 
-        // Small-signal normalization for exact 0.0 dB unity gain at dist=0, filter=5, vol=5
-        // plus clean boost compensation on volume rollback
         float distComp = 1.0f / (1.0f + dynamicDist * 2.2f);
         float normed = fuzzRaw * distComp * 0.185f * (1.0f + 0.50f * (1.0f - driveCurve));
 
-        // 6. Tone / Filter: Turning DOWN considerably darkens the tone!
-        // 0.0 = dark warm cut (380 Hz 2nd-order low-pass), 10.0 = bright open (20 kHz)
-        float filterCut = 380.0f * std::pow(20000.0f / 380.0f, filterNorm);
-        ratLpFilter.setLowPass(filterCut, 0.707f, sampleRate);
+        if (std::fabs(filterNorm - lastFilterNorm) > 0.0005f) {
+            lastFilterNorm = filterNorm;
+            float filterCut = 380.0f * std::pow(20000.0f / 380.0f, filterNorm);
+            ratLpFilter.setLowPass(filterCut, 0.707f, sampleRate);
+        }
         float filtered = ratLpFilter.process(normed);
 
-        // 7. Calibrated Master Output Stage (0 at 0.0, unity at 5.0, +22 dB at 10.0) — un-gated natural sustain
         return filtered * levelGain * squelchFactor;
     }
 };
@@ -1871,9 +1812,11 @@ public:
     }
 
     float processSample(float inputPressure, float driveLevel, float incomingHarmonics = 0.0f, float synergyPolarity = 1.0f) {
+        using namespace EuphoriaHyperDSP;
         float rateScale = 48000.0f / sampleRate;
         float currentVelocity = inputPressure - previousPressure;
         fluidMomentum = (fluidMomentum * fluidViscosity) + (currentVelocity * (1.0f - fluidViscosity));
+        fluidMomentum = std::clamp(fluidMomentum, -1.0f, 1.0f);
 
         // Dynamic fluid sag (bounded so high drive never chokes the volume!)
         float boundedInput = std::min(std::abs(inputPressure), 1.5f);
@@ -1885,15 +1828,12 @@ public:
         // Pre-gain + Slipstream injection
         float amplifiedSignal = (inputPressure * driveLevel * chamberPressure) + (incomingHarmonics * 0.35f * synergyPolarity);
 
-        // Rich Asymmetrical Germanium Saturation Curve
-        float outputPhase;
-        if (amplifiedSignal >= 0.0f) {
-            outputPhase = std::tanh(amplifiedSignal * 1.15f) + (harmonicPurity * std::tanh(amplifiedSignal * amplifiedSignal) * 0.40f);
-        } else {
-            outputPhase = std::tanh(amplifiedSignal * 0.85f) - (harmonicPurity * std::tanh(amplifiedSignal * amplifiedSignal) * 0.22f);
-        }
-
-        generatedHarmonics = outputPhase - std::tanh(amplifiedSignal);
+        // Elastic Fluid-Wall Wave Reflection ("water hitting the side and coming back"):
+        // Instead of slamming into a flat rail, excess drive pressure folds back off the chamber wall
+        // into rich Germanium/Silicon harmonics with virtual unlimited internal headroom!
+        float outputPhase = FluidMath::fluidWallReflect(amplifiedSignal, harmonicPurity, 1.0f - fluidViscosity, fluidMomentum);
+        float baseTanh = FluidMath::fast_tanh(amplifiedSignal);
+        generatedHarmonics = outputPhase - baseTanh;
 
         // High-frequency fluid damping (turns harsh digital fizz into thick creamy lead tone)
         float viscosityCoeff = fluidViscosity * 0.42f;
@@ -1905,7 +1845,7 @@ public:
         dcBlockerX1 = outputPhase;
         dcBlockerY1 = dcFiltered;
 
-        float finalOutput = std::tanh(dcFiltered * 1.25f);
+        float finalOutput = FluidMath::fast_tanh(dcFiltered * 1.15f);
         previousPressure = finalOutput;
 
         return finalOutput;
@@ -2053,29 +1993,29 @@ struct FluidFuzzFacePedal {
     }
 
     inline float processSample(float inputSignal, float sr) {
+        using namespace EuphoriaHyperDSP;
         if (!enabled) return inputSignal;
         float outLvl = calculatePedalLevelGain(level, 22.0f);
         if (outLvl <= 0.0001f) return 0.0f;
 
         // 1. Calculate Peak Tracker & True Sustain RMS
         // Instantaneous attack (<0.05ms) preserves 100% of pick transient, 35ms release tracks note body
+        float rateScale = 48000.0f / sr;
         float absIn = std::abs(inputSignal);
         if (absIn > peakTrackEnv) {
             peakTrackEnv = absIn;
         } else {
-            float pkRelCoeff = 1.0f - std::exp(-1.0f / (sr * 0.035f));
+            float pkRelCoeff = 0.000595f * rateScale;
             peakTrackEnv += pkRelCoeff * (absIn - peakTrackEnv);
         }
 
         float squared = inputSignal * inputSignal;
-        const float rmsCoeff = 0.0006f * (48000.0f / sr); 
+        const float rmsCoeff = 0.0006f * rateScale; 
         rmsSquaredFiltered += (squared - rmsSquaredFiltered) * rmsCoeff;
-        currentRMS = std::sqrt(std::max(0.0f, rmsSquaredFiltered));
-
-        float effectiveRMS = std::max(currentRMS, peakTrackEnv * 0.707f);
 
         // 2. If Learning is active, accumulate the sustaining body of the guitar signal
         if (isLearningMax || isLearningClean) {
+            currentRMS = std::sqrt(std::max(0.0f, rmsSquaredFiltered));
             if (currentRMS > learnGateThreshold) {
                 learnSustainAccumulator += currentRMS;
                 learnActiveSampleCount++;
@@ -2085,11 +2025,11 @@ struct FluidFuzzFacePedal {
             }
         }
 
-        // 3. Convert effective RMS, Clean RMS, and Max RMS into Decibels (dB)
-        // Because guitar volume pots are logarithmic, dB mapping makes Vol 7 -> Vol 10 feel 100% natural!
-        float currentDB = 20.0f * std::log10(std::max(0.00001f, effectiveRMS));
-        float cleanDB   = 20.0f * std::log10(std::max(0.0001f, calibratedCleanRMS));
-        float maxDB     = 20.0f * std::log10(std::max(0.0005f, calibratedMaxRMS));
+        // 3. Convert effective RMS, Clean RMS, and Max RMS into Decibels (dB) using fast IEEE-754 log2
+        float effectiveSq = std::max(rmsSquaredFiltered, (peakTrackEnv * peakTrackEnv) * 0.5f);
+        float currentDB = (effectiveSq > 1e-10f) ? (10.0f * FluidMath::fast_log2(effectiveSq) * 0.301029995f) : -100.0f;
+        float cleanDB   = FluidMath::fast_db(std::max(0.0001f, calibratedCleanRMS));
+        float maxDB     = FluidMath::fast_db(std::max(0.0005f, calibratedMaxRMS));
 
         float dbSpan = std::max(4.0f, maxDB - cleanDB); // Minimum 4 dB window between 7 and 10
         float rawMorph = (currentDB - cleanDB) / dbSpan;
@@ -2104,8 +2044,6 @@ struct FluidFuzzFacePedal {
         float inCut = (effTrans == 1 ? 62.0f : 50.0f) + (1.0f - smoothedFuzzMorph) * 95.0f;
         float xIn = ffInHp.hp(inputSignal, inCut, sr);
 
-        // Scales input so that when guitar is at Clean (Vol 7), peak wave is ~0.35 (sparkling clean),
-        // and when guitar is at Max (Vol 10), wave is boosted into true Full-Bore saturation!
         float baseNormalization = 0.32f / std::max(0.001f, calibratedCleanRMS);
         float normalizedWave = xIn * baseNormalization;
 
@@ -2124,15 +2062,14 @@ struct FluidFuzzFacePedal {
         float space2Out = space2_Q2.processSample(space1Out, space2Drive, space1Harmonics, slipstreamPolarity);
 
         // 6. Clean-to-Fuzz Volume Compensation & Dynamic Amp Sag
-        // cleanLevelBoost ensures Vol 7 is just as loud and punchy as Vol 10 — pure un-gated sustain!
         float cleanLevelBoost = 1.0f + 1.1f * (1.0f - smoothedFuzzMorph);
         float chimed = space2Out * cleanLevelBoost;
 
         float sagNorm = std::clamp(ampSag / 10.0f, 0.0f, 1.0f);
         if (sagNorm > 0.01f) {
             float absSig = std::abs(chimed);
-            float atkCoeff = 1.0f - std::exp(-1.0f / (sr * 0.0025f));
-            float relCoeff = 1.0f - std::exp(-1.0f / (sr * 0.0750f));
+            float atkCoeff = 0.0083f * rateScale;
+            float relCoeff = 0.000278f * rateScale;
             if (absSig > ampSagEnv) ampSagEnv += atkCoeff * (absSig - ampSagEnv);
             else ampSagEnv += relCoeff * (absSig - ampSagEnv);
 
@@ -2705,7 +2642,7 @@ public:
         if (qualityMode >= 2) {
             float dH = pOut - otPrevIn;
             otPrevIn = pOut;
-            float m_an = std::tanh(pOut * 1.15f);
+            float m_an = EuphoriaHyperDSP::FluidMath::fast_tanh(pOut * 1.15f);
             float delta = (dH >= 0.0f) ? 1.0f : -1.0f;
             float diff = m_an - otFlux;
             float dM = (diff * delta > 0.0f) ? (0.35f * diff * dH) : (0.08f * diff * dH);
@@ -2786,6 +2723,7 @@ public:
     }
 
     inline void processStudioDelaySample(float inL, float inR, float &outL, float &outR) {
+        using namespace EuphoriaHyperDSP;
         StudioDelayState *dl = &dlyUnit;
         if (!dl->enabled || dl->wet <= 0.05f) {
             dl->sm_wet = 0.0f;
@@ -2804,16 +2742,20 @@ public:
         float dly_ap_g     = std::min(0.58f, dl->diffuse * 0.0052f);
         float dly_wet      = (dl->wet * 0.01f) * 1.15f;
         float dly_width    = dl->stereo * 0.01f;
-        float dly_in_hp_a  = 1.0f - expf(-2.0f * (float)M_PI * std::max(20.0f, dl->in_lowcut) / fs);
-        float dly_in_lp_a  = 1.0f - expf(-2.0f * (float)M_PI * std::min(18000.0f, std::max(800.0f, dl->in_highcut)) / fs);
-        float dly_out_hp_a = 1.0f - expf(-2.0f * (float)M_PI * std::max(20.0f, dl->out_lowcut) / fs);
-        float dly_out_lp_a = 1.0f - expf(-2.0f * (float)M_PI * std::min(18000.0f, std::max(800.0f, dl->out_highcut)) / fs);
+        auto fastOnePoleAlpha = [&](float fc) -> float {
+            float w = 2.0f * (float)M_PI * fc / fs;
+            return w / (1.0f + w);
+        };
+        float dly_in_hp_a  = fastOnePoleAlpha(std::max(20.0f, dl->in_lowcut));
+        float dly_in_lp_a  = fastOnePoleAlpha(std::min(18000.0f, std::max(800.0f, dl->in_highcut)));
+        float dly_out_hp_a = fastOnePoleAlpha(std::max(20.0f, dl->out_lowcut));
+        float dly_out_lp_a = fastOnePoleAlpha(std::min(18000.0f, std::max(800.0f, dl->out_highcut)));
         float dly_drive_amt = dl->drive * 0.01f;
         float dly_mod_inc   = (0.22f + (dl->mod_rate * 0.038f) + (dl->flutter * 0.042f)) * 2.0f * (float)M_PI / fs;
         float dly_mod_dep   = ((dl->mod_depth * 0.01f) * 16.0f) + ((dl->flutter * 0.01f) * 9.0f);
         float dly_duck_amt  = dl->ducking * 0.01f;
 
-        const float fx_sm_k = 1.0f - expf(-1.0f / (0.020f * fs));
+        const float fx_sm_k = 1.0f / (1.0f + 0.020f * fs);
         const float dly_xf_step = 1.0f / (0.045f * fs);
 
         if (!dl->sm_init) {
@@ -2863,8 +2805,8 @@ public:
         if (dl->mod_phase > 2.0f * (float)M_PI) dl->mod_phase -= 2.0f * (float)M_PI;
         dl->mod_phase2 += dly_mod_inc * 2.7f;
         if (dl->mod_phase2 > 2.0f * (float)M_PI) dl->mod_phase2 -= 2.0f * (float)M_PI;
-        float wow_l = sinf(dl->mod_phase) * dly_mod_dep + 0.35f * sinf(dl->mod_phase2) * dly_mod_dep;
-        float wow_r = cosf(dl->mod_phase) * dly_mod_dep + 0.35f * cosf(dl->mod_phase2) * dly_mod_dep;
+        float wow_l = FluidMath::fast_sin(dl->mod_phase) * dly_mod_dep + 0.35f * FluidMath::fast_sin(dl->mod_phase2) * dly_mod_dep;
+        float wow_r = FluidMath::fast_cos(dl->mod_phase) * dly_mod_dep + 0.35f * FluidMath::fast_cos(dl->mod_phase2) * dly_mod_dep;
 
         int w_idx = dl->write_idx;
         float d_samp_l = dl->smooth_samp + wow_l;
@@ -2876,7 +2818,7 @@ public:
             float n_l = readFracHermite(dl->buf_l, StudioDelayState::BUF_LEN, w_idx, dl->xf_target + wow_l);
             float n_r = readFracHermite(dl->buf_r, StudioDelayState::BUF_LEN, w_idx, dl->xf_target_r + wow_r);
             float th = dl->xf_pos * 1.5707963f;
-            float g_old = cosf(th), g_new = sinf(th);
+            float g_old = FluidMath::fast_cos(th), g_new = FluidMath::fast_sin(th);
             dly_out_l = dly_out_l * g_old + n_l * g_new;
             dly_out_r = dly_out_r * g_old + n_r * g_new;
             dl->xf_pos += dly_xf_step;
@@ -2912,14 +2854,12 @@ public:
 
         if (dly_drive_amt > 0.02f) {
             float drv = 1.0f + dly_drive_amt * 1.8f;
-            fb_l = std::tanh(fb_l * drv);
-            fb_r = std::tanh(fb_r * drv);
+            fb_l = FluidMath::fast_tanh(fb_l * drv);
+            fb_r = FluidMath::fast_tanh(fb_r * drv);
         }
 
         float in_peak = std::max(fabsf(inL), fabsf(inR));
-        float duck_k = (in_peak > dl->duck_env)
-                     ? (1.0f - expf(-1.0f / (0.002f * fs)))
-                     : (1.0f - expf(-1.0f / (0.160f * fs)));
+        float duck_k = (in_peak > dl->duck_env) ? (1.0f / (1.0f + 0.002f * fs)) : (1.0f / (1.0f + 0.160f * fs));
         dl->duck_env += duck_k * (in_peak - dl->duck_env);
         float duck_gain = 1.0f - (dly_duck_amt * std::min(1.0f, dl->duck_env * 2.8f));
         if (duck_gain < 0.12f) duck_gain = 0.12f;
@@ -2955,7 +2895,7 @@ public:
         wet_r = dl->out_lp_r;
 
         outL = inL + (wet_l * dl->sm_wet);
-        outR = inR + (wet_r * dl->sm_wet);
+        outR = inR + (wet_r * dl->out_lp_r * 0.0f + wet_r * dl->sm_wet);
     }
 
     void setDelayParams(
@@ -2980,30 +2920,35 @@ public:
         return (0.42f * norm + 0.58f * norm * norm) * maxGain;
     }
 
-    // Dave Friedman / Marshall 10k Cold Clipper Stage (V1B)
+    // Dave Friedman / Marshall 10k Cold Clipper Stage (V1B) with Elastic Fluid-Wall Wave Reflection
     inline float triodeColdClipper(float in, float &gridBias, float gainFactor, bool hyperStandingWave = true) {
-        if (in > 0.0f) {
-            gridBias += (in - gridBias) * 0.0004f;
+        using namespace EuphoriaHyperDSP;
+        float boundedIn = FluidMath::fast_tanh(in);
+        if (boundedIn > 0.0f) {
+            gridBias += (boundedIn - gridBias) * 0.0004f;
         } else {
             gridBias *= 0.99996f;
         }
+        gridBias = std::clamp(gridBias, -1.0f, 1.0f);
         float effIn = (in - gridBias * 0.08f) * gainFactor;
-        
-        // Authentic Cold Clipper Asymmetric Triode Characteristic
-        // Positive grid swing conducts smoothly with warm compression
-        // Negative grid swing cuts off smoothly without hard clipping or sputter
+
+        // Authentic Cold Clipper Asymmetric Triode with Elastic Fluid-Wall Reflection:
+        // When driven hard by a front-end boost/fuzz, excess pressure folds back from the chamber boundary
+        // into rich 2nd/3rd harmonics without ever hitting a flat rail or blocking!
         float out;
         if (effIn >= 0.0f) {
-            out = std::tanh(effIn * 0.90f) * 1.15f;
+            out = FluidMath::fluidWallReflect(effIn * 0.90f, 0.38f, curChamberShape) * 1.12f;
         } else {
-            // Smooth asymmetric power cutoff (gradual 2nd harmonic compression, zero sputter)
             float absIn = -effIn;
-            out = -absIn / (1.0f + 0.45f * absIn);
+            float baseCut = -absIn / (1.0f + 0.45f * absIn);
+            float wallFold = FluidMath::fluidWallReflect(effIn * 0.70f, 0.30f, curChamberShape);
+            out = 0.65f * baseCut + 0.35f * wallFold;
         }
         if (hyperStandingWave) {
-            out += 0.035f * (out * out);
+            float boundedOut = FluidMath::fast_tanh(out);
+            out += 0.035f * (boundedOut * boundedOut);
         }
-        return out;
+        return FluidMath::fast_tanh(out);
     }
 
     void updateToneStacks(
@@ -3196,9 +3141,9 @@ public:
                 lead = snubberBm.lp(lead, 10500.0f, osRate);
             }
 
-            // SAT Diode Saturation (Soft Symmetrical Clamping)
+            // SAT Diode Saturation (Soft Symmetrical Clamping with Fluid Wall Reflection)
             if (leadSatOn) {
-                lead = std::tanh(lead * 1.25f) * 0.85f + 0.15f * lead;
+                lead = EuphoriaHyperDSP::FluidMath::fluidWallReflect(lead * 1.25f, 0.25f, curChamberShape) * 0.85f + 0.15f * EuphoriaHyperDSP::FluidMath::fast_tanh(lead);
             }
 
             // Dedicated BE-100 Tone Stack
@@ -3263,6 +3208,10 @@ public:
         bool isOfflineBounce = false,
         float pBmBass = -1.0f, float pBmMid = -1.0f, float pBmTreble = -1.0f
     ) {
+        using namespace EuphoriaHyperDSP;
+        // Hardware Denormal Elimination (SSE2 FTZ/DAZ on Intel/AMD + FPCR FZ on ARM64 Raspberry Pi 5 / Apple Silicon)
+        FluidMath::disableDenormals();
+
         if (bypass < 0.5f) {
             if (outputL != input) std::memcpy(outputL, input, n_samples * sizeof(float));
             if (outputR && outputR != input) std::memcpy(outputR, input, n_samples * sizeof(float));
@@ -3312,32 +3261,34 @@ public:
             outTrim = 0.0f;
         } else {
             float db = (pOutputLevel - 5.0f) * 2.5f;
-            outTrim = powf(10.0f, db / 20.0f);
+            outTrim = FluidMath::fast_db_to_lin(db);
         }
 
         bool gateActive = (pNoiseGate > 0.5f);
 
         // Dynamic parallel internal gain-noise tracking across 10 bands (Rule 33 & 35)
-        // Automatically cancels internal thermal & diode hiss in parallel without amplitude gating
+        // Strictly capped below the guitar playing signal threshold (<= -55.0 dBFS per Rule 33)
+        // so stacking Full Volume Fuzz Face into Lead Amp NEVER cuts out or attenuates active playing!
         float gainNoiseBoostDb = 0.0f;
         if (chMode == 0 || chMode == 3) {
-            gainNoiseBoostDb += (pCleanVol > 5.0f) ? (pCleanVol - 5.0f) * 2.5f : 0.0f;
+            gainNoiseBoostDb += (pCleanVol > 5.0f) ? (pCleanVol - 5.0f) * 1.5f : 0.0f;
         } else if (chMode == 1 || chMode == 3) {
-            gainNoiseBoostDb += 6.0f + (pDriveGain / 10.0f) * 22.0f + (pDriveVol / 10.0f) * 8.0f;
+            gainNoiseBoostDb += 3.0f + (pDriveGain / 10.0f) * 6.0f + (pDriveVol / 10.0f) * 2.0f;
         } else if (chMode == 2) {
-            gainNoiseBoostDb += 14.0f + (leadGainVal / 10.0f) * 30.0f + (leadVolVal / 10.0f) * 10.0f;
-            if (leadHbeOn) gainNoiseBoostDb += 8.0f;
-            if (leadSatOn) gainNoiseBoostDb += 3.0f;
+            gainNoiseBoostDb += 4.0f + (leadGainVal / 10.0f) * 7.0f + (leadVolVal / 10.0f) * 2.0f;
+            if (leadHbeOn) gainNoiseBoostDb += 2.0f;
+            if (leadSatOn) gainNoiseBoostDb += 1.0f;
         }
 
-        if (fuzzFace.enabled) gainNoiseBoostDb += 8.0f + (fuzzFace.fuzz / 10.0f) * 20.0f + (fuzzFace.level / 10.0f) * 6.0f;
-        if (centaur.enabled)  gainNoiseBoostDb += 4.0f + (centaur.gain / 10.0f) * 14.0f + (centaur.output / 10.0f) * 5.0f;
-        if (ts808.enabled)    gainNoiseBoostDb += 4.0f + (ts808.drive / 10.0f) * 15.0f + (ts808.level / 10.0f) * 5.0f;
-        if (bd2.enabled)      gainNoiseBoostDb += 5.0f + (bd2.gain / 10.0f) * 16.0f + (bd2.level / 10.0f) * 5.0f;
-        if (rodent.enabled)   gainNoiseBoostDb += 8.0f + (rodent.distortion / 10.0f) * 22.0f + (rodent.volume / 10.0f) * 6.0f;
+        if (fuzzFace.enabled) gainNoiseBoostDb += 2.0f + (fuzzFace.fuzz / 10.0f) * 4.0f;
+        if (centaur.enabled)  gainNoiseBoostDb += 1.5f + (centaur.gain / 10.0f) * 3.0f;
+        if (ts808.enabled)    gainNoiseBoostDb += 1.5f + (ts808.drive / 10.0f) * 3.0f;
+        if (bd2.enabled)      gainNoiseBoostDb += 1.5f + (bd2.gain / 10.0f) * 3.0f;
+        if (rodent.enabled)   gainNoiseBoostDb += 2.0f + (rodent.distortion / 10.0f) * 4.0f;
+        gainNoiseBoostDb = std::min(gainNoiseBoostDb, 12.0f);
 
         static const float baseStageNoiseDb[10] = {
-            -66.0f, -64.0f, -62.0f, -58.0f, -54.0f, -50.0f, -48.0f, -48.0f, -52.0f, -56.0f
+            -72.0f, -70.0f, -68.0f, -66.0f, -64.0f, -62.0f, -60.0f, -60.0f, -62.0f, -64.0f
         };
         static const float noiseShapeFactor[10] = {
             0.25f,  0.35f,  0.50f,  0.75f,  0.95f,  1.00f,  1.00f,  0.95f,  0.85f,  0.75f
@@ -3350,11 +3301,12 @@ public:
             cyberDenoiser.setThresholdOffsetDb(offDb);
 
             parallelGainDenoiser.setReductionAmount(redPct);
-            parallelGainDenoiser.setThresholdOffsetDb(offDb);
+            parallelGainDenoiser.setThresholdOffsetDb(std::min(0.0f, offDb));
 
             for (int b = 0; b < 10; ++b) {
                 float dynThresh = baseStageNoiseDb[b] + (gainNoiseBoostDb * noiseShapeFactor[b]);
-                dynThresh = std::clamp(dynThresh, -95.0f, 6.0f);
+                // Rule 33: Post-cab dynamic hiss tracking must operate strictly <= -55.0 dBFS!
+                dynThresh = std::clamp(dynThresh, -95.0f, -55.0f);
                 parallelGainDenoiser.setThresholdDb(b, dynThresh);
             }
         } else {
@@ -3368,6 +3320,8 @@ public:
         float denoiseCleanBuf[CHUNK_CAP];
 
         float modLfoInc = (2.0f * (float)M_PI * spaceModRate) / (float)sampleRate;
+        const float inAtk = 1.0f - expf(-1.0f / (0.0002f * (float)sampleRate));
+        const float inRel = 1.0f - expf(-1.0f / (0.0600f * (float)sampleRate));
 
         uint32_t chunkOffset = 0;
         while (chunkOffset < n_samples) {
@@ -3396,21 +3350,14 @@ public:
 
                 // Track clean guitar input level with instantaneous attack (<0.2ms) and smooth musical release (60ms)
                 float absRaw = std::abs(rawIn);
-                float inAtk = 1.0f - expf(-1.0f / (0.0002f * (float)sampleRate));
-                float inRel = 1.0f - expf(-1.0f / (0.0600f * (float)sampleRate));
                 if (absRaw > cleanInputEnv) {
                     cleanInputEnv += inAtk * (absRaw - cleanInputEnv);
                 } else {
                     cleanInputEnv += inRel * (absRaw - cleanInputEnv);
                 }
-                float inEnvDb = (cleanInputEnv > 1e-6f) ? (20.0f * log10f(cleanInputEnv)) : -120.0f;
 
                 float s = pickupVoicing.process(rawIn, (float)sampleRate);
                 s = dcBlockerPre.hp(s, 24.0f, (float)sampleRate);
-
-                // Zero-choke continuous pass-through: Steady-state noise is phase-cancelled spectrally.
-                // Guitar signal passes with 100% integrity across the dynamic range (even at volume 1).
-                // No threshold gate required to "open"!
 
                 // Pre-Amp Stompbox Overdrive: Fluid Fuzz Face, Centaur, TS808, BD-2, and Rodent in Series (Rule 33 & 34)
                 if (fuzzFace.enabled) s = fuzzFace.processSample(s, (float)sampleRate);
@@ -3431,25 +3378,31 @@ public:
                 float lfoW = 0.0f;
                 float lfoWR = 0.0f;
                 if (spaceModWaveform == 0) {
-                    lfoW  = sinf(spaceModPhase1);
-                    lfoWR = sinf(spaceModPhase1 + spreadRad);
+                    lfoW  = FluidMath::fast_sin(spaceModPhase1);
+                    lfoWR = FluidMath::fast_sin(spaceModPhase1 + spreadRad);
                 } else if (spaceModWaveform == 1) {
-                    lfoW  = (2.0f / (float)M_PI) * asinf(sinf(spaceModPhase1));
-                    lfoWR = (2.0f / (float)M_PI) * asinf(sinf(spaceModPhase1 + spreadRad));
+                    // Triangle wave directly from phase in [0, 2*pi] (zero sinf/asinf!)
+                    auto fastTri = [](float ph) -> float {
+                        while (ph >= 6.2831853f) ph -= 6.2831853f;
+                        float norm = ph * 0.15915494f; // 0..1
+                        return 1.0f - 4.0f * std::fabs(norm - 0.5f);
+                    };
+                    lfoW  = fastTri(spaceModPhase1);
+                    lfoWR = fastTri(spaceModPhase1 + spreadRad);
                 } else if (spaceModWaveform == 2) {
-                    lfoW  = 0.62f * sinf(spaceModPhase1) + 0.38f * sinf(spaceModPhase2);
-                    lfoWR = 0.62f * sinf(spaceModPhase1 + spreadRad) + 0.38f * sinf(spaceModPhase2 + spreadRad);
+                    lfoW  = 0.62f * FluidMath::fast_sin(spaceModPhase1) + 0.38f * FluidMath::fast_sin(spaceModPhase2);
+                    lfoWR = 0.62f * FluidMath::fast_sin(spaceModPhase1 + spreadRad) + 0.38f * FluidMath::fast_sin(spaceModPhase2 + spreadRad);
                 } else {
-                    lfoW  = 0.50f * sinf(spaceModPhase1) + 0.30f * sinf(spaceModPhase2) + 0.20f * sinf(spaceModPhase3);
-                    lfoWR = 0.50f * sinf(spaceModPhase1 + spreadRad) + 0.30f * sinf(spaceModPhase2 + spreadRad) + 0.20f * sinf(spaceModPhase3 + spreadRad);
+                    lfoW  = 0.50f * FluidMath::fast_sin(spaceModPhase1) + 0.30f * FluidMath::fast_sin(spaceModPhase2) + 0.20f * FluidMath::fast_sin(spaceModPhase3);
+                    lfoWR = 0.50f * FluidMath::fast_sin(spaceModPhase1 + spreadRad) + 0.30f * FluidMath::fast_sin(spaceModPhase2 + spreadRad) + 0.20f * FluidMath::fast_sin(spaceModPhase3 + spreadRad);
                 }
 
                 float targetShape = baseChamberShape;
                 float targetSize = baseChamberSize;
                 if (spaceModEnabled) {
                     targetShape = std::clamp(baseChamberShape + lfoW * spaceShapeModDepth * 0.5f, 0.0f, 1.0f);
-                    float logSz = std::log(baseChamberSize) + lfoW * spaceSizeModDepth * 0.65f;
-                    targetSize = std::clamp(std::exp(logSz), 0.10f, 10.0f);
+                    float sizeScale = 1.0f + lfoW * spaceSizeModDepth * 0.65f + 0.21f * (lfoW * spaceSizeModDepth) * (lfoW * spaceSizeModDepth);
+                    targetSize = std::clamp(baseChamberSize * sizeScale, 0.10f, 10.0f);
                 }
 
                 // Smooth one-pole parameter interpolator (Rule 27: ~15ms smoothing)
@@ -3530,9 +3483,6 @@ public:
                 pOut = physicalCab.processSample(pOut, (float)sampleRate);
 
                 // Stage 5b: Parallel Internal Gain Noise Auto-Removal (Rule 33 & 35)
-                // Removes pedal and amp internal gain/thermal hiss in parallel across 10 spectral bands.
-                // With non-zero spectral floor (mFloor = 0.15f), ZERO amplitude gating occurs!
-                // Guitar sustain rings out naturally into -inf without any cutoff or squelch.
                 if (gateActive) {
                     pOut = parallelGainDenoiser.processSample(pOut);
                 }
@@ -3570,6 +3520,12 @@ public:
                     processStudioDelaySample(finalL, finalR, finalL, finalR);
                 }
 #endif
+
+                // Final Fluid-Space Headroom Boundary Limiter:
+                // Smoothly bounds the output within digital headroom so even extreme pedal + lead cascades
+                // never hard-clip the DAC or cut out!
+                finalL = FluidMath::fast_tanh(finalL * 0.92f) * 1.06f;
+                finalR = FluidMath::fast_tanh(finalR * 0.92f) * 1.06f;
 
                 outputL[globalIdx] = finalL;
                 if (outputR) outputR[globalIdx] = finalR;
