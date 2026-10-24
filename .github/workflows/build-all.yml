@@ -109,6 +109,7 @@ jobs:
         compile_plugin "cyber-vox-ac30tb.lv2" "src/cyber_vox_ac30tb_lv2.cpp" "cyber_vox_ac30tb.so"
         compile_plugin "cyber-slide-driver.lv2" "src/cyber_slide_driver_lv2.cpp" "cyber_slide_driver.so"
         compile_plugin "cyber-ultimate-hybrid.lv2" "src/cyber_ultimate_hybrid_lv2.cpp" "cyber_ultimate_hybrid.so"
+        compile_plugin "euphoria-amp.lv2" "src/euphoria_amp_lv2.cpp" "euphoria_amp.so"
 
     - name: Package Bundle for ${{ matrix.arch }}
       run: |
@@ -117,7 +118,7 @@ jobs:
         for b in plugins/*; do
           if [ -d "$b" ]; then
             bname=$(basename "$b")
-            if [ "$bname" = "cyber-expression-cv.lv2" ] || [ "$bname" = "mains-hum-killer.lv2" ] || [ "$bname" = "include" ] || [ "$bname" = "tests" ] || [ "$bname" = "cyber-ultimate-hybrid-vst" ]; then
+            if [ "$bname" = "cyber-expression-cv.lv2" ] || [ "$bname" = "mains-hum-killer.lv2" ] || [ "$bname" = "include" ] || [ "$bname" = "tests" ] || [ "$bname" = "cyber-ultimate-hybrid-vst" ] || [ "$bname" = "euphoria-amp-vst" ]; then
               continue
             fi
             if [[ "$bname" != *.lv2 ]]; then
