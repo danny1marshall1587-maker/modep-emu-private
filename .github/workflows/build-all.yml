@@ -137,14 +137,6 @@ jobs:
         zip -r ../modep_plugins_${{ matrix.pkg_suffix }}.zip *
         cd ..
 
-    - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: modep_plugins_${{ matrix.pkg_suffix }}
-        path: |
-          modep_plugins_${{ matrix.pkg_suffix }}.tar.gz
-          modep_plugins_${{ matrix.pkg_suffix }}.zip
-
     - name: Attach Assets to GitHub Release
       uses: softprops/action-gh-release@v2
       with:
@@ -154,3 +146,13 @@ jobs:
           modep_plugins_${{ matrix.pkg_suffix }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Build Artifacts
+      continue-on-error: true
+      uses: actions/upload-artifact@v4
+      with:
+        name: modep_plugins_${{ matrix.pkg_suffix }}
+        path: |
+          modep_plugins_${{ matrix.pkg_suffix }}.tar.gz
+          modep_plugins_${{ matrix.pkg_suffix }}.zip
+        retention-days: 2

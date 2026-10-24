@@ -53,14 +53,16 @@ jobs:
           mkdir -p release
           ditto -c -k --keepParent "$APP" "release/EuphoriaAmp-Standalone-macOS-${{ matrix.arch }}.zip"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: EuphoriaAmp-Standalone-macOS-${{ matrix.arch }}
-          path: release/*.zip
-
       - name: Attach to GitHub Release (tag builds)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: release/*.zip
+
+      - name: Upload artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: EuphoriaAmp-Standalone-macOS-${{ matrix.arch }}
+          path: release/*.zip
+          retention-days: 2
