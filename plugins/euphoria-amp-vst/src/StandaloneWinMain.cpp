@@ -2152,8 +2152,8 @@ static void asioBufferSwitch(long doubleBufferIndex, ASIOBool /*directProcess*/)
     void* outBuf1 = (g_asioOutCount >= 2) ? g_asioBufInfos[g_asioInCount + 1].buffers[doubleBufferIndex] : nullptr;
     float peakL = 0.0f, peakR = 0.0f;
     for (long i = 0; i < nFrames; ++i) {
-        float l = EuphoriaHyperDSP::FluidMath::fast_tanh(g_asioOutL[i]);
-        float r = EuphoriaHyperDSP::FluidMath::fast_tanh(g_asioOutR[i]);
+        float l = std::clamp(g_asioOutL[i], -1.0f, 1.0f);
+        float r = std::clamp(g_asioOutR[i], -1.0f, 1.0f);
         if (std::fabs(l) > peakL) peakL = std::fabs(l);
         if (std::fabs(r) > peakR) peakR = std::fabs(r);
         writeFloatToAsioSample(outBuf0, g_asioOutTypes[0], i, l);
@@ -2658,8 +2658,8 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
                     if (isFloat) {
                         float* pFloat = reinterpret_cast<float*>(pOutData);
                         for (UINT32 i = 0; i < framesNeeded; ++i) {
-                            float l = EuphoriaHyperDSP::FluidMath::fast_tanh(outFloatL[i]);
-                            float r = EuphoriaHyperDSP::FluidMath::fast_tanh(outFloatR[i]);
+                            float l = std::clamp(outFloatL[i], -1.0f, 1.0f);
+                            float r = std::clamp(outFloatR[i], -1.0f, 1.0f);
                             if (std::fabs(l) > peakL) peakL = std::fabs(l);
                             if (std::fabs(r) > peakR) peakR = std::fabs(r);
                             pFloat[i * outChannels + 0] = l;
@@ -2670,8 +2670,8 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
                     } else if (pWfxOut->wBitsPerSample == 16) {
                         int16_t* p16 = reinterpret_cast<int16_t*>(pOutData);
                         for (UINT32 i = 0; i < framesNeeded; ++i) {
-                            float l = EuphoriaHyperDSP::FluidMath::fast_tanh(outFloatL[i]);
-                            float r = EuphoriaHyperDSP::FluidMath::fast_tanh(outFloatR[i]);
+                            float l = std::clamp(outFloatL[i], -1.0f, 1.0f);
+                            float r = std::clamp(outFloatR[i], -1.0f, 1.0f);
                             if (std::fabs(l) > peakL) peakL = std::fabs(l);
                             if (std::fabs(r) > peakR) peakR = std::fabs(r);
                             p16[i * outChannels + 0] = int16_t(std::clamp(l, -1.0f, 1.0f) * 32760.0f);

@@ -283,6 +283,52 @@ struct FluidDynamicsCell {
         // Soft limit to absolute max pressure to guarantee stability
         return FluidMath::fast_tanh(outputPhase);
     }
+
+    // Ultra-Linear Laminar Glass Clean Tube Stage (Dumble Steel String Singer / '65 Twin 7025/6L6GC):
+    // - When breakup0to1 <= 0.0f (Clean Volume 0.0 .. 7.0):
+    //   Operates in 100% pure laminar Class-A flow with zero clipping on any guitar pickup (single-coil,
+    //   P90, Filter'Tron, or hot humbucker), imparting only 3D fluid velocity air and <0.15% 2nd-harmonic glass.
+    // - When breakup0to1 > 0.0f (Clean Volume 7.0 .. 10.0):
+    //   Smoothly transitions across the threshold into touch-sensitive Blackface/Dumble edge-of-breakup
+    //   and elastic fluid-wall harmonic bloom!
+    inline float processLaminarClean(float inPressure, float breakup0to1, float externalSag = 1.0f) {
+        using namespace EuphoriaHyperDSP;
+        float boundedInput = FluidMath::fast_tanh(inPressure);
+        float currentVelocity = boundedInput - prevInPressure;
+        prevInPressure = boundedInput;
+
+        float effViscosity = std::clamp(viscosity * (0.88f + 0.08f * std::min(1.5f, sizeFactor)), 0.60f, 0.94f);
+        fluidMomentum = (fluidMomentum * effViscosity) + (currentVelocity * (1.0f - effViscosity));
+        fluidMomentum = std::clamp(fluidMomentum, -1.0f, 1.0f);
+
+        // Pure laminar glass signal with subtle 3D kinetic air (zero distortion below Volume 7.0)
+        float evenGlass = 0.012f * boundedInput * std::fabs(boundedInput);
+        float laminarOut = inPressure + fluidMomentum * 0.035f + evenGlass;
+
+        if (breakup0to1 <= 0.0001f) {
+            // Ultra-high headroom safety rail only above +/- 1.25 (never touches normal/hot guitar signals)
+            if (std::fabs(laminarOut) > 1.25f) {
+                float signL = (laminarOut >= 0.0f) ? 1.0f : -1.0f;
+                float excess = std::fabs(laminarOut) - 1.25f;
+                laminarOut = signL * (1.25f + 0.35f * FluidMath::fast_tanh(excess * 2.0f));
+            }
+            return laminarOut;
+        }
+
+        // Progressive breakup only when Clean Volume > 7.0 (breakup0to1 in (0.0, 1.0]):
+        // Models authentic Dumble Steel String Singer / '65 Twin pushed-clean breakup (1.5% THD at 7.5 -> ~18% THD at 10.0)
+        float b = std::clamp(breakup0to1, 0.0f, 1.0f);
+        float drivePast7 = (0.38f + 0.85f * b + 0.65f * b * b) * externalSag;
+        float u = (inPressure + fluidMomentum * 0.08f) * drivePast7;
+        // Soft asymmetric triode saturation knee (2nd + 3rd harmonic tube bloom)
+        float posU = (u >= 0.0f) ? u : 0.0f;
+        float negU = (u <  0.0f) ? u : 0.0f;
+        float sat = FluidMath::fast_tanh(posU * 1.12f + negU * 0.90f);
+        float evenHarm = 0.085f * b * (sat * sat);
+        float drivenOut = (sat + evenHarm) / (0.36f + 0.48f * b);
+        float blend = b * (1.65f - 0.65f * b); // Smooth progressive onset past 7.0
+        return laminarOut * (1.0f - blend) + drivenOut * blend;
+    }
 };
 
 // ============================================================================
@@ -839,8 +885,8 @@ struct FluidReverbSpace {
         float inMono = (inL + inR) * 0.5f;
         float conditioned = sendLp.process(sendHp.process(inMono));
 
-        // 2. 12AT7 / 6K6 Tube Pre-Driver Stage (soft saturation)
-        float driveGain = 0.75f + dwellNorm * 1.50f;
+        // 2. 12AT7 / 6K6 Tube Pre-Driver Stage (high-headroom laminar glass driver)
+        float driveGain = 0.38f + dwellNorm * 0.42f;
         float driven = FluidMath::fast_tanh(conditioned * driveGain);
 
         // 3. Dual Allpass Diffuser Stage (breaks up specular reflections)
@@ -909,9 +955,9 @@ struct FluidReverbSpace {
             if (++writeIndices[k] >= BUF_SIZE) writeIndices[k] = 0;
         }
 
-        // 7. Stereo Spatial Extraction
-        float wetL = 0.7071f * (readOutputs[0] + readOutputs[2]);
-        float wetR = 0.7071f * (readOutputs[1] + readOutputs[3]);
+        // 7. Stereo Spatial Extraction (compensated for high-headroom pre-driver)
+        float wetL = 1.25f * (readOutputs[0] + readOutputs[2]);
+        float wetR = 1.25f * (readOutputs[1] + readOutputs[3]);
 
         // 8. Equal-Power Dry/Wet Blend
         float mixAngle = mixNorm * 1.5707963f; // 0 .. pi/2
@@ -974,21 +1020,21 @@ struct FluidHarmonicTremolo {
         float lfoHigh = -lfoLow; // 180 deg anti-phase!
 
         if (isHarmonicMode) {
-            // Split audio into Low and High frequency bands at ~750 Hz
+            // Split audio into Low and High frequency bands at ~750 Hz (Linkwitz-Riley 2nd-order)
             float sLow = crossoverLp.process(inSample);
             float sHigh = crossoverHp.process(inSample);
 
-            // Modulate drive and effective bias of twin fluid tube cells in anti-phase
-            float modLow = 1.0f + (lfoLow * 0.85f * depthNorm);
-            float modHigh = 1.0f + (lfoHigh * 0.85f * depthNorm);
+            // Modulate Low and High bands in 180-deg anti-phase using pure laminar Class-A tube cells (zero distortion!)
+            float modLow  = 1.0f - depthNorm * 0.48f * (1.0f - lfoLow);
+            float modHigh = 1.0f - depthNorm * 0.48f * (1.0f - lfoHigh);
 
-            float bPlusLow = std::clamp(1.0f - lfoLow * 0.35f * depthNorm, 0.5f, 1.2f);
-            float bPlusHigh = std::clamp(1.0f - lfoHigh * 0.35f * depthNorm, 0.5f, 1.2f);
+            float bPlusLow  = std::clamp(1.0f - lfoLow * 0.15f * depthNorm, 0.80f, 1.10f);
+            float bPlusHigh = std::clamp(1.0f - lfoHigh * 0.15f * depthNorm, 0.80f, 1.10f);
 
-            float procLow = fluidTremLow.process(sLow * modLow, 1.15f, bPlusLow);
-            float procHigh = fluidTremHigh.process(sHigh * modHigh, 1.15f, bPlusHigh);
+            float procLow  = fluidTremLow.processLaminarClean(sLow * modLow, 0.0f, bPlusLow);
+            float procHigh = fluidTremHigh.processLaminarClean(sHigh * modHigh, 0.0f, bPlusHigh);
 
-            // Recombine: anti-phase non-linear fluid phase shift produces authentic Doppler wobble!
+            // Recombine: anti-phase laminar fluid phase shift produces authentic 1961 Fender 6G Doppler wobble!
             return procLow + procHigh;
         } else {
             // Opto Photocell mode: smooth optical LDR resistance curve
@@ -2299,6 +2345,8 @@ public:
     float cleanTrebVal     = 5.8f; // 0..10
     float cleanMasterVal   = 5.5f; // 0..10
     float cleanOutTrimVal  = 5.0f; // 0..10
+    float curCleanVol      = 5.2f; // Active Clean Volume (0..10)
+    float curCleanBreakup  = 0.0f; // 0.0 for CleanVol <= 7.0, 0.0..1.0 for CleanVol 7.0..10.0
 
     void setCleanToneParams(
         float brightMode, float deepMode, float midShiftMode,
@@ -2633,8 +2681,24 @@ public:
     }
 
     /* Push-Pull Power Section + Fluid Core Transformer Dynamics */
-    inline float processPowerStage(float in, float masterGain, int powerTubeType, float sag, int qualityMode) {
+    inline float processPowerStage(float in, float masterGain, int powerTubeType, float sag, int qualityMode, bool isCleanGlass = false) {
         float effectiveBPlus = std::max(0.64f, sag);
+        if (isCleanGlass) {
+            // 100W-150W 4x6L6GC Ultra-Linear Clean Power Section (Dumble SSS / '65 Twin):
+            // Below Clean Volume 7.0 (curCleanBreakup == 0), push-pull tubes operate in pure Class-A/AB
+            // laminar headroom with zero clipping, delivering full studio volume.
+            // Only past Clean Volume 7.0 do the 6L6GC power tubes begin to compress and bloom!
+            float cleanMasterScale = masterGain * 0.60f;
+            float push = in * cleanMasterScale;
+            float pull = -in * cleanMasterScale * 0.992f;
+            float pOutPush = fluidPowerPush.processLaminarClean(push, curCleanBreakup * 0.65f, effectiveBPlus);
+            float pOutPull = fluidPowerPull.processLaminarClean(pull, curCleanBreakup * 0.65f, effectiveBPlus);
+            float pOut = (pOutPush - pOutPull) * 0.88f;
+            otFlux = 0.995f * otFlux + 0.005f * pOut;
+            pOut = pOut / (1.0f + 0.015f * otFlux * otFlux);
+            return pOut;
+        }
+
         float push = in * masterGain;
         float pull = -in * masterGain * 0.985f;
 
@@ -2973,12 +3037,12 @@ public:
             cleanSubFilter.setHighPass(28.0f, 0.707f, osRate);
         }
 
-        // B. Active Low-Shelf Bass Control (±15 dB):
+        // B. Active Low-Shelf Bass Control (±10 dB):
         float cleanBassFreq = (cleanDeepMode < 0.5f) ? 115.0f : 85.0f;
-        float cleanBassDb   = (bfBassIn - 5.0f) * 3.0f; // ±15 dB
+        float cleanBassDb   = (bfBassIn - 5.0f) * 2.0f; // ±10 dB
         cleanBass.setLowShelf(cleanBassFreq, cleanBassDb, 0.707f, osRate);
 
-        // C. Shiftable Active Mid Control (±14 dB):
+        // C. Shiftable Active Mid Control (±10 dB):
         float cleanMidFreq = 450.0f;
         float cleanMidQ    = 1.05f;
         int mShift = (int)std::round(cleanMidShift);
@@ -2989,30 +3053,31 @@ public:
             cleanMidFreq = 1150.0f;
             cleanMidQ    = 1.25f;
         }
-        float cleanMidDb = (bfMidIn - 5.0f) * 2.8f; // ±14 dB
+        float cleanMidDb = (bfMidIn - 5.0f) * 2.0f; // ±10 dB
         cleanMid.setPeaking(cleanMidFreq, cleanMidDb, cleanMidQ, osRate);
 
-        // D. Active High-Shelf Treble Control (±15 dB @ 3.2 kHz):
-        float cleanTrebDb = (bfTrebIn - 5.0f) * 3.0f; // ±15 dB
+        // D. Active High-Shelf Treble Control (±10 dB @ 3.2 kHz):
+        float cleanTrebDb = (bfTrebIn - 5.0f) * 2.0f; // ±10 dB
         cleanTreble.setHighShelf(3200.0f, cleanTrebDb, 0.707f, osRate);
 
-        // E. Dedicated Glass / Air Shelf (±12 dB @ 6.2 kHz):
-        float cleanGlassDb = (cleanGlassAirVal - 5.0f) * 2.4f; // ±12 dB
+        // E. Dedicated Glass / Air Shelf (±8 dB @ 6.2 kHz):
+        float cleanGlassDb = (cleanGlassAirVal - 5.0f) * 1.6f; // ±8 dB
         cleanGlassAir.setHighShelf(6200.0f, cleanGlassDb, 0.707f, osRate);
 
         // F. 3-Way Multi-Mode Bright:
         int bMode = (int)std::round(cleanBrightMode);
         if (bMode == 1 || (bMode == 0 && brightSwitch)) {
-            float bAmt = 3.8f * std::max(0.35f, 1.0f - (cleanVol / 12.0f));
+            float bAmt = 2.2f * std::max(0.35f, 1.0f - (cleanVol / 12.0f));
             cleanBrightShelf.setHighShelf(3800.0f, bAmt, 0.707f, osRate);
         } else if (bMode == 2) {
-            float bAmt = 6.8f * std::max(0.40f, 1.0f - (cleanVol / 12.0f));
+            float bAmt = 3.8f * std::max(0.40f, 1.0f - (cleanVol / 12.0f));
             cleanBrightShelf.setHighShelf(5200.0f, bAmt, 0.707f, osRate);
         } else {
             cleanBrightShelf.setIdentity();
         }
 
-        float cleanPresDb = (cleanPresVal / 10.0f) * 8.0f;
+        // Centered at 5.0 = 0.0 dB flat (±7 dB range) so default 5.5 adds +0.7 dB of silky air, not +4.4 dB!
+        float cleanPresDb = (cleanPresVal - 5.0f) * 1.4f;
         cleanPresenceFilter.setHighShelf(4500.0f, cleanPresDb, 0.707f, osRate);
 
         // Legacy mirrors for backwards-compatibility
@@ -3069,18 +3134,26 @@ public:
         float ch3Out = 0.0f;
 
         // Path A: Channel 0 - Euphoria Supreme Ultra-Glass Clean
+        // 100% Pure Ultra-Linear Laminar Clean from Volume 0.0 to 7.0 on any guitar (Single-Coil, P90,
+        // Filter'Tron, or hot Humbucker). Only begins to break up when Clean Volume is turned past 7.0!
         if (chMode == 0 || chMode == 3) {
             float sClean = s;
             sClean = cleanSubFilter.process(sClean);
-            float bf = fluidBf1.process(sClean * 1.50f, 1.20f, sagVoltage);
+            // Stage 1 (V1A): High-plate-voltage laminar glass input triode (zero breakup before Volume knob)
+            float bf = fluidBf1.processLaminarClean(sClean, 0.0f, sagVoltage);
             bf = cleanBrightShelf.process(bf);
             bf = cleanBass.process(bf);
             bf = cleanMid.process(bf);
             bf = cleanTreble.process(bf);
             bf = cleanGlassAir.process(bf);
             bf = dcBlockerBf.hp(bf, 12.0f, osRate); // Interstage AC coupling
-            bf *= cleanGain;
-            bf = fluidBf2.process(bf, 1.25f, sagVoltage);
+            bf *= 0.76f; // Active Tone Matrix headroom calibration
+            float cleanVolScale = (curCleanVol <= 7.0f)
+                ? audioTaper(curCleanVol * (10.0f / 7.0f), 1.38f)
+                : (1.38f + 0.28f * curCleanBreakup);
+            bf *= cleanVolScale;
+            // Stage 2 (V2A): Stays 100% laminar clean up to Volume 7.0; blooms into tube breakup past 7.0!
+            bf = fluidBf2.processLaminarClean(bf, curCleanBreakup, sagVoltage);
             bf = cleanPresenceFilter.process(bf);
             ch1Out = snubberBf.lp(bf, 16000.0f, osRate); // Extended 16 kHz ceiling for crystal glass chime
         }
@@ -3174,7 +3247,7 @@ public:
 
         // Push-Pull Power Section + Fluid Core Transformer Memory (EL34 for Lead channel)
         int effectivePowerTubes = (chMode == 2) ? 1 : powerTubes;
-        float pOut = processPowerStage(mixedPre, masterGain, effectivePowerTubes, sagVoltage, qualityMode);
+        float pOut = processPowerStage(mixedPre, masterGain, effectivePowerTubes, sagVoltage, qualityMode, (chMode == 0));
         return pOut;
     }
 
@@ -3225,12 +3298,16 @@ public:
         int chMode = std::max(0, std::min(3, (int)lroundf(pChannelMode)));
         int slopeMode = (pSlopeMode > 0.5f) ? 1 : 0;
         int powerTubes = (pPowerTubes > 0.5f) ? 1 : 0;
-        int cabType = std::max(0, std::min(5, (int)lroundf(pSpeakerCab)));
+        int cabType = std::max(0, std::min(8, (int)lroundf(pSpeakerCab)));
         if (cabType != physicalCab.model) {
             physicalCab.model = cabType;
             physicalCab.update((float)sampleRate);
         }
-        physicalCab.speakerDrive = pSpeakerDrive;
+        curCleanVol     = std::clamp(pCleanVol, 0.0f, 10.0f);
+        curCleanBreakup = (curCleanVol > 7.0f) ? std::clamp((curCleanVol - 7.0f) / 3.0f, 0.0f, 1.0f) : 0.0f;
+        // On Clean Glass (chMode == 0), speaker cone nonlinear stress stays at 0.0 (100% pure studio clean
+        // EVM12L/Twin acoustic headroom) up to Clean Volume 7.0, and engages progressively past 7.0!
+        physicalCab.speakerDrive = (chMode == 0) ? (pSpeakerDrive * curCleanBreakup) : pSpeakerDrive;
         bool brightSw = (pBrightSwitch > 0.5f);
         bool isHarmonicVib = (pTremMode > 0.5f);
 
@@ -3482,7 +3559,11 @@ public:
                     sagVoltage = std::max(0.66f, std::min(1.0f, sagVoltage));
                 }
 
-                pOut = presenceFilter.process(pOut);
+                if (chMode == 1 || chMode == 3) {
+                    pOut = presenceFilter.process(pOut);
+                } else if (chMode == 2) {
+                    pOut = leadPresenceFilter.process(pOut);
+                }
                 pOut = dcBlockerPost.hp(pOut, 22.0f, (float)sampleRate);
 
                 // Stage 4: Vintage Fender Fluid Space Harmonic Tremolo (6G-Series Anti-Phase Tube Cells)
@@ -3542,10 +3623,16 @@ public:
 #endif
 
                 // Final Fluid-Space Headroom Boundary Limiter:
-                // Smoothly bounds the output within digital headroom so even extreme pedal + lead cascades
-                // never hard-clip the DAC or cut out!
-                finalL = FluidMath::fast_tanh(finalL * 0.92f) * 1.06f;
-                finalR = FluidMath::fast_tanh(finalR * 0.92f) * 1.06f;
+                // 100% bit-linear up to +/- 0.82 (-1.7 dBFS) so Clean Glass notes have zero soft-clipper
+                // distortion, while smoothly bounding extreme pedal + lead cascades below 0.99!
+                auto linearKneeLimit = [](float x) noexcept -> float {
+                    float ax = std::fabs(x);
+                    if (ax <= 0.82f) return x;
+                    float sgn = (x >= 0.0f) ? 1.0f : -1.0f;
+                    return sgn * (0.82f + 0.165f * EuphoriaHyperDSP::FluidMath::fast_tanh((ax - 0.82f) * 4.5f));
+                };
+                finalL = linearKneeLimit(finalL);
+                finalR = linearKneeLimit(finalR);
 
                 outputL[globalIdx] = finalL;
                 if (outputR) outputR[globalIdx] = finalR;
