@@ -412,7 +412,7 @@ struct FluidSpeakerCabinetDSP {
     float spkMagAtk = 0.0f;
     float spkMagRel = 0.0f;
 
-    int model = 0;             // 0..4 = (OLD) models, 5 = Hyper Greenback, 6 = Euphoric Alnico, 7 = 432Hz Projector, 8 = Bypass
+    int model = 0;             // 0..4 = (OLD), 5 = Hyper Greenback, 6 = Euphoric Alnico, 7 = 432Hz Projector, 8 = Hyper V30, 9 = Hyper EVM-12L, 10 = Hyper Blue Bulldog, 11 = Hyper Tweed 4x10, 12 = Bypass
     float cabSizeVol = 1.0f;   // 0.5x .. 2.0x volume multiplier
     bool use432Tuning = false; // 432Hz Natural Harmonic alignment
     float speakerDrive = 4.0f; // 0..10 cone stress
@@ -434,7 +434,7 @@ struct FluidSpeakerCabinetDSP {
         spkMagAtk = 1.0f - expf(-1.0f / (sampleRate * 0.0020f));
         spkMagRel = 1.0f - expf(-1.0f / (sampleRate * 0.0350f));
 
-        if (model == 8) {
+        if (model >= 12) {
             cabLow.setIdentity();
             cabMid.setIdentity();
             cabCavity.setIdentity();
@@ -549,6 +549,54 @@ struct FluidSpeakerCabinetDSP {
                 cabPhaseAlign.setAllpass(216.0f, PHI * 0.5f, sampleRate);
                 break;
             }
+            case 8: { // HYPER VINTAGE 30 (4x12 Heavy Ceramic, Aggressive Mid-Spike 2.85kHz, Modern High-Gain Punch)
+                float fLow = 118.0f * pitchRatio * sqrtf(1.0f + 0.62f / boxAirExp);
+                float fMid = 2850.0f * pitchRatio;
+                float fCut = 5700.0f * pitchRatio / boxDimExp;
+                cabLow.setPeaking(fLow, 6.8f, 1.35f, sampleRate);
+                cabMid.setPeaking(fMid, 6.2f, 1.70f, sampleRate);
+                cabCavity.setPeaking(360.0f / boxDimExp, 3.5f, 1.45f, sampleRate);
+                cabLp1.setLowPass(fCut, 0.707f, sampleRate);
+                cabLp2.setLowPass(fCut, 0.707f, sampleRate);
+                cabPhaseAlign.setAllpass(195.0f * pitchRatio, 0.70f, sampleRate);
+                break;
+            }
+            case 9: { // HYPER EVM-12L (200W Cast-Frame Aluminum, 16-lb Magnet, 65Hz Colossal Punch, Dumble/SRV Headroom)
+                float fLow = 65.0f * pitchRatio * sqrtf(1.0f + 0.18f / boxAirExp);
+                float fMid = 2200.0f * pitchRatio;
+                float fCut = 7400.0f * pitchRatio / boxDimExp;
+                cabLow.setLowShelf(fLow, 4.6f, 0.707f, sampleRate);
+                cabMid.setPeaking(fMid, 3.2f, 1.20f, sampleRate);
+                cabCavity.setPeaking(450.0f / boxDimExp, -1.5f, 1.00f, sampleRate);
+                cabLp1.setLowPass(fCut, 0.707f, sampleRate);
+                cabLp2.setLowPass(fCut, 0.707f, sampleRate);
+                cabPhaseAlign.setAllpass(120.0f * pitchRatio, 0.50f, sampleRate);
+                break;
+            }
+            case 10: { // HYPER BLUE BULLDOG (2x12 Alnico Blue, AC30 3D Top-End Chime, Lower-Mid Scoop 480Hz)
+                float fLow = 82.0f * pitchRatio * sqrtf(1.0f + 0.24f / boxAirExp);
+                float fMid = 3850.0f * pitchRatio;
+                float fCut = 6600.0f * pitchRatio / boxDimExp;
+                cabLow.setLowShelf(fLow, 4.2f, 0.707f, sampleRate);
+                cabMid.setPeaking(fMid, 5.8f, 1.60f, sampleRate);
+                cabCavity.setPeaking(480.0f / boxDimExp, -2.8f, 1.30f, sampleRate);
+                cabLp1.setLowPass(fCut, 0.707f, sampleRate);
+                cabLp2.setLowPass(fCut, 0.707f, sampleRate);
+                cabPhaseAlign.setAllpass(260.0f * pitchRatio, 0.60f, sampleRate);
+                break;
+            }
+            case 11: { // HYPER TWEED 4x10 (1959 Solid Pine Box, 4x Alnico P10R, Woody Mid Bloom 2.9kHz, Dynamic Strum Sag)
+                float fLow = 90.0f * pitchRatio * sqrtf(1.0f + 0.32f / boxAirExp);
+                float fMid = 2900.0f * pitchRatio;
+                float fCut = 6400.0f * pitchRatio / boxDimExp;
+                cabLow.setLowShelf(fLow, 5.6f, 0.707f, sampleRate);
+                cabMid.setPeaking(fMid, 4.8f, 1.40f, sampleRate);
+                cabCavity.setPeaking(390.0f / boxDimExp, 2.2f, 1.25f, sampleRate);
+                cabLp1.setLowPass(fCut, 0.707f, sampleRate);
+                cabLp2.setLowPass(fCut, 0.707f, sampleRate);
+                cabPhaseAlign.setAllpass(210.0f * pitchRatio, 0.65f, sampleRate);
+                break;
+            }
             default:
                 break;
         }
@@ -556,7 +604,7 @@ struct FluidSpeakerCabinetDSP {
 
     inline float processSample(float in, float sampleRate) {
         using namespace EuphoriaHyperDSP;
-        if (model == 8) return in;
+        if (model >= 12) return in;
 
         float driveAmount = std::max(0.0f, std::min(10.0f, speakerDrive)) / 10.0f;
         float pitchRatio = use432Tuning ? (432.0f / 440.0f) : 1.0f;
@@ -600,7 +648,7 @@ struct FluidSpeakerCabinetDSP {
             return s * 1.40f;
         }
 
-        // Models 5..7: HYPER-FLUID SPEAKER SYSTEM
+        // Models 5..11: HYPER-FLUID SPEAKER SYSTEM
         // 1. Voice Coil Compliance & Dynamic Magnetic Flux Hysteresis (Alnico vs Ceramic)
         float absIn = std::fabs(in);
         if (absIn > speakerEnv) speakerEnv += spkAtk * (absIn - speakerEnv);
@@ -610,21 +658,31 @@ struct FluidSpeakerCabinetDSP {
         if (absIn > magFlux) magFlux += spkMagAtk * (absIn - magFlux);
         else magFlux += spkMagRel * (absIn - magFlux);
 
-        float alphaMag = (model == 6) ? 0.32f : ((model == 5) ? 0.08f : 0.1618f);
+        float alphaMag = (model == 6 || model == 10) ? 0.38f
+                       : (model == 11)               ? 0.30f
+                       : (model == 5 || model == 8)  ? 0.06f
+                       : (model == 9)                ? 0.02f
+                                                     : 0.1618f;
         float blForce = 1.0f / (1.0f + alphaMag * magFlux * driveAmount * 1.25f);
-        float comp = 1.0f / (1.0f + speakerEnv * driveAmount * (model == 6 ? 0.90f : 1.20f));
-        float thermalComp = 1.0f / (1.0f + speakerThermalEnv * driveAmount * (model == 6 ? 0.12f : 0.28f));
+        float comp = 1.0f / (1.0f + speakerEnv * driveAmount * ((model == 6 || model == 10 || model == 11) ? 0.90f : (model == 9 ? 0.45f : 1.20f)));
+        float thermalComp = 1.0f / (1.0f + speakerThermalEnv * driveAmount * ((model == 6 || model == 10) ? 0.12f : (model == 9 ? 0.05f : 0.28f)));
         float s = in * comp * thermalComp * blForce;
 
         // 2. Duffing Non-Linear Suspension Stiffening
         float coneStress = s * (1.0f + driveAmount * 1.15f);
         float t = FluidMath::fast_tanh(coneStress);
-        float asymm = (model == 6) ? 0.025f : 0.045f;
+        float asymm = (model == 6 || model == 10) ? 0.025f : (model == 9 ? 0.015f : (model == 8 ? 0.052f : 0.045f));
         float coneOut = (t - asymm * (t * t)) / (1.0f + driveAmount * 0.22f);
 
         // 3. Dynamic Mechanical Damping
-        float baseDamping = (model == 5) ? 5800.0f : ((model == 6) ? 6800.0f : 6912.0f);
-        float dampingFc = (baseDamping - driveAmount * (model == 6 ? 800.0f : 1100.0f)) * pitchRatio;
+        float baseDamping = (model == 5) ? 5800.0f
+                          : (model == 8) ? 5600.0f
+                          : (model == 6) ? 6800.0f
+                          : (model == 9) ? 7400.0f
+                          : (model == 10) ? 6500.0f
+                          : (model == 11) ? 6200.0f
+                          : 6912.0f;
+        float dampingFc = (baseDamping - driveAmount * ((model == 6 || model == 10) ? 800.0f : (model == 9 ? 500.0f : 1100.0f))) * pitchRatio;
         float w = 2.0f * (float)M_PI * dampingFc / sampleRate;
         float a0 = w / (1.0f + w);
         speakerConeHistory += a0 * (coneOut - speakerConeHistory);
@@ -644,6 +702,13 @@ struct FluidSpeakerCabinetDSP {
                 float h3 = (4.0f * t2 - 3.0f) * tHarm;                 // 3rd Chebyshev
                 float h5 = ((16.0f * t2 - 20.0f) * t2 + 5.0f) * tHarm; // 5th Chebyshev
                 chladni = (0.055f * h3 + 0.025f * h5) * bloom * driveAmount;
+            } else if (model == 8) {
+                // Hyper Vintage 30: Aggressive 3rd and 5th harmonics (Modern British high-gain cutting bite)
+                float tHarm = FluidMath::fast_tanh(s * 2.1f);
+                float t2 = tHarm * tHarm;
+                float h3 = (4.0f * t2 - 3.0f) * tHarm;
+                float h5 = ((16.0f * t2 - 20.0f) * t2 + 5.0f) * tHarm;
+                chladni = (0.065f * h3 + 0.035f * h5) * bloom * driveAmount;
             } else if (model == 6) {
                 // Euphoric Alnico: 2nd and 4th even harmonics (Silky glass/bell chime)
                 float tHarm = FluidMath::fast_tanh(s * 1.5f);
@@ -651,6 +716,28 @@ struct FluidSpeakerCabinetDSP {
                 float h2 = (2.0f * t2 - 1.0f);                          // 2nd Chebyshev
                 float h4 = (8.0f * t2 * (t2 - 1.0f) + 1.0f);           // 4th Chebyshev
                 chladni = (0.065f * h2 + 0.030f * h4) * bloom * driveAmount;
+            } else if (model == 10) {
+                // Hyper Blue Bulldog: 2nd and 4th chime harmonics (Vox AC30 crystalline top-end sparkle)
+                float tHarm = FluidMath::fast_tanh(s * 1.6f);
+                float t2 = tHarm * tHarm;
+                float h2 = (2.0f * t2 - 1.0f);
+                float h4 = (8.0f * t2 * (t2 - 1.0f) + 1.0f);
+                chladni = (0.075f * h2 + 0.040f * h4) * bloom * driveAmount;
+            } else if (model == 9) {
+                // Hyper EVM-12L: Ultra-clean 2nd & 3rd subtle presence
+                float tHarm = FluidMath::fast_tanh(s * 1.2f);
+                float t2 = tHarm * tHarm;
+                float h2 = (2.0f * t2 - 1.0f);
+                float h3 = (4.0f * t2 - 3.0f) * tHarm;
+                chladni = (0.030f * h2 + 0.020f * h3) * bloom * driveAmount;
+            } else if (model == 11) {
+                // Hyper Tweed 4x10: 2nd, 3rd, 4th acoustic pine wood bloom
+                float tHarm = FluidMath::fast_tanh(s * 1.6f);
+                float t2 = tHarm * tHarm;
+                float h2 = (2.0f * t2 - 1.0f);
+                float h3 = (4.0f * t2 - 3.0f) * tHarm;
+                float h4 = (8.0f * t2 * (t2 - 1.0f) + 1.0f);
+                chladni = (0.050f * h2 + 0.030f * h3 + 0.020f * h4) * bloom * driveAmount;
             } else {
                 // 432Hz Golden Ratio Projector: Golden harmonic overtone series
                 float tHarm = FluidMath::fast_tanh(s * 1.618f);
@@ -2681,7 +2768,7 @@ public:
     }
 
     void setCabParams(int model, float cabSizeVol, bool use432Tuning, float speakerDrive) {
-        physicalCab.model = std::max(0, std::min(8, model));
+        physicalCab.model = std::max(0, std::min(12, model));
         physicalCab.cabSizeVol = cabSizeVol;
         physicalCab.use432Tuning = use432Tuning;
         physicalCab.speakerDrive = speakerDrive;
@@ -3372,7 +3459,7 @@ public:
         int chMode = std::max(0, std::min(3, (int)lroundf(pChannelMode)));
         int slopeMode = (pSlopeMode > 0.5f) ? 1 : 0;
         int powerTubes = (pPowerTubes > 0.5f) ? 1 : 0;
-        int cabType = std::max(0, std::min(8, (int)lroundf(pSpeakerCab)));
+        int cabType = std::max(0, std::min(12, (int)lroundf(pSpeakerCab)));
         if (cabType != physicalCab.model) {
             physicalCab.model = cabType;
             physicalCab.update((float)sampleRate);

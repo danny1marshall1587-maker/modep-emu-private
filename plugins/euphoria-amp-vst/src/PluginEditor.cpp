@@ -26,15 +26,13 @@ static void fillRoundRectJuce(juce::Graphics& g, int x1, int y1, int x2, int y2,
     }
 }
 
-static const juce::Rectangle<int> kTabRects[8] = {
-    {  18, 12, 81, 36 }, // 1. CLEAN
-    { 103, 12, 81, 36 }, // 2. CRUNCH
-    { 188, 12, 81, 36 }, // 3. LEAD
-    { 273, 12, 81, 36 }, // 4. DRIVE
-    { 358, 12, 81, 36 }, // 5. SPACE
-    { 443, 12, 81, 36 }, // 6. REVERB
-    { 528, 12, 81, 36 }, // 7. DELAY
-    { 613, 12, 85, 36 }  // 8. TUNER
+static const juce::Rectangle<int> kTabRects[6] = {
+    {  18, 12, 124, 36 }, // 1. AMP [AUTO-FLIP]
+    { 148, 12, 106, 36 }, // 2. DRIVE
+    { 260, 12, 106, 36 }, // 3. SPACE
+    { 372, 12, 106, 36 }, // 4. REVERB
+    { 484, 12, 106, 36 }, // 5. DELAY
+    { 596, 12, 102, 36 }  // 6. TUNER
 };
 
 static const juce::Rectangle<int> kPresetPrevRect    { 704, 12,  22, 36 };
@@ -116,12 +114,12 @@ void EuphoriaAmpAudioProcessorEditor::initKnobLayout() {
     }
 
     // Global Header Selector Pills (indices 0..5)
-    knobLayout[K_CH_MODE].rect      = {  18, 56, 120, 36 };
-    knobLayout[K_QUALITY].rect      = { 144, 56, 120, 36 };
-    knobLayout[K_CAB_SIM].rect      = { 270, 56, 152, 36 };
-    knobLayout[K_CAB_SIZE].rect     = { 428, 56, 110, 36 };
-    knobLayout[K_TUNING_REF].rect   = { 544, 56, 106, 36 };
-    knobLayout[K_PICKUP_VOICE].rect = { 656, 56, 112, 36 };
+    knobLayout[K_CH_MODE].rect      = {  18, 56, 138, 36 };
+    knobLayout[K_QUALITY].rect      = { 160, 56, 114, 36 };
+    knobLayout[K_CAB_SIM].rect      = { 278, 56, 164, 36 };
+    knobLayout[K_CAB_SIZE].rect     = { 446, 56, 116, 36 };
+    knobLayout[K_TUNING_REF].rect   = { 566, 56,  98, 36 };
+    knobLayout[K_PICKUP_VOICE].rect = { 668, 56, 114, 36 };
 
     for (int page = 0; page < 7; ++page) {
         if (page == 3) {
@@ -532,31 +530,50 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
     g.fillRect(0, 0, w, 98);
 
     // 1. Top Navigation Tabs
-    static const char* const tabTitles[8] = {
-        "1. CLEAN", "2. CRUNCH", "3. LEAD", "4. DRIVE",
-        "5. SPACE", "6. REVERB", "7. DELAY", "8. TUNER"
+    int curCh = std::clamp((int)std::lround(processor.getParamValue(K_CH_MODE)), 0, 3);
+    juce::String ampTitle = (curCh == 0) ? "1. AMP [CLEAN]" :
+                            (curCh == 1) ? "1. AMP [CRUNCH]" :
+                            (curCh == 2) ? "1. AMP [LEAD]" : "1. AMP [BLEND]";
+
+    juce::String tabTitles[6] = {
+        ampTitle,
+        "2. DRIVE",
+        "3. SPACE",
+        "4. REVERB",
+        "5. DELAY",
+        "6. TUNER"
     };
     g.setFont(juce::FontOptions(12.5f, juce::Font::bold));
-    for (int t = 0; t < 8; ++t) {
-        bool active = (activePage == t);
-        juce::Colour bg = active ? (t == 0 ? RGBCol(6, 78, 59) :
-                                    t == 1 ? RGBCol(90, 30, 10) :
-                                    t == 2 ? RGBCol(90, 10, 20) :
-                                    t == 3 ? RGBCol(120, 80, 10) :
-                                    t == 4 ? RGBCol(8, 51, 68) :
-                                    t == 5 ? RGBCol(68, 10, 40) :
-                                    t == 6 ? RGBCol(30, 27, 75) :
-                                             RGBCol(12, 74, 110))
-                                 : RGBCol(4, 20, 24);
-        juce::Colour br = active ? (t == 0 ? RGBCol(245, 158, 11) :
-                                    t == 1 ? RGBCol(249, 115, 22) :
-                                    t == 2 ? RGBCol(239, 68, 68) :
-                                    t == 3 ? RGBCol(251, 191, 36) :
-                                    t == 4 ? RGBCol(6, 182, 212) :
-                                    t == 5 ? RGBCol(244, 114, 182) :
-                                    t == 6 ? RGBCol(251, 191, 36) :
-                                             RGBCol(56, 189, 248))
-                                 : RGBCol(19, 78, 74);
+    for (int t = 0; t < 6; ++t) {
+        bool active = false;
+        juce::Colour bg, br;
+        if (t == 0) {
+            active = (activePage < 3);
+            int ampPg = (activePage < 3) ? activePage : ((curCh == 0) ? 0 : (curCh == 2 ? 2 : 1));
+            bg = active ? (ampPg == 0 ? RGBCol(6, 78, 59)   :
+                           ampPg == 1 ? RGBCol(90, 30, 10)  :
+                                        RGBCol(90, 10, 20))
+                        : RGBCol(4, 20, 24);
+            br = active ? (ampPg == 0 ? RGBCol(245, 158, 11) :
+                           ampPg == 1 ? RGBCol(249, 115, 22) :
+                                        RGBCol(239, 68, 68))
+                        : RGBCol(19, 78, 74);
+        } else {
+            int pageForTab = t + 2;
+            active = (activePage == pageForTab);
+            bg = active ? (t == 1 ? RGBCol(120, 80, 10) :
+                           t == 2 ? RGBCol(8, 51, 68)   :
+                           t == 3 ? RGBCol(68, 10, 40)  :
+                           t == 4 ? RGBCol(30, 27, 75)  :
+                                    RGBCol(12, 74, 110))
+                        : RGBCol(4, 20, 24);
+            br = active ? (t == 1 ? RGBCol(251, 191, 36) :
+                           t == 2 ? RGBCol(6, 182, 212)  :
+                           t == 3 ? RGBCol(244, 114, 182) :
+                           t == 4 ? RGBCol(251, 191, 36) :
+                                    RGBCol(56, 189, 248))
+                        : RGBCol(19, 78, 74);
+        }
         const auto& tr = kTabRects[t];
         fillRoundRectJuce(g, tr.getX(), tr.getY(), tr.getRight(), tr.getBottom(), 8, bg, br, active ? 2 : 1);
         g.setColour(active ? RGBCol(254, 240, 138) : RGBCol(148, 163, 184));
@@ -1662,15 +1679,29 @@ void EuphoriaAmpAudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
         return;
     }
 
-    for (int t = 0; t < 8; ++t) {
+    for (int t = 0; t < 6; ++t) {
         if (kTabRects[t].contains(pt)) {
-            activePage = t;
+            if (t == 0) {
+                int curCh = std::clamp((int)std::lround(processor.getParamValue(K_CH_MODE)), 0, 3);
+                int targetAmpPage = (curCh == 0) ? 0 : (curCh == 1) ? 1 : (curCh == 2) ? 2 : 1;
+                if (activePage >= 3) {
+                    activePage = targetAmpPage;
+                } else {
+                    int nextCh = (curCh + 1) % 3;
+                    processor.setParamValueFromGui(K_CH_MODE, (float)nextCh);
+                    activePage = nextCh;
+                }
+            } else {
+                activePage = t + 2;
+            }
             repaint();
             return;
         }
     }
     if (kTunerStatusPill.contains(pt)) {
-        activePage = (activePage == 7) ? 0 : 7;
+        int curCh = std::clamp((int)std::lround(processor.getParamValue(K_CH_MODE)), 0, 3);
+        int targetAmpPage = (curCh == 0) ? 0 : (curCh == 1) ? 1 : (curCh == 2) ? 2 : 1;
+        activePage = (activePage == 7) ? targetAmpPage : 7;
         repaint();
         return;
     }
@@ -1678,6 +1709,10 @@ void EuphoriaAmpAudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
         if (!processor.presets.empty()) {
             int n = (int)processor.presets.size();
             processor.applyPreset((processor.currentPresetIdx - 1 + n) % n);
+            if (activePage < 3) {
+                int curCh = std::clamp((int)std::lround(processor.getParamValue(K_CH_MODE)), 0, 3);
+                activePage = (curCh == 0) ? 0 : (curCh == 2 ? 2 : 1);
+            }
             repaint();
         }
         return;
@@ -1686,6 +1721,10 @@ void EuphoriaAmpAudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
         if (!processor.presets.empty()) {
             int n = (int)processor.presets.size();
             processor.applyPreset((processor.currentPresetIdx + 1) % n);
+            if (activePage < 3) {
+                int curCh = std::clamp((int)std::lround(processor.getParamValue(K_CH_MODE)), 0, 3);
+                activePage = (curCh == 0) ? 0 : (curCh == 2 ? 2 : 1);
+            }
             repaint();
         }
         return;
@@ -1697,6 +1736,10 @@ void EuphoriaAmpAudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
         m.showMenuAsync(juce::PopupMenu::Options(), [this](int res) {
             if (res > 0) {
                 processor.applyPreset(res - 1);
+                if (activePage < 3) {
+                    int curCh = std::clamp((int)std::lround(processor.getParamValue(K_CH_MODE)), 0, 3);
+                    activePage = (curCh == 0) ? 0 : (curCh == 2 ? 2 : 1);
+                }
                 repaint();
             }
         });
@@ -1832,6 +1875,9 @@ void EuphoriaAmpAudioProcessorEditor::mouseDrag(const juce::MouseEvent& e) {
         int targetStep = std::clamp((int)std::lround(dragStartVal) + stepDelta, 0, k.steps - 1);
         if ((int)std::lround(processor.getParamValue(dragKnobIdx)) != targetStep) {
             processor.setParamValueFromGui(dragKnobIdx, (float)targetStep);
+            if (dragKnobIdx == K_CH_MODE && activePage < 3) {
+                activePage = (targetStep == 0) ? 0 : (targetStep == 2 ? 2 : 1);
+            }
             repaint();
         }
     } else {
@@ -1848,6 +1894,9 @@ void EuphoriaAmpAudioProcessorEditor::mouseUp(const juce::MouseEvent&) {
         if (k.isStepped && !dragDidMove) {
             int next = ((int)std::lround(processor.getParamValue(dragKnobIdx)) + 1) % k.steps;
             processor.setParamValueFromGui(dragKnobIdx, (float)next);
+            if (dragKnobIdx == K_CH_MODE && activePage < 3) {
+                activePage = (next == 0) ? 0 : (next == 2 ? 2 : 1);
+            }
             repaint();
         }
         dragKnobIdx = -1;
@@ -1862,6 +1911,10 @@ void EuphoriaAmpAudioProcessorEditor::mouseDoubleClick(const juce::MouseEvent& e
         if (knobLayout[(size_t)i].pageIdx != -1 && knobLayout[(size_t)i].pageIdx != activePage) continue;
         if (knobLayout[(size_t)i].rect.contains(pt)) {
             processor.setParamValueFromGui(i, table[(size_t)i].defVal);
+            if (i == K_CH_MODE && activePage < 3) {
+                int defCh = (int)std::lround(table[i].defVal);
+                activePage = (defCh == 0) ? 0 : (defCh == 2 ? 2 : 1);
+            }
             repaint();
             return;
         }
@@ -1880,6 +1933,9 @@ void EuphoriaAmpAudioProcessorEditor::mouseWheelMove(const juce::MouseEvent& e, 
                 int delta = (wheel.deltaY > 0.0f) ? 1 : ((wheel.deltaY < 0.0f) ? -1 : 0);
                 int next = std::clamp((int)std::lround(processor.getParamValue(i)) + delta, 0, k.steps - 1);
                 processor.setParamValueFromGui(i, (float)next);
+                if (i == K_CH_MODE && activePage < 3) {
+                    activePage = (next == 0) ? 0 : (next == 2 ? 2 : 1);
+                }
             } else {
                 float range = d.maxVal - d.minVal;
                 float newVal = std::clamp(processor.getParamValue(i) + wheel.deltaY * 0.08f * range, d.minVal, d.maxVal);

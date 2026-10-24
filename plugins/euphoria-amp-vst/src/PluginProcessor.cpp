@@ -309,7 +309,7 @@ void EuphoriaAmpAudioProcessor::pushParamsToEngine(uint32_t) {
     e.setEffectBypasses(on(K_REV_ON), on(K_VIB_ON));
 
     static const float cabSizeFactors[5] = { 0.6f, 0.8f, 1.0f, 1.3f, 1.8f };
-    const int cabModel = idx(K_CAB_SIM, 8);
+    const int cabModel = idx(K_CAB_SIM, 12);
     e.setCabParams(cabModel, cabSizeFactors[idx(K_CAB_SIZE, 4)], on(K_TUNING_REF), V(K_BM_SPKDRV));
     e.setPickupVoicing(idx(K_PICKUP_VOICE, 2));
 
@@ -410,7 +410,7 @@ void EuphoriaAmpAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         V(K_VIB_DEPTH),
         V(K_VIB_MODE),
         V(K_QUALITY),
-        (float)std::max(0, std::min(8, (int)std::lround(V(K_CAB_SIM)))),
+        (float)std::max(0, std::min(12, (int)std::lround(V(K_CAB_SIM)))),
         V(K_BM_SPKDRV),
         V(K_CLEAN_OUT),
         1.0f, 1.0f, 1.0f, 5.0f,

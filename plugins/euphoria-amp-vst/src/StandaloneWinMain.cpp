@@ -794,16 +794,15 @@ static RECT              g_btnTunerRefRect   = { 1022, 245, 1230, 325 };
 static RECT              g_btnTunerSpeedRect = { 1022, 335, 1230, 415 };
 static RECT              g_tunerStatusPill   = { 745, 686, 895, 710 };
 
-static RECT g_tabRects[8] = {
-    {  18, 12,  99, 48 }, // 1. CLEAN
-    { 103, 12, 184, 48 }, // 2. CRUNCH
-    { 188, 12, 269, 48 }, // 3. LEAD
-    { 273, 12, 354, 48 }, // 4. DRIVE
-    { 358, 12, 439, 48 }, // 5. SPACE
-    { 443, 12, 524, 48 }, // 6. REVERB
-    { 528, 12, 609, 48 }, // 7. DELAY
-    { 613, 12, 698, 48 }  // 8. TUNER
+static RECT g_tabRects[6] = {
+    {  18, 12, 142, 48 }, // 1. AMP [AUTO-FLIP]
+    { 148, 12, 254, 48 }, // 2. DRIVE
+    { 260, 12, 366, 48 }, // 3. SPACE
+    { 372, 12, 478, 48 }, // 4. REVERB
+    { 484, 12, 590, 48 }, // 5. DELAY
+    { 596, 12, 698, 48 }  // 6. TUNER
 };
+
 static RECT g_presetPrevRect = { 704, 12, 726, 48 };
 static RECT g_presetNameRect = { 730, 12, 826, 48 };
 static RECT g_presetNextRect = { 830, 12, 852, 48 };
@@ -853,12 +852,12 @@ enum {
 
 static KnobCtrl g_knobs[NUM_KNOBS] = {
     // Global switches shown in top-right subbar (page -1)
-    {"ROUTING",         -1, 0, 3, 0, 0, true, 4, {"CH1 SUPREME GLASS", "CH2 '59/'68 CRUNCH", "CH3 BE-100 LEAD", "JUMPERED BLEND"}, { 18, 56, 140, 92 }},
-    {"FLUID OVERSAMPLE",-1, 0, 3, 2, 2, true, 4, {"ECO LIVE 1x", "STAGE 2x", "STUDIO 4x", "ULTRA 8x"},        { 144, 56, 266, 92 }},
-    {"PHYSICAL SPEAKER",-1, 0, 8, 0, 0, true, 9, {"2x12 JENSEN (OLD)", "4x10 BASSMAN (OLD)", "2x10 OXFORD (OLD)", "4x12 GREENBACK (OLD)", "432Hz HARMONIC (OLD)", "HYPER GREENBACK", "EUPHORIC ALNICO", "432Hz PROJECTOR", "BYPASS CAB"}, { 270, 56, 425, 92 }},
-    {"CAB SIZE / VOL",  -1, 0, 4, 2, 2, true, 5, {"0.6x COMPACT", "0.8x VINTAGE", "1.0x STANDARD", "1.3x OVERSIZED", "1.8x STADIUM"}, { 429, 56, 545, 92 }},
-    {"TUNING REF",      -1, 0, 1, 0, 0, true, 2, {"440 Hz STD", "432 Hz NAT", "", ""},                          { 549, 56, 649, 92 }},
-    {"PICKUP LOAD",     -1, 0, 2, 0, 0, true, 3, {"1M STUDIO", "STRAT / SC", "GRETSCH / HB", ""},                { 653, 56, 768, 92 }},
+    {"ROUTING",         -1, 0, 3, 0, 0, true, 4, {"CH1 SUPREME GLASS", "CH2 '59/'68 CRUNCH", "CH3 BE-100 LEAD", "JUMPERED BLEND"}, { 18, 56, 156, 92 }},
+    {"FLUID OVERSAMPLE",-1, 0, 3, 2, 2, true, 4, {"ECO LIVE 1x", "STAGE 2x", "STUDIO 4x", "ULTRA 8x"},        { 160, 56, 274, 92 }},
+    {"PHYSICAL SPEAKER",-1, 0, 12, 0, 0, true, 13, {"2x12 JENSEN (OLD)", "4x10 BASSMAN (OLD)", "2x10 OXFORD (OLD)", "4x12 GREENBACK (OLD)", "432Hz HARMONIC (OLD)", "HYPER GREENBACK", "EUPHORIC ALNICO", "432Hz PROJECTOR", "HYPER VINTAGE 30", "HYPER EVM-12L", "HYPER BLUE BULLDOG", "HYPER TWEED 4x10", "BYPASS CAB"}, { 278, 56, 442, 92 }},
+    {"CAB SIZE / VOL",  -1, 0, 4, 2, 2, true, 5, {"0.6x COMPACT", "0.8x VINTAGE", "1.0x STANDARD", "1.3x OVERSIZED", "1.8x STADIUM"}, { 446, 56, 562, 92 }},
+    {"TUNING REF",      -1, 0, 1, 0, 0, true, 2, {"440 Hz STD", "432 Hz NAT", "", ""},                          { 566, 56, 664, 92 }},
+    {"PICKUP LOAD",     -1, 0, 2, 0, 0, true, 3, {"1M STUDIO", "STRAT / SC", "GRETSCH / HB", ""},                { 668, 56, 782, 92 }},
 
     // Page 0: Euphoria Supreme Glass Clean Head (11 knobs)
     {"VOLUME",        0, 0, 10, 5.2f, 5.2f, false, 0, {}, {}},
@@ -977,6 +976,31 @@ static KnobCtrl g_knobs[NUM_KNOBS] = {
     {"WOW & FLUTTER", 6, 0, 100, 18.0f, 18.0f, false, 0, {}, {}},
     {"AUTO DUCKING",  6, 0, 100, 25.0f, 25.0f, false, 0, {}, {}}
 };
+
+// Returns the page index (0, 1, or 2) corresponding to the currently selected amplifier channel
+static inline int getActiveAmpPage() {
+    int ch = std::clamp(int(std::round(g_knobs[K_CH_MODE].curVal)), 0, 3);
+    if (ch == 0) return 0; // Page 0: Supreme Glass Clean
+    if (ch == 1) return 1; // Page 1: '59 Bassman / '68 JMP Crunch
+    if (ch == 2) return 2; // Page 2: BE-100 Lead
+    return 1;              // Page 1 for Jumpered Blend
+}
+
+// Generates dynamic label for the unified AMP tab button
+static inline const char* getAmpTabTitle() {
+    int ch = std::clamp(int(std::round(g_knobs[K_CH_MODE].curVal)), 0, 3);
+    if (ch == 0) return "1. AMP [CLEAN]";
+    if (ch == 1) return "1. AMP [CRUNCH]";
+    if (ch == 2) return "1. AMP [LEAD]";
+    return "1. AMP [BLEND]";
+}
+
+// Auto-flips active page to match selected channel if viewing the amplifier
+static inline void syncAmpPageWithRouting() {
+    if (g_activePage < 3) {
+        g_activePage = getActiveAmpPage();
+    }
+}
 
 // ============================================================================
 // Euphoria User Preset System (Save, Load, Naming & Default Auto-Load)
@@ -1113,6 +1137,7 @@ static void applyPreset(const EuphoriaPreset& p) {
     for (int i = 0; i < NUM_KNOBS; ++i) {
         g_knobs[i].curVal = std::max(g_knobs[i].minVal, std::min(g_knobs[i].maxVal, p.vals[i]));
     }
+    syncAmpPageWithRouting();
 }
 
 static void initPresetSystem() {
@@ -1826,7 +1851,7 @@ static void runEngineBlock(const float* inBuf, float* outL, float* outR, uint32_
     int cabSizeIdx = std::max(0, std::min(4, int(std::round(g_knobs[K_CAB_SIZE].curVal))));
     float cabSizeVol = s_cabSizeFactors[cabSizeIdx];
     bool use432 = (g_knobs[K_TUNING_REF].curVal > 0.5f);
-    int cabModel = std::max(0, std::min(8, int(std::round(g_knobs[K_CAB_SIM].curVal))));
+    int cabModel = std::max(0, std::min(12, int(std::round(g_knobs[K_CAB_SIM].curVal))));
     float spkDrive = g_knobs[K_BM_SPKDRV].curVal;
 
     g_engine.setCabParams(cabModel, cabSizeVol, use432, spkDrive);
@@ -3350,38 +3375,46 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
     HFONT fontHud   = CreateFontA(11, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Segoe UI");
     HGDIOBJ oldFont = SelectObject(hdc, fontTab);
 
-    // 1. Top Navigation Bar: Tabs, Preset Selector & Utility Buttons
-    const char* tabTitles[8] = {
-        "1. CLEAN",
-        "2. CRUNCH",
-        "3. LEAD",
-        "4. DRIVE",
-        "5. SPACE",
-        "6. REVERB",
-        "7. DELAY",
-        "8. TUNER"
+    // 1. Top Navigation Bar: Unified Dynamic AMP Tab + Aux & FX Tabs
+    const char* tabTitles[6] = {
+        getAmpTabTitle(),
+        "2. DRIVE",
+        "3. SPACE",
+        "4. REVERB",
+        "5. DELAY",
+        "6. TUNER"
     };
 
-    for (int t = 0; t < 8; ++t) {
-        bool active = (g_activePage == t);
-        COLORREF bg = active ? (t == 0 ? RGB(6, 78, 59) :
-                                t == 1 ? RGB(90, 30, 10) :
-                                t == 2 ? RGB(90, 10, 20) :
-                                t == 3 ? RGB(120, 80, 10) :
-                                t == 4 ? RGB(8, 51, 68) :
-                                t == 5 ? RGB(68, 10, 40) :
-                                t == 6 ? RGB(30, 27, 75) :
-                                         RGB(12, 74, 110))
-                             : RGB(4, 20, 24);
-        COLORREF br = active ? (t == 0 ? RGB(245, 158, 11) :
-                                t == 1 ? RGB(249, 115, 22) :
-                                t == 2 ? RGB(239, 68, 68) :
-                                t == 3 ? RGB(251, 191, 36) :
-                                t == 4 ? RGB(6, 182, 212) :
-                                t == 5 ? RGB(244, 114, 182) :
-                                t == 6 ? RGB(251, 191, 36) :
-                                         RGB(56, 189, 248))
-                             : RGB(19, 78, 74);
+    for (int t = 0; t < 6; ++t) {
+        bool active = false;
+        COLORREF bg, br;
+        if (t == 0) {
+            active = (g_activePage < 3);
+            int ampPg = (g_activePage < 3) ? g_activePage : getActiveAmpPage();
+            bg = active ? (ampPg == 0 ? RGB(6, 78, 59)   :
+                           ampPg == 1 ? RGB(90, 30, 10)  :
+                                        RGB(90, 10, 20))
+                        : RGB(4, 20, 24);
+            br = active ? (ampPg == 0 ? RGB(245, 158, 11) :
+                           ampPg == 1 ? RGB(249, 115, 22) :
+                                        RGB(239, 68, 68))
+                        : RGB(19, 78, 74);
+        } else {
+            int pageForTab = t + 2; // t=1 -> 3 (Drive), t=2 -> 4 (Space), t=3 -> 5 (Reverb), t=4 -> 6 (Delay), t=5 -> 7 (Tuner)
+            active = (g_activePage == pageForTab);
+            bg = active ? (t == 1 ? RGB(120, 80, 10) :
+                           t == 2 ? RGB(8, 51, 68)   :
+                           t == 3 ? RGB(68, 10, 40)  :
+                           t == 4 ? RGB(30, 27, 75)  :
+                                    RGB(12, 74, 110))
+                        : RGB(4, 20, 24);
+            br = active ? (t == 1 ? RGB(251, 191, 36) :
+                           t == 2 ? RGB(6, 182, 212)  :
+                           t == 3 ? RGB(244, 114, 182) :
+                           t == 4 ? RGB(251, 191, 36) :
+                                    RGB(56, 189, 248))
+                        : RGB(19, 78, 74);
+        }
         fillRoundRect(hdc, g_tabRects[t].left, g_tabRects[t].top, g_tabRects[t].right, g_tabRects[t].bottom, 8, bg, br, active ? 2 : 1);
         SetBkMode(hdc, TRANSPARENT);
         SetTextColor(hdc, active ? RGB(254, 240, 138) : RGB(148, 163, 184));
@@ -5879,15 +5912,27 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             return 0;
         case WM_LBUTTONDOWN: {
             POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
-            for (int t = 0; t < 8; ++t) {
+            for (int t = 0; t < 6; ++t) {
                 if (PtInRect(&g_tabRects[t], pt)) {
-                    g_activePage = t;
+                    if (t == 0) {
+                        int curCh = std::clamp(int(std::round(g_knobs[K_CH_MODE].curVal)), 0, 3);
+                        int targetAmpPage = (curCh == 0) ? 0 : (curCh == 1) ? 1 : (curCh == 2) ? 2 : 1;
+                        if (g_activePage >= 3) {
+                            g_activePage = targetAmpPage;
+                        } else {
+                            int nextCh = (curCh + 1) % 3;
+                            g_knobs[K_CH_MODE].curVal = float(nextCh);
+                            g_activePage = nextCh;
+                        }
+                    } else {
+                        g_activePage = t + 2;
+                    }
                     InvalidateRect(hwnd, nullptr, FALSE);
                     return 0;
                 }
             }
             if (PtInRect(&g_tunerStatusPill, pt)) {
-                g_activePage = (g_activePage == 7) ? 0 : 7;
+                g_activePage = (g_activePage == 7) ? getActiveAmpPage() : 7;
                 InvalidateRect(hwnd, nullptr, FALSE);
                 return 0;
             }
@@ -6067,6 +6112,9 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 if (PtInRect(&g_knobs[i].rect, pt) && g_knobs[i].isStepped) {
                     int prev = (int(std::round(g_knobs[i].curVal)) - 1 + g_knobs[i].steps) % g_knobs[i].steps;
                     g_knobs[i].curVal = float(prev);
+                    if (i == K_CH_MODE) {
+                        syncAmpPageWithRouting();
+                    }
                     InvalidateRect(hwnd, nullptr, FALSE);
                     return 0;
                 }
@@ -6087,6 +6135,9 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 if (g_knobs[i].pageIdx != -1 && g_knobs[i].pageIdx != g_activePage) continue;
                 if (PtInRect(&g_knobs[i].rect, pt)) {
                     g_knobs[i].curVal = g_knobs[i].defVal;
+                    if (i == K_CH_MODE) {
+                        syncAmpPageWithRouting();
+                    }
                     InvalidateRect(hwnd, nullptr, FALSE);
                     return 0;
                 }
@@ -6106,6 +6157,9 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                     targetStep = std::max(0, std::min(k.steps - 1, targetStep));
                     if (int(std::round(k.curVal)) != targetStep) {
                         k.curVal = float(targetStep);
+                        if (g_dragKnob == K_CH_MODE) {
+                            syncAmpPageWithRouting();
+                        }
                         InvalidateRect(hwnd, nullptr, FALSE);
                     }
                 } else {
@@ -6122,11 +6176,14 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 if (k.isStepped && !g_dragDidMove) {
                     int next = (int(std::round(k.curVal)) + 1) % k.steps;
                     k.curVal = float(next);
-                    InvalidateRect(hwnd, nullptr, FALSE);
+                }
+                if (g_dragKnob == K_CH_MODE) {
+                    syncAmpPageWithRouting();
                 }
                 g_dragKnob = -1;
                 g_dragDidMove = false;
                 ReleaseCapture();
+                InvalidateRect(hwnd, nullptr, FALSE);
             }
             return 0;
         case WM_PAINT: {
@@ -6218,7 +6275,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR lpCmdLine, int nCmdShow) {
             DeleteObject(hbm);
             DeleteDC(hdcMem);
         }
-        for (int m = 0; m <= 8; ++m) {
+        for (int m = 0; m <= 12; ++m) {
             g_activePage = 0;
             g_knobs[K_CAB_SIM].curVal = (float)m;
             HDC hdcMem = CreateCompatibleDC(hdcScreen);

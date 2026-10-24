@@ -227,12 +227,21 @@
         lv2:name "Speaker Cabinet" ;
         lv2:default 0 ;
         lv2:minimum 0 ;
-        lv2:maximum 3 ;
+        lv2:maximum 12 ;
         lv2:portProperty lv2:enumeration , lv2:integer ;
-        lv2:scalePoint [ rdfs:label "2x12 '65 Twin Jensen C12N" ; rdf:value 0 ] ;
-        lv2:scalePoint [ rdfs:label "4x10 '59 Bassman Jensen P10R" ; rdf:value 1 ] ;
-        lv2:scalePoint [ rdfs:label "4x12 '68 Marshall Greenback" ; rdf:value 2 ] ;
-        lv2:scalePoint [ rdfs:label "Direct Out / Cab Bypass" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "2x12 '65 Twin Jensen C12N (OLD)" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "4x10 '59 Bassman Jensen P10R (OLD)" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "2x10 '61 Oxford 10L6 (OLD)" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "4x12 '68 Marshall Greenback (OLD)" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "432Hz Natural Harmonic Enclosure (OLD)" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Hyper Greenback (4x12 Punch & Wood)" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Euphoric Alnico (2x12 Chime & Bell)" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "432Hz Golden Projector (Phi FRFR)" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Hyper Vintage 30 (4x12 British High-Gain)" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Hyper EVM-12L (200W Dumble Cannon)" ; rdf:value 9 ] ;
+        lv2:scalePoint [ rdfs:label "Hyper Blue Bulldog (2x12 AC30 Chime)" ; rdf:value 10 ] ;
+        lv2:scalePoint [ rdfs:label "Hyper Tweed 4x10 (1959 Solid Pine Bloom)" ; rdf:value 11 ] ;
+        lv2:scalePoint [ rdfs:label "Direct Out / Cab Bypass" ; rdf:value 12 ] ;
     ] , [
         a lv2:ControlPort , lv2:InputPort ;
         lv2:index 25 ;

@@ -57,7 +57,7 @@ inline const std::vector<EuphoriaParamDef>& euphoriaParamTable() {
         // ---- Global header ----
         {"ch_mode",    "ROUTING",          -1, 0, 3, 0, {"CH1 SUPREME GLASS", "CH2 '59/'68 CRUNCH", "CH3 BE-100 LEAD", "JUMPERED BLEND"}},
         {"quality",    "FLUID OVERSAMPLE", -1, 0, 3, 2, {"ECO LIVE 1x", "STAGE 2x", "STUDIO 4x", "ULTRA 8x"}},
-        {"cab_sim",    "PHYSICAL SPEAKER", -1, 0, 8, 0, {"2x12 JENSEN (OLD)", "4x10 BASSMAN (OLD)", "2x10 OXFORD (OLD)", "4x12 GREENBACK (OLD)", "432Hz HARMONIC (OLD)", "HYPER GREENBACK", "EUPHORIC ALNICO", "432Hz PROJECTOR", "BYPASS CAB"}},
+        {"cab_sim",    "PHYSICAL SPEAKER", -1, 0, 12, 0, {"2x12 JENSEN (OLD)", "4x10 BASSMAN (OLD)", "2x10 OXFORD (OLD)", "4x12 GREENBACK (OLD)", "432Hz HARMONIC (OLD)", "HYPER GREENBACK", "EUPHORIC ALNICO", "432Hz PROJECTOR", "HYPER VINTAGE 30", "HYPER EVM-12L", "HYPER BLUE BULLDOG", "HYPER TWEED 4x10", "BYPASS CAB"}},
         {"cab_size",   "CAB SIZE / VOL",   -1, 0, 4, 2, {"0.6x COMPACT", "0.8x VINTAGE", "1.0x STANDARD", "1.3x OVERSIZED", "1.8x STADIUM"}},
         {"tuning_ref", "TUNING REF",       -1, 0, 1, 0, {"440 Hz STD", "432 Hz NAT"}},
         {"pickup",     "PICKUP LOAD",      -1, 0, 2, 0, {"1M STUDIO", "STRAT / SC", "GRETSCH / HB"}},
