@@ -92,32 +92,36 @@ namespace FluidMath {
         const float absU = (u >= 0.0f) ? u : -u;
         const float signU = (u >= 0.0f) ? 1.0f : -1.0f;
 
-        // Elastic chamber wall compression: maps [0, +inf) -> [0, 2.65) smoothly with zero flat rail!
-        const float elasticU = signU * (absU / (1.0f + 0.36f * absU)) * 2.55f;
+        // 1. Elastic Chamber Wall Compression with Exact Unity Small-Signal Derivative (d/du = 1.0 at u=0):
+        // Maps [0, +inf) -> [0, 1.0/0.45 = 2.22) smoothly with zero flat clipping rail!
+        const float elasticU = signU * (absU / (1.0f + 0.45f * absU));
 
-        // Branchless positive/negative asymmetry (1.15x positive conduction, 0.85x negative boundary)
+        // Progressive tube asymmetry: engages smoothly with drive, zero spurious distortion for clean notes
+        const float driveWeight = absU / (1.20f + absU); // 0.0 at u=0, approaches 1.0 at high drive
         const float posMask = (u >= 0.0f) ? 1.0f : 0.0f;
         const float negMask = 1.0f - posMask;
-        const float asymScale = (posMask * 1.12f) + (negMask * 0.88f);
+        const float asymScale = 1.0f + ((posMask * 0.12f) - (negMask * 0.12f)) * driveWeight;
 
         const float baseWave = fast_tanh(elasticU * asymScale);
 
-        // Water-on-wall reflection wave: when |u| exceeds the laminar core (> 0.65),
-        // the wave crests against the boundary wall and reflects back into the chamber interior
-        // as a phase-coherent harmonic foldback wave damped by fluid viscosity/momentum.
-        const float wallImpact = std::max(0.0f, absU - 0.65f);
-        const float impactNorm = wallImpact / (1.25f + wallImpact); // Smoothly approaches 1.0 at extreme drive
+        // Water-on-wall reflection wave: engages when |u| exceeds laminar threshold (> 0.70)
+        // Excess kinetic pressure folds back into the chamber interior as harmonics instead of choking
+        const float wallImpact = std::max(0.0f, absU - 0.70f);
+        const float impactNorm = (wallImpact * wallImpact) / (1.50f + wallImpact * wallImpact); // Smooth quadratic onset
         const float reflectPhase = elasticU * (1.35f + 0.45f * shapeFactor);
-        const float reflectedRipple = fast_sin(reflectPhase) * (1.0f - 0.45f * baseWave * baseWave);
+        const float reflectedRipple = fast_sin(reflectPhase) * (1.0f - 0.50f * baseWave * baseWave);
 
-        // Even-order harmonic bloom that stays alive even at 25x+ cascaded drive
-        const float evenScale = (posMask * 0.38f) - (negMask * 0.20f);
-        const float evenBloom = purity * (baseWave * baseWave) * (1.18f - 0.65f * baseWave * baseWave) * evenScale;
+        // Even-order harmonic bloom that scales with drive purity
+        const float evenScale = ((posMask * 0.28f) - (negMask * 0.15f)) * driveWeight;
+        const float evenBloom = purity * (baseWave * baseWave) * (1.0f - 0.55f * baseWave * baseWave) * evenScale;
 
-        const float combined = baseWave * (1.0f - 0.22f * impactNorm)
-                             + reflectedRipple * (0.34f * impactNorm)
+        // Fluid momentum inertia modulation (does not add static DC offset)
+        const float momMod = fast_tanh(momentum) * (0.08f * impactNorm);
+
+        const float combined = baseWave * (1.0f - 0.20f * impactNorm)
+                             + reflectedRipple * (0.28f * impactNorm)
                              + evenBloom
-                             + fast_tanh(momentum) * 0.28f;
+                             + momMod;
 
         return fast_tanh(combined);
     }

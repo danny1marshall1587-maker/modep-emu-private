@@ -362,6 +362,9 @@ public:
     std::atomic<bool>  testRiffActive{false};
     std::atomic<bool>  tunerMute{false};
     std::atomic<float> inMeterPeak{0.0f};
+    std::atomic<float> inMeterRms{0.0f};
+    std::atomic<float> inMeterRmsDb{-100.0f};
+    std::atomic<float> inMeterMeanSquare{0.0f};
     std::atomic<float> outMeterPeakL{0.0f};
     std::atomic<float> outMeterPeakR{0.0f};
     std::atomic<float> dspCpuPercent{1.8f};

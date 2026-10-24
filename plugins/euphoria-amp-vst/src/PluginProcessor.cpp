@@ -351,6 +351,7 @@ void EuphoriaAmpAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
     const float* rawIn = buffer.getReadPointer(0);
     float maxIn = 0.0f;
+    float sumSq = 0.0f;
     const bool injectRiff = testRiffActive.load();
 
     for (int i = 0; i < numSamples; ++i) {
@@ -359,10 +360,24 @@ void EuphoriaAmpAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         monoInScratch[(size_t)i] = s;
         float a = std::fabs(s);
         if (a > maxIn) maxIn = a;
+        sumSq += s * s;
     }
 
     if (maxIn > 0.0f) inMeterPeak.store(maxIn);
     else inMeterPeak.store(inMeterPeak.load() * 0.95f);
+
+    float blockMs = (numSamples > 0) ? (sumSq / float(numSamples)) : 0.0f;
+    float curMs = inMeterMeanSquare.load();
+    float dtSec = float(numSamples) / float(std::max(44100.0, getSampleRate()));
+    float aAtk = 1.0f - std::exp(-dtSec / 0.020f);
+    float aRel = 1.0f - std::exp(-dtSec / 0.220f);
+    float alpha = (blockMs > curMs) ? aAtk : aRel;
+    float newMs = curMs + alpha * (blockMs - curMs);
+    inMeterMeanSquare.store(newMs);
+    float rms = std::sqrt(std::max(0.0f, newMs));
+    inMeterRms.store(rms);
+    float rmsDb = (rms > 1e-5f) ? (20.0f * std::log10(rms)) : -100.0f;
+    inMeterRmsDb.store(rmsDb);
 
     const auto tStart = std::chrono::high_resolution_clock::now();
 

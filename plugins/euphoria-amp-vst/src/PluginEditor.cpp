@@ -1311,7 +1311,7 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
             g.setColour(lblCol);
             g.drawText(lbl, vx1, vy2 + 3, vx2 - vx1, 14, juce::Justification::centred, false);
         };
-        drawVu(grLeft + 20, grTop + 65, grLeft + 118, grTop + 165, processor.inMeterPeak.load(), "INPUT VU", RGBCol(167, 243, 208));
+        drawVu(grLeft + 20, grTop + 65, grLeft + 118, grTop + 165, processor.inMeterRms.load() * 2.85f, "INPUT RMS VU", RGBCol(167, 243, 208));
         drawVu(grRight - 118, grTop + 65, grRight - 20, grTop + 165, processor.outMeterPeakL.load(), "REPRO VU", RGBCol(251, 191, 36));
 
         int reelY = (grTop + grBottom) / 2 + 10;
@@ -1548,6 +1548,8 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
 
     // 5. Bottom Live Meter Bar and Hardware Status
     float inPk = std::clamp(processor.inMeterPeak.load(), 0.0f, 1.0f);
+    float inRms = std::clamp(processor.inMeterRms.load(), 0.0f, 1.0f);
+    float inRmsDb = processor.inMeterRmsDb.load();
     float outL = std::clamp(processor.outMeterPeakL.load(), 0.0f, 1.0f);
     float outR = std::clamp(processor.outMeterPeakR.load(), 0.0f, 1.0f);
 
@@ -1560,20 +1562,22 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
 
     int meterX = 450;
     g.setColour(RGBCol(45, 212, 191));
-    g.drawText("GUITAR IN", meterX, h - 34, 66, 24, juce::Justification::centredLeft, false);
+    g.drawText("GUITAR IN (RMS)", meterX, h - 34, 95, 24, juce::Justification::centredLeft, false);
 
-    int inBarX = meterX + 68, inW = 85, inBarTop = h - 28, inBarBottom = h - 14;
+    int inBarX = meterX + 98, inW = 85, inBarTop = h - 28, inBarBottom = h - 14;
     fillRoundRectJuce(g, inBarX, inBarTop, inBarX + inW, inBarBottom, 4, RGBCol(4, 24, 20), RGBCol(19, 78, 74), 1);
-    int targetX1 = inBarX + (int)(inW * 0.355f);
-    int targetX2 = inBarX + (int)(inW * 0.562f);
+    // Sweet spot target: -22 dBFS to -12 dBFS on -48..0 dB scale (0.542 to 0.750 of bar width)
+    int targetX1 = inBarX + (int)(inW * 0.542f);
+    int targetX2 = inBarX + (int)(inW * 0.750f);
     fillRoundRectJuce(g, targetX1, inBarTop + 1, targetX2, inBarBottom - 1, 2, RGBCol(6, 44, 34), RGBCol(16, 185, 129), 1);
-    if (inPk > 0.004f) {
-        int fillW = (int)(inW * std::min(1.0f, std::sqrt(inPk)));
+    if (inRmsDb > -48.0f) {
+        float normRms = std::clamp((inRmsDb + 48.0f) / 48.0f, 0.0f, 1.0f);
+        int fillW = (int)(inW * normRms);
         if (fillW > 2) {
-            juce::Colour c = (inPk > 0.707f) ? RGBCol(239, 68, 68)
-                           : (inPk > 0.36f)  ? RGBCol(245, 158, 11)
-                           : (inPk >= 0.11f) ? RGBCol(16, 185, 129)
-                                             : RGBCol(20, 184, 166);
+            juce::Colour c = (inRmsDb > -6.0f || inPk > 0.95f) ? RGBCol(239, 68, 68)
+                           : (inRmsDb > -12.0f)                ? RGBCol(245, 158, 11)
+                           : (inRmsDb >= -24.0f)               ? RGBCol(16, 185, 129)
+                                                               : RGBCol(20, 184, 166);
             fillRoundRectJuce(g, inBarX + 1, inBarTop + 1, inBarX + fillW, inBarBottom - 1, 3, c, c, 1);
         }
     }
@@ -1581,28 +1585,28 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
     g.drawVerticalLine(targetX1, (float)(inBarTop - 2), (float)(inBarBottom + 2));
     g.drawVerticalLine(targetX2, (float)(inBarTop - 2), (float)(inBarBottom + 2));
 
-    juce::Rectangle<int> badgeRect(inBarX + inW + 8, h - 34, 120, 24);
+    juce::Rectangle<int> badgeRect(inBarX + inW + 8, h - 34, 125, 24);
     juce::Colour badgeBg, badgeBorder, badgeText;
-    const char* badgeStr;
-    if (inPk < 0.008f) {
+    char badgeBuf[48];
+    if (inRmsDb < -48.0f) {
         badgeBg = RGBCol(10, 20, 22); badgeBorder = RGBCol(30, 50, 55); badgeText = RGBCol(100, 116, 139);
-        badgeStr = "INPUT: IDLE";
-    } else if (inPk < 0.11f) {
+        std::snprintf(badgeBuf, sizeof(badgeBuf), "INPUT: IDLE");
+    } else if (inRmsDb < -24.0f) {
         badgeBg = RGBCol(34, 25, 8); badgeBorder = RGBCol(180, 130, 20); badgeText = RGBCol(251, 191, 36);
-        badgeStr = "^ LOW (BOOST IN)";
-    } else if (inPk <= 0.36f) {
+        std::snprintf(badgeBuf, sizeof(badgeBuf), "LOW: %.0fdB", inRmsDb);
+    } else if (inRmsDb <= -12.0f) {
         badgeBg = RGBCol(4, 52, 40); badgeBorder = RGBCol(52, 211, 153); badgeText = RGBCol(254, 240, 138);
-        badgeStr = "* GOOD GAIN *";
-    } else if (inPk <= 0.707f) {
+        std::snprintf(badgeBuf, sizeof(badgeBuf), "* SWEET %.0fdB *", inRmsDb);
+    } else if (inRmsDb <= -6.0f) {
         badgeBg = RGBCol(50, 35, 10); badgeBorder = RGBCol(245, 158, 11); badgeText = RGBCol(254, 215, 170);
-        badgeStr = "HOT LEVEL (OK)";
+        std::snprintf(badgeBuf, sizeof(badgeBuf), "HOT: %.0fdB", inRmsDb);
     } else {
         badgeBg = RGBCol(70, 15, 15); badgeBorder = RGBCol(239, 68, 68); badgeText = RGBCol(254, 202, 202);
-        badgeStr = "! CLIP WARNING !";
+        std::snprintf(badgeBuf, sizeof(badgeBuf), "! CLIP %.0fdB !", inRmsDb);
     }
     fillRoundRectJuce(g, badgeRect.getX(), badgeRect.getY(), badgeRect.getRight(), badgeRect.getBottom(), 4, badgeBg, badgeBorder, 1);
     g.setColour(badgeText);
-    g.drawText(badgeStr, badgeRect, juce::Justification::centred, false);
+    g.drawText(badgeBuf, badgeRect, juce::Justification::centred, false);
 
     // Tuner Status Pill
     char tunerPillBuf[64];

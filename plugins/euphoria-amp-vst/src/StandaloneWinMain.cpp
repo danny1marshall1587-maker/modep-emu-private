@@ -56,6 +56,7 @@ struct AudioDeviceConfig {
     int outDevId = -1;       // -1 = Default Windows Device, 0..N = device index
     int inChannel = 0;       // 0 = Ch 1 (Left / Inst 1), 1 = Ch 2 (Right / Inst 2), 2 = Stereo Sum
     int bufferFrames = 32;   // 16 (0.33ms), 24 (0.5ms), 32 (0.67ms), 48 (1.0ms), 64 (1.33ms), 96, 128, 256, 512
+    float inputTrimDb = 0.0f; // -18.0 .. +18.0 dB (nominal hardware DI calibration)
     char asioDriverName[128] = "Audient USB Audio ASIO Driver";
     char inDevName[128] = "Default Windows Recording Device";
     char outDevName[128] = "Default Windows Playback Device";
@@ -78,6 +79,14 @@ static std::atomic<bool> g_audioConfigChanged{false};
 static std::atomic<bool> g_asioActive{false};
 static std::atomic<bool> g_asioOpenPanelReq{false};
 static std::atomic<float> g_inMeterPeak{0.0f};
+static std::atomic<float> g_inMeterRms{0.0f};
+static std::atomic<float> g_inMeterRmsDb{-100.0f};
+static std::atomic<float> g_inMeterMeanSquare{0.0f};
+static std::atomic<float> g_inputTrimDb{0.0f};
+static std::atomic<float> g_inputTrimLinear{1.0f};
+static RECT g_inTrimMinusRect = { 0, 0, 0, 0 };
+static RECT g_inTrimPlusRect  = { 0, 0, 0, 0 };
+static RECT g_inTrimPillRect  = { 0, 0, 0, 0 };
 static std::atomic<float> g_outMeterPeakL{0.0f};
 static std::atomic<float> g_outMeterPeakR{0.0f};
 static std::atomic<bool>  g_running{true};
@@ -234,6 +243,8 @@ static void saveAudioConfig() {
     WritePrivateProfileStringA("Audio", "InChannel", buf, path.c_str());
     std::snprintf(buf, sizeof(buf), "%d", g_audioCfg.bufferFrames);
     WritePrivateProfileStringA("Audio", "BufferFrames", buf, path.c_str());
+    std::snprintf(buf, sizeof(buf), "%.1f", g_audioCfg.inputTrimDb);
+    WritePrivateProfileStringA("Audio", "InputTrimDb", buf, path.c_str());
 }
 
 static void loadAudioConfig() {
@@ -253,6 +264,11 @@ static void loadAudioConfig() {
         g_audioCfg.bufferFrames != 128 && g_audioCfg.bufferFrames != 256 && g_audioCfg.bufferFrames != 512) {
         g_audioCfg.bufferFrames = 32;
     }
+    char trimBuf[32] = "0.0";
+    GetPrivateProfileStringA("Audio", "InputTrimDb", "0.0", trimBuf, sizeof(trimBuf), path.c_str());
+    g_audioCfg.inputTrimDb = std::clamp(float(std::atof(trimBuf)), -18.0f, +18.0f);
+    g_inputTrimDb.store(g_audioCfg.inputTrimDb);
+    g_inputTrimLinear.store(std::pow(10.0f, g_audioCfg.inputTrimDb / 20.0f));
 
     auto isProAudioInterface = [](const char* name) -> bool {
         return std::strstr(name, "EVO") != nullptr ||
@@ -2108,7 +2124,9 @@ static void asioBufferSwitch(long doubleBufferIndex, ASIOBool /*directProcess*/)
     if (nFrames <= 0) return;
 
     const int chSelect = g_audioCfg.inChannel;
+    const float trimLin = g_inputTrimLinear.load();
     float maxIn = 0.0f;
+    float sumSq = 0.0f;
     const void* inBuf0 = (g_asioInCount >= 1) ? g_asioBufInfos[0].buffers[doubleBufferIndex] : nullptr;
     const void* inBuf1 = (g_asioInCount >= 2) ? g_asioBufInfos[1].buffers[doubleBufferIndex] : nullptr;
 
@@ -2116,19 +2134,38 @@ static void asioBufferSwitch(long doubleBufferIndex, ASIOBool /*directProcess*/)
         float s0 = readAsioSampleToFloat(inBuf0, g_asioInTypes[0], i);
         float s1 = (g_asioInCount >= 2) ? readAsioSampleToFloat(inBuf1, g_asioInTypes[1], i) : s0;
         float s = (chSelect == 0) ? s0 : ((chSelect == 1) ? s1 : (s0 + s1) * 0.5f);
+        s *= trimLin;
         g_asioInFloat[i] = s;
-        if (std::fabs(s) > maxIn) maxIn = std::fabs(s);
+        float absS = std::fabs(s);
+        if (absS > maxIn) maxIn = absS;
+        sumSq += s * s;
     }
 
     if (g_testRiffActive.load()) {
         for (long i = 0; i < nFrames; ++i) {
             float rs = g_riffSynth.nextSample();
             g_asioInFloat[i] += rs;
-            if (std::fabs(rs) > maxIn) maxIn = std::fabs(rs);
+            float absS = std::fabs(g_asioInFloat[i]);
+            if (absS > maxIn) maxIn = absS;
+            sumSq += g_asioInFloat[i] * g_asioInFloat[i];
         }
     }
     if (maxIn > 0.0f) g_inMeterPeak.store(maxIn);
     else g_inMeterPeak.store(g_inMeterPeak.load() * 0.95f);
+
+    // Continuous Leaky-Integrator RMS window (~220ms release, ~20ms attack matching IEC 60268-10 / VU ballistics)
+    float blockMs = (nFrames > 0) ? (sumSq / float(nFrames)) : 0.0f;
+    float curMs = g_inMeterMeanSquare.load();
+    float dtSec = float(nFrames) / float(SAMPLE_RATE);
+    float aAtk = 1.0f - std::exp(-dtSec / 0.020f);
+    float aRel = 1.0f - std::exp(-dtSec / 0.220f);
+    float alpha = (blockMs > curMs) ? aAtk : aRel;
+    float newMs = curMs + alpha * (blockMs - curMs);
+    g_inMeterMeanSquare.store(newMs);
+    float rms = std::sqrt(std::max(0.0f, newMs));
+    g_inMeterRms.store(rms);
+    float rmsDb = (rms > 1e-5f) ? (20.0f * std::log10(rms)) : -100.0f;
+    g_inMeterRmsDb.store(rmsDb);
 
     LARGE_INTEGER qpcStart, qpcEnd, qpcFreq;
     QueryPerformanceFrequency(&qpcFreq);
@@ -2511,8 +2548,11 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
         if (pCaptureClient && pWfxIn) {
             UINT32 packetLen = 0;
             float maxIn = 0.0f;
+            float sumSq = 0.0f;
+            UINT32 totalProcFrames = 0;
             const int inChannels = pWfxIn->nChannels;
             const int chSelect = g_audioCfg.inChannel;
+            const float trimLin = g_inputTrimLinear.load();
             const bool isFloat = (pWfxIn->wFormatTag == WAVE_FORMAT_IEEE_FLOAT ||
                                  (pWfxIn->wFormatTag == WAVE_FORMAT_EXTENSIBLE &&
                                   IsEqualGUID(((WAVEFORMATEXTENSIBLE*)pWfxIn)->SubFormat, s_KSDATAFORMAT_SUBTYPE_IEEE_FLOAT)));
@@ -2525,6 +2565,7 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
                     if (numFramesRead > 0) {
                         float inSamples[2048];
                         UINT32 framesToProc = std::min(numFramesRead, (UINT32)2048);
+                        totalProcFrames += framesToProc;
 
                         if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
                             for (UINT32 i = 0; i < framesToProc; ++i) inSamples[i] = 0.0f;
@@ -2539,8 +2580,11 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
                                     else if (chSelect == 1) s = pF[i * inChannels + 1];
                                     else s = (pF[i * inChannels + 0] + pF[i * inChannels + 1]) * 0.5f;
                                 }
+                                s *= trimLin;
                                 inSamples[i] = s;
-                                if (std::fabs(s) > maxIn) maxIn = std::fabs(s);
+                                float absS = std::fabs(s);
+                                if (absS > maxIn) maxIn = absS;
+                                sumSq += s * s;
                             }
                         } else if (pWfxIn->wBitsPerSample == 16) {
                             const int16_t* p16 = reinterpret_cast<const int16_t*>(pInBuf);
@@ -2553,8 +2597,50 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
                                     float r = float(p16[i * inChannels + 1]) / 32768.0f;
                                     s = (chSelect == 0) ? l : ((chSelect == 1) ? r : (l + r) * 0.5f);
                                 }
+                                s *= trimLin;
                                 inSamples[i] = s;
-                                if (std::fabs(s) > maxIn) maxIn = std::fabs(s);
+                                float absS = std::fabs(s);
+                                if (absS > maxIn) maxIn = absS;
+                                sumSq += s * s;
+                            }
+                        } else if (pWfxIn->wBitsPerSample == 24) {
+                            const uint8_t* p24 = reinterpret_cast<const uint8_t*>(pInBuf);
+                            for (UINT32 i = 0; i < framesToProc; ++i) {
+                                auto read24 = [&](UINT32 sampleIdx) -> float {
+                                    const uint8_t* sp = p24 + sampleIdx * 3;
+                                    int32_t v = (int32_t(sp[0]) << 8) | (int32_t(sp[1]) << 16) | (int32_t(sp[2]) << 24);
+                                    return float(v) * (1.0f / 2147483648.0f);
+                                };
+                                float s = 0.0f;
+                                if (inChannels == 1) {
+                                    s = read24(i);
+                                } else {
+                                    float l = read24(i * inChannels + 0);
+                                    float r = read24(i * inChannels + 1);
+                                    s = (chSelect == 0) ? l : ((chSelect == 1) ? r : (l + r) * 0.5f);
+                                }
+                                s *= trimLin;
+                                inSamples[i] = s;
+                                float absS = std::fabs(s);
+                                if (absS > maxIn) maxIn = absS;
+                                sumSq += s * s;
+                            }
+                        } else if (pWfxIn->wBitsPerSample == 32) {
+                            const int32_t* p32 = reinterpret_cast<const int32_t*>(pInBuf);
+                            for (UINT32 i = 0; i < framesToProc; ++i) {
+                                float s = 0.0f;
+                                if (inChannels == 1) {
+                                    s = float(p32[i]) * (1.0f / 2147483648.0f);
+                                } else {
+                                    float l = float(p32[i * inChannels + 0]) * (1.0f / 2147483648.0f);
+                                    float r = float(p32[i * inChannels + 1]) * (1.0f / 2147483648.0f);
+                                    s = (chSelect == 0) ? l : ((chSelect == 1) ? r : (l + r) * 0.5f);
+                                }
+                                s *= trimLin;
+                                inSamples[i] = s;
+                                float absS = std::fabs(s);
+                                if (absS > maxIn) maxIn = absS;
+                                sumSq += s * s;
                             }
                         }
                         g_ringBuffer.write(inSamples, framesToProc);
@@ -2576,6 +2662,27 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
             }
             if (maxIn > 0.0f) g_inMeterPeak.store(maxIn);
             else g_inMeterPeak.store(g_inMeterPeak.load() * 0.95f);
+
+            // Continuous Leaky-Integrator RMS window (~220ms release, ~20ms attack)
+            if (totalProcFrames > 0) {
+                float blockMs = sumSq / float(totalProcFrames);
+                float curMs = g_inMeterMeanSquare.load();
+                float dtSec = float(totalProcFrames) / float(SAMPLE_RATE);
+                float aAtk = 1.0f - std::exp(-dtSec / 0.020f);
+                float aRel = 1.0f - std::exp(-dtSec / 0.220f);
+                float alpha = (blockMs > curMs) ? aAtk : aRel;
+                float newMs = curMs + alpha * (blockMs - curMs);
+                g_inMeterMeanSquare.store(newMs);
+                float rms = std::sqrt(std::max(0.0f, newMs));
+                g_inMeterRms.store(rms);
+                float rmsDb = (rms > 1e-5f) ? (20.0f * std::log10(rms)) : -100.0f;
+                g_inMeterRmsDb.store(rmsDb);
+            } else {
+                g_inMeterRms.store(g_inMeterRms.load() * 0.97f);
+                float rms = g_inMeterRms.load();
+                float rmsDb = (rms > 1e-5f) ? (20.0f * std::log10(rms)) : -100.0f;
+                g_inMeterRmsDb.store(rmsDb);
+            }
         }
 
         // 2. Fill Render Client
@@ -4683,8 +4790,9 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         Arc(hdc, vuLeftRect.left + 8, vuLeftRect.top + 10, vuLeftRect.right - 8, vuLeftRect.bottom + 20, vuLeftRect.right - 14, vuLeftRect.top + 26, vuLeftRect.left + 14, vuLeftRect.top + 26);
         SelectObject(hdc, oldArcP);
         DeleteObject(arcPen);
-        // Needle Left
-        float vuInVal = std::min(1.0f, g_inMeterPeak.load());
+        // Needle Left: True Studio Analog VU RMS Ballistic (IEC 60268-10 integration)
+        float inRms = g_inMeterRms.load();
+        float vuInVal = std::clamp(inRms * 2.85f, 0.0f, 1.0f);
         float needleAngleL = -2.35f + vuInVal * 1.57f;
         int nPivotLX = (vuLeftRect.left + vuLeftRect.right) / 2;
         int nPivotLY = vuLeftRect.bottom - 6;
@@ -5308,6 +5416,8 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
     }
 
     // 5. Bottom Live Meter Bar and Hardware Status
+    float inRms = std::min(1.0f, g_inMeterRms.load());
+    float inRmsDb = g_inMeterRmsDb.load();
     float inPk = std::min(1.0f, g_inMeterPeak.load());
     float outL = std::min(1.0f, g_outMeterPeakL.load());
     float outR = std::min(1.0f, g_outMeterPeakR.load());
@@ -5326,40 +5436,41 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
                       drvTag, g_audioCfg.inDevName, chNames[g_audioCfg.inChannel], g_audioCfg.bufferFrames, latMs);
     }
 
-    RECT footer = { 22, h - 36, 440, h - 10 };
+    RECT footer = { 20, h - 36, 385, h - 10 };
     SetTextColor(hdc, RGB(204, 251, 241));
     DrawTextA(hdc, statusBuf, -1, &footer, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
 
-    // Calibrated GUITAR IN Meter with Auto Good Gain Target Sweet-Spot
-    int meterX = 450;
-    RECT inLblR = { meterX, h - 34, meterX + 66, h - 10 };
+    // Calibrated GUITAR IN (RMS) Meter with Target Sweet-Spot (-22 dBFS .. -12 dBFS RMS)
+    int meterX = 392;
+    RECT inLblR = { meterX, h - 34, meterX + 92, h - 10 };
     SetTextColor(hdc, RGB(45, 212, 191));
-    DrawTextA(hdc, "GUITAR IN", -1, &inLblR, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
+    DrawTextA(hdc, "GUITAR IN (RMS)", -1, &inLblR, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
 
-    int inBarX = meterX + 68;
-    int inW = 85;
+    int inBarX = meterX + 96;
+    int inW = 80;
     int inBarTop = h - 28;
     int inBarBottom = h - 14;
 
     // Background track
     fillRoundRect(hdc, inBarX, inBarTop, inBarX + inW, inBarBottom, 4, RGB(4, 24, 20), RGB(19, 78, 74), 1);
 
-    // Target Sweet-Spot notch (-18 dB to -10 dBFS -> linear 0.126 to 0.316 -> sqrt norm 0.355 to 0.562)
-    int targetX1 = inBarX + int(inW * 0.355f);
-    int targetX2 = inBarX + int(inW * 0.562f);
+    // Target Sweet-Spot notch (-22 dB to -12 dBFS RMS: in -48..0 dB scale -> 0.542 to 0.750 of width)
+    int targetX1 = inBarX + int(inW * 0.542f);
+    int targetX2 = inBarX + int(inW * 0.750f);
     fillRoundRect(hdc, targetX1, inBarTop + 1, targetX2, inBarBottom - 1, 2, RGB(6, 44, 34), RGB(16, 185, 129), 1);
 
-    // Active Live Level Fill
-    if (inPk > 0.004f) {
-        float inNorm = std::min(1.0f, std::sqrt(inPk));
-        int fillW = int(inW * inNorm);
-        if (fillW > 2) {
-            COLORREF c = (inPk > 0.707f) ? RGB(239, 68, 68)     // Red (Clip Risk)
-                       : (inPk > 0.36f)  ? RGB(245, 158, 11)     // Warm Amber (Hot Level)
-                       : (inPk >= 0.11f) ? RGB(16, 185, 129)     // Vibrant Emerald (Good Gain)
-                                         : RGB(20, 184, 166);    // Teal (Low Level)
-            fillRoundRect(hdc, inBarX + 1, inBarTop + 1, inBarX + fillW, inBarBottom - 1, 3, c, c, 1);
-        }
+    // Active Live RMS Level Fill (mapped from -48 dBFS = 0 to 0 dBFS = inW)
+    float rmsNorm = 0.0f;
+    if (inRmsDb > -48.0f) {
+        rmsNorm = std::clamp((inRmsDb + 48.0f) / 48.0f, 0.0f, 1.0f);
+    }
+    int fillW = int(inW * rmsNorm);
+    if (fillW > 2) {
+        COLORREF c = (inRmsDb > -6.0f || inPk > 0.95f) ? RGB(239, 68, 68)  // Red (Clip Risk)
+                   : (inRmsDb > -12.0f)                ? RGB(245, 158, 11)  // Warm Amber (Hot Level)
+                   : (inRmsDb >= -24.0f)               ? RGB(16, 185, 129)  // Vibrant Emerald (Sweet Spot)
+                                                       : RGB(20, 184, 166); // Teal (Low Level)
+        fillRoundRect(hdc, inBarX + 1, inBarTop + 1, inBarX + fillW, inBarBottom - 1, 3, c, c, 1);
     }
 
     // Target Sweet Spot Bracket lines
@@ -5370,31 +5481,53 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
     SelectObject(hdc, oldPen);
     DeleteObject(tickPen);
 
-    // Auto Good Gain Real-Time Status Badge Pill
-    RECT badgeRect = { inBarX + inW + 8, h - 34, inBarX + inW + 8 + 120, h - 10 };
+    // Auto Good Gain Real-Time Status Badge Pill with live RMS dB readout
+    RECT badgeRect = { inBarX + inW + 8, h - 34, inBarX + inW + 8 + 115, h - 10 };
     COLORREF badgeBg, badgeBorder, badgeText;
-    const char* badgeStr;
-    if (inPk < 0.008f) {
+    char badgeStr[48];
+    if (inRmsDb < -45.0f) {
         badgeBg = RGB(10, 20, 22); badgeBorder = RGB(30, 50, 55); badgeText = RGB(100, 116, 139);
-        badgeStr = "INPUT: IDLE";
-    } else if (inPk < 0.11f) {
+        std::snprintf(badgeStr, sizeof(badgeStr), "INPUT: IDLE");
+    } else if (inRmsDb < -24.0f) {
         badgeBg = RGB(34, 25, 8); badgeBorder = RGB(180, 130, 20); badgeText = RGB(251, 191, 36);
-        badgeStr = "^ LOW (BOOST IN)";
-    } else if (inPk <= 0.36f) {
+        std::snprintf(badgeStr, sizeof(badgeStr), "LOW: %.0fdB", inRmsDb);
+    } else if (inRmsDb <= -12.0f) {
         badgeBg = RGB(4, 52, 40); badgeBorder = RGB(52, 211, 153); badgeText = RGB(254, 240, 138);
-        badgeStr = "* GOOD GAIN *";
-    } else if (inPk <= 0.707f) {
+        std::snprintf(badgeStr, sizeof(badgeStr), "* SWEET %.0fdB *", inRmsDb);
+    } else if (inRmsDb <= -6.0f) {
         badgeBg = RGB(50, 35, 10); badgeBorder = RGB(245, 158, 11); badgeText = RGB(254, 215, 170);
-        badgeStr = "HOT LEVEL (OK)";
+        std::snprintf(badgeStr, sizeof(badgeStr), "HOT: %.0fdB", inRmsDb);
     } else {
         badgeBg = RGB(70, 15, 15); badgeBorder = RGB(239, 68, 68); badgeText = RGB(254, 202, 202);
-        badgeStr = "! CLIP WARNING !";
+        std::snprintf(badgeStr, sizeof(badgeStr), "! CLIP %.0fdB !", inRmsDb);
     }
     fillRoundRect(hdc, badgeRect.left, badgeRect.top, badgeRect.right, badgeRect.bottom, 4, badgeBg, badgeBorder, 1);
     SetTextColor(hdc, badgeText);
     DrawTextA(hdc, badgeStr, -1, &badgeRect, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 
+    // Interactive Input Trim Control Pill [-] [TRIM: +0.0dB] [+]
+    int trimX = badgeRect.right + 8;
+    g_inTrimMinusRect = { trimX, h - 34, trimX + 20, h - 10 };
+    g_inTrimPillRect  = { trimX + 22, h - 34, trimX + 96, h - 10 };
+    g_inTrimPlusRect   = { trimX + 98, h - 34, trimX + 118, h - 10 };
+
+    float curTrim = g_inputTrimDb.load();
+    fillRoundRect(hdc, g_inTrimMinusRect.left, g_inTrimMinusRect.top, g_inTrimMinusRect.right, g_inTrimMinusRect.bottom, 3, RGB(15, 23, 42), RGB(56, 189, 248), 1);
+    SetTextColor(hdc, RGB(224, 242, 254));
+    DrawTextA(hdc, "-", -1, &g_inTrimMinusRect, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
+
+    char trimBuf[32];
+    std::snprintf(trimBuf, sizeof(trimBuf), "TRIM %+.0fdB", curTrim);
+    fillRoundRect(hdc, g_inTrimPillRect.left, g_inTrimPillRect.top, g_inTrimPillRect.right, g_inTrimPillRect.bottom, 3, RGB(10, 20, 30), RGB(30, 58, 88), 1);
+    SetTextColor(hdc, (std::abs(curTrim) > 0.01f) ? RGB(56, 189, 248) : RGB(148, 163, 184));
+    DrawTextA(hdc, trimBuf, -1, &g_inTrimPillRect, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
+
+    fillRoundRect(hdc, g_inTrimPlusRect.left, g_inTrimPlusRect.top, g_inTrimPlusRect.right, g_inTrimPlusRect.bottom, 3, RGB(15, 23, 42), RGB(56, 189, 248), 1);
+    SetTextColor(hdc, RGB(224, 242, 254));
+    DrawTextA(hdc, "+", -1, &g_inTrimPlusRect, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
+
     // Interactive Strobe Tuner Telemetry Pill
+    g_tunerStatusPill = { g_inTrimPlusRect.right + 10, h - 34, g_inTrimPlusRect.right + 135, h - 10 };
     char tunerPillBuf[64];
     COLORREF tPillBg, tPillBorder, tPillText;
     if (g_activePage == 7) {
@@ -5417,13 +5550,13 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
     DrawTextA(hdc, tunerPillBuf, -1, &g_tunerStatusPill, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 
     // Master Output L/R Meters
-    int outMeterX = g_tunerStatusPill.right + 14;
-    RECT outLblR = { outMeterX, h - 34, outMeterX + 74, h - 10 };
+    int outMeterX = g_tunerStatusPill.right + 12;
+    RECT outLblR = { outMeterX, h - 34, outMeterX + 72, h - 10 };
     SetTextColor(hdc, RGB(251, 191, 36));
     DrawTextA(hdc, "MASTER OUT", -1, &outLblR, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
 
-    int outW = 120;
-    int outBarX = outMeterX + 78;
+    int outW = 100;
+    int outBarX = outMeterX + 76;
     fillRoundRect(hdc, outBarX, h - 33, outBarX + outW, h - 23, 4, RGB(6, 34, 28), RGB(19, 78, 74), 1);
     fillRoundRect(hdc, outBarX, h - 19, outBarX + outW, h - 9,  4, RGB(6, 34, 28), RGB(19, 78, 74), 1);
     if (outL > 0.005f) fillRoundRect(hdc, outBarX, h - 33, outBarX + int(outW * std::min(1.0f, std::sqrt(outL))), h - 23, 4, RGB(245, 158, 11), RGB(245, 158, 11), 1);
@@ -5451,6 +5584,7 @@ static HWND g_hInCombo = nullptr;
 static HWND g_hChanCombo = nullptr;
 static HWND g_hOutCombo = nullptr;
 static HWND g_hBufCombo = nullptr;
+static HWND g_hTrimCombo = nullptr;
 
 static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
@@ -5524,8 +5658,8 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
                 SendMessageA(g_hOutCombo, CB_SETCURSEL, 0, 0);
             }
 
-            CreateWindowA("STATIC", "3. Audio Buffer Size / Hardware Latency (48,000 Hz):", WS_CHILD | WS_VISIBLE, 24, 342, 490, 20, hwnd, nullptr, nullptr, nullptr);
-            g_hBufCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, 24, 364, 490, 240, hwnd, (HMENU)104, nullptr, nullptr);
+            CreateWindowA("STATIC", "3. Audio Buffer Size / Hardware Latency (48,000 Hz):", WS_CHILD | WS_VISIBLE, 24, 340, 490, 20, hwnd, nullptr, nullptr, nullptr);
+            g_hBufCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, 24, 360, 490, 240, hwnd, (HMENU)104, nullptr, nullptr);
             SendMessageA(g_hBufCombo, WM_SETFONT, (WPARAM)hfBold, TRUE);
             SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"16 frames (~0.33 ms) - ASIO / ToneDirect Extreme Ultra-Low Latency");
             SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"24 frames (~0.50 ms) - ASIO / ToneDirect Sub-Millisecond");
@@ -5547,8 +5681,32 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
             }
             SendMessageA(g_hBufCombo, CB_SETCURSEL, (WPARAM)selBuf, 0);
 
-            HWND hBtnOk = CreateWindowA("BUTTON", "APPLY & SAVE SETTINGS", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 120, 412, 190, 38, hwnd, (HMENU)IDOK, nullptr, nullptr);
-            HWND hBtnCancel = CreateWindowA("BUTTON", "CANCEL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 330, 412, 110, 38, hwnd, (HMENU)IDCANCEL, nullptr, nullptr);
+            CreateWindowA("STATIC", "4. Guitar DI Headroom Trim (Calibrate for Interface & Pickups):", WS_CHILD | WS_VISIBLE, 24, 396, 490, 20, hwnd, nullptr, nullptr, nullptr);
+            g_hTrimCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, 24, 418, 490, 200, hwnd, (HMENU)108, nullptr, nullptr);
+            SendMessageA(g_hTrimCombo, WM_SETFONT, (WPARAM)hfBold, TRUE);
+            const char* trimLabels[9] = {
+                "-12 dB (Hot Active / High-Output Pickups)",
+                "-9 dB (Very Hot Humbuckers)",
+                "-6 dB (-6 dB Interface Pad - Audient EVO 4 / Scarlett)",
+                "-3 dB (-3 dB Gentle DI Headroom)",
+                " 0.0 dB (Nominal Hardware Instrument DI - Standard)",
+                "+3 dB (+3 dB Low-Output Single-Coils)",
+                "+6 dB (+6 dB Vintage Low-Output Pickups)",
+                "+9 dB (+9 dB Low Signal Boost)",
+                "+12 dB (+12 dB Maximum Clean Boost)"
+            };
+            const float trimVals[9] = { -12.0f, -9.0f, -6.0f, -3.0f, 0.0f, 3.0f, 6.0f, 9.0f, 12.0f };
+            int selTrim = 4; // default 0.0 dB
+            for (int t = 0; t < 9; ++t) {
+                SendMessageA(g_hTrimCombo, CB_ADDSTRING, 0, (LPARAM)trimLabels[t]);
+                if (std::abs(g_audioCfg.inputTrimDb - trimVals[t]) < 1.4f) {
+                    selTrim = t;
+                }
+            }
+            SendMessageA(g_hTrimCombo, CB_SETCURSEL, (WPARAM)selTrim, 0);
+
+            HWND hBtnOk = CreateWindowA("BUTTON", "APPLY & SAVE SETTINGS", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 120, 468, 190, 38, hwnd, (HMENU)IDOK, nullptr, nullptr);
+            HWND hBtnCancel = CreateWindowA("BUTTON", "CANCEL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 330, 468, 110, 38, hwnd, (HMENU)IDCANCEL, nullptr, nullptr);
             SendMessageA(hBtnOk, WM_SETFONT, (WPARAM)hfBold, TRUE);
             SendMessageA(hBtnCancel, WM_SETFONT, (WPARAM)hf, TRUE);
 
@@ -5565,25 +5723,35 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
             RECT meterArea = { 24, 240, 514, 270 };
             fillRoundRect(hdc, meterArea.left, meterArea.top, meterArea.right, meterArea.bottom, 6, RGB(6, 34, 28), RGB(20, 184, 166), 1);
 
+            float inRms = std::min(1.0f, g_inMeterRms.load());
+            float inRmsDb = g_inMeterRmsDb.load();
             float pk = std::min(1.0f, g_inMeterPeak.load());
-            int barW = meterArea.right - meterArea.left - 120;
+            int barW = meterArea.right - meterArea.left - 180;
             fillRoundRect(hdc, meterArea.left + 8, meterArea.top + 6, meterArea.left + 8 + barW, meterArea.bottom - 6, 4, RGB(4, 20, 16), RGB(13, 148, 136), 1);
 
-            if (pk > 0.005f) {
-                COLORREF c = (pk > 0.85f) ? RGB(239, 68, 68) : ((pk > 0.65f) ? RGB(245, 158, 11) : RGB(16, 185, 129));
-                fillRoundRect(hdc, meterArea.left + 8, meterArea.top + 6, meterArea.left + 8 + int(barW * pk), meterArea.bottom - 6, 4, c, c, 1);
+            // Sweet-spot bracket on RMS bar (-22 dBFS to -12 dBFS on -48..0 dB scale -> 0.542 to 0.750 of width)
+            int tX1 = meterArea.left + 8 + int(barW * 0.542f);
+            int tX2 = meterArea.left + 8 + int(barW * 0.750f);
+            fillRoundRect(hdc, tX1, meterArea.top + 7, tX2, meterArea.bottom - 7, 2, RGB(6, 44, 34), RGB(16, 185, 129), 1);
+
+            if (inRmsDb > -48.0f) {
+                float normRms = std::clamp((inRmsDb + 48.0f) / 48.0f, 0.0f, 1.0f);
+                COLORREF c = (inRmsDb > -6.0f || pk > 0.95f) ? RGB(239, 68, 68)
+                           : (inRmsDb > -12.0f)              ? RGB(245, 158, 11)
+                           : (inRmsDb >= -24.0f)             ? RGB(16, 185, 129)
+                                                             : RGB(20, 184, 166);
+                fillRoundRect(hdc, meterArea.left + 8, meterArea.top + 6, meterArea.left + 8 + int(barW * normRms), meterArea.bottom - 6, 4, c, c, 1);
             }
 
             SetBkMode(hdc, TRANSPARENT);
-            SetTextColor(hdc, (pk > 0.05f) ? RGB(16, 185, 129) : RGB(148, 163, 184));
+            SetTextColor(hdc, (inRmsDb > -45.0f) ? RGB(16, 185, 129) : RGB(148, 163, 184));
             char txt[64];
-            if (pk > 0.005f) {
-                float db = 20.0f * std::log10(pk);
-                std::snprintf(txt, sizeof(txt), "SIGNAL: %.1f dB", db);
+            if (inRmsDb > -45.0f) {
+                std::snprintf(txt, sizeof(txt), "RMS: %.1fdB [PK: %.1fdB]", inRmsDb, (pk > 1e-4f ? 20.0f * std::log10(pk) : -80.0f));
             } else {
                 std::snprintf(txt, sizeof(txt), "NO GUITAR SIGNAL");
             }
-            RECT txtR = { meterArea.right - 105, meterArea.top, meterArea.right - 8, meterArea.bottom };
+            RECT txtR = { meterArea.right - 165, meterArea.top, meterArea.right - 8, meterArea.bottom };
             DrawTextA(hdc, txt, -1, &txtR, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
 
             EndPaint(hwnd, &ps);
@@ -5628,6 +5796,14 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
                 const int bufSizes[9] = { 16, 24, 32, 48, 64, 96, 128, 256, 512 };
                 g_audioCfg.bufferFrames = (bufSel >= 0 && bufSel < 9) ? bufSizes[bufSel] : 32;
 
+                int trimSel = (int)SendMessageA(g_hTrimCombo, CB_GETCURSEL, 0, 0);
+                if (trimSel >= 0 && trimSel < 9) {
+                    const float trimVals[9] = { -12.0f, -9.0f, -6.0f, -3.0f, 0.0f, 3.0f, 6.0f, 9.0f, 12.0f };
+                    g_audioCfg.inputTrimDb = trimVals[trimSel];
+                    g_inputTrimDb.store(g_audioCfg.inputTrimDb);
+                    g_inputTrimLinear.store(std::pow(10.0f, g_audioCfg.inputTrimDb / 20.0f));
+                }
+
                 saveAudioConfig();
                 g_audioConfigChanged.store(true);
                 DestroyWindow(hwnd);
@@ -5661,14 +5837,14 @@ static void openAudioSettingsDialog(HWND hwndParent) {
     RECT pr;
     GetWindowRect(hwndParent, &pr);
     int cx = (pr.left + pr.right) / 2 - 275;
-    int cy = (pr.top + pr.bottom) / 2 - 250;
+    int cy = (pr.top + pr.bottom) / 2 - 275;
 
     HWND hDlg = CreateWindowExA(
         WS_EX_DLGMODALFRAME | WS_EX_TOPMOST,
         dc.lpszClassName,
         "Euphoria Amp — ASIO / ToneDirect & Guitar Interface Settings",
         WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_VISIBLE,
-        cx, cy, 550, 500,
+        cx, cy, 550, 560,
         hwndParent, nullptr, dc.hInstance, nullptr
     );
 
@@ -5768,6 +5944,28 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 openAudioSettingsDialog(hwnd);
                 return 0;
             }
+            if (PtInRect(&g_inTrimMinusRect, pt)) {
+                float t = std::clamp(g_inputTrimDb.load() - 1.0f, -18.0f, +18.0f);
+                g_inputTrimDb.store(t);
+                g_inputTrimLinear.store(std::pow(10.0f, t / 20.0f));
+                g_audioCfg.inputTrimDb = t;
+                saveAudioConfig();
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
+            if (PtInRect(&g_inTrimPlusRect, pt)) {
+                float t = std::clamp(g_inputTrimDb.load() + 1.0f, -18.0f, +18.0f);
+                g_inputTrimDb.store(t);
+                g_inputTrimLinear.store(std::pow(10.0f, t / 20.0f));
+                g_audioCfg.inputTrimDb = t;
+                saveAudioConfig();
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
+            if (PtInRect(&g_inTrimPillRect, pt)) {
+                openAudioSettingsDialog(hwnd);
+                return 0;
+            }
             if (g_activePage == 3) {
                 // Two-Button Volume Learn Calibration for Fluid Fuzz Face
                 if (PtInRect(&g_btnFuzzLearnMaxRect, pt)) {
@@ -5856,6 +6054,14 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         case WM_RBUTTONDOWN: {
             POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
+            if (PtInRect(&g_inTrimPillRect, pt) || PtInRect(&g_inTrimMinusRect, pt) || PtInRect(&g_inTrimPlusRect, pt)) {
+                g_inputTrimDb.store(0.0f);
+                g_inputTrimLinear.store(1.0f);
+                g_audioCfg.inputTrimDb = 0.0f;
+                saveAudioConfig();
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
             for (int i = 0; i < NUM_KNOBS; ++i) {
                 if (g_knobs[i].pageIdx != -1 && g_knobs[i].pageIdx != g_activePage) continue;
                 if (PtInRect(&g_knobs[i].rect, pt) && g_knobs[i].isStepped) {
@@ -5869,6 +6075,14 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         case WM_LBUTTONDBLCLK: {
             POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
+            if (PtInRect(&g_inTrimPillRect, pt) || PtInRect(&g_inTrimMinusRect, pt) || PtInRect(&g_inTrimPlusRect, pt)) {
+                g_inputTrimDb.store(0.0f);
+                g_inputTrimLinear.store(1.0f);
+                g_audioCfg.inputTrimDb = 0.0f;
+                saveAudioConfig();
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
             for (int i = 0; i < NUM_KNOBS; ++i) {
                 if (g_knobs[i].pageIdx != -1 && g_knobs[i].pageIdx != g_activePage) continue;
                 if (PtInRect(&g_knobs[i].rect, pt)) {

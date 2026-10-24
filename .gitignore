@@ -66,6 +66,7 @@ __pycache__/
 scratch/
 temp_plugins/
 _backups/
+standalone/JUCE_3D_Suite/
 
 # Submodules / nested repos
 GuitarRackCraft_repo/
