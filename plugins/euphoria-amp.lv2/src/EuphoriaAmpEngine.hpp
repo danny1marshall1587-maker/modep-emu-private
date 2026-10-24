@@ -1083,11 +1083,13 @@ struct DynamicDeHiss {
         float smoothCoeff = (targetGainLinear > gainSmooth) ? smoothOpenCoeff : smoothCloseCoeff;
         gainSmooth += smoothCoeff * (targetGainLinear - gainSmooth);
 
-        // 4. Pure linear high-band gain (NO CENTER CLIPPING!)
+        // 4. Pure linear high-band gain + gentle mid-rush hush in deep idle silence (NO CENTER CLIPPING!)
         float cleanHigh = highSig * gainSmooth;
+        float lowGain = std::min(1.0f, 0.08f + 0.92f * std::sqrt(gainSmooth));
+        float cleanLow  = lowSig * lowGain;
 
         // 5. Perfect phase reconstruction
-        return lowSig + cleanHigh;
+        return cleanLow + cleanHigh;
     }
 
     // Single-input overload for standalone / unit tests
@@ -2470,11 +2472,12 @@ public:
         humKiller.setThreshold(7, -86.0f); // 3200 Hz EMI Hash
 
         cyberDenoiser.prepare(sampleRate);
-        cyberDenoiser.setFloor(0.05f);
+        cyberDenoiser.setFloor(0.005f);
+        cyberDenoiser.setHarmonicShield(true);
 
         // Pre-seed Cyber-Denoiser to calibrated studio baseline defaults (Rule 33 & 35)
         // Subtractive spectral phase cancellation removes stationary baseline without gating
-        const float defDb[10] = { -66.0f, -68.0f, -70.0f, -72.0f, -74.0f, -76.0f, -78.0f, -80.0f, -82.0f, -82.0f };
+        const float defDb[10] = { -60.0f, -62.0f, -62.0f, -62.0f, -62.0f, -62.0f, -62.0f, -62.0f, -64.0f, -64.0f };
         for (int b = 0; b < 10; ++b) {
             cyberDenoiser.setThresholdDb(b, defDb[b]);
         }
@@ -2482,7 +2485,8 @@ public:
         // Parallel Internal Gain Noise Auto-Removal (Rule 33 & 35)
         // Eliminates internal pedal/tube circuit noise in parallel with zero gating
         parallelGainDenoiser.prepare(sampleRate);
-        parallelGainDenoiser.setFloor(0.05f);
+        parallelGainDenoiser.setFloor(0.005f);
+        parallelGainDenoiser.setHarmonicShield(true);
         for (int b = 0; b < 10; ++b) {
             parallelGainDenoiser.setThresholdDb(b, defDb[b]);
         }
@@ -3356,6 +3360,13 @@ public:
                     cleanInputEnv += inRel * (absRaw - cleanInputEnv);
                 }
 
+                // Pre-Pedal / Pre-Preamp Studio Downward Expander:
+                // Smoothly expands idle interface/pickup noise floor (< -58 dBFS) down by -45 dB BEFORE
+                // it ever hits high-gain pedals (Fuzz Face, Rat, TS808) or the Lead/Clean preamp cascades,
+                // while opening instantaneously (0.6ms) to 1.0 (0.0 dB) the moment a string is played!
+                float inGateThreshDb = -58.0f + (pNoiseLevel - 5.0f) * 1.5f;
+                rawIn = inputExpander.process(rawIn, (float)sampleRate, gateActive, inGateThreshDb, -45.0f);
+
                 float s = pickupVoicing.process(rawIn, (float)sampleRate);
                 s = dcBlockerPre.hp(s, 24.0f, (float)sampleRate);
 
@@ -3482,9 +3493,18 @@ public:
                 // Stage 5: Physical Speaker Cone ODE & Acoustic Enclosure Cabinet
                 pOut = physicalCab.processSample(pOut, (float)sampleRate);
 
-                // Stage 5b: Parallel Internal Gain Noise Auto-Removal (Rule 33 & 35)
+                // Stage 5b: Parallel Internal Gain Noise Auto-Removal & Clean-Keyed Dynamic De-Hiss (Rule 33 & 35)
+                // Keyed off the clean DI input envelope (cleanInDb) BEFORE pedals/preamp:
+                // - While playing (cleanInDb >= -56 dBFS), dynamicDeHiss stays 100% open (1.0f) so treble chime
+                //   and Full Fuzz + Lead sustain NEVER cut out or dull.
+                // - When idle (cleanInDb < -56 dBFS), residual preamp/pedal hiss is expanded down by -42 dB!
                 if (gateActive) {
                     pOut = parallelGainDenoiser.processSample(pOut);
+                }
+                if (gateActive || pNoiseDefizz > 0.5f) {
+                    float cleanInDb = (cleanInputEnv > 1e-7f) ? FluidMath::fast_db(cleanInputEnv) : -120.0f;
+                    float deHissThreshDb = -56.0f + (leadDeHissSens - 5.0f) * 1.4f;
+                    pOut = dynamicDeHiss.processSample(pOut, cleanInDb, deHissThreshDb, -42.0f, true);
                 }
 
                 // Stage 6: Physical Acoustic Chamber Space (432 Hz Doppler Transit Line & Cavity Sweep)

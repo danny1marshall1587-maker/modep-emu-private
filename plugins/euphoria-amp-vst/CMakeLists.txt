@@ -70,8 +70,9 @@ target_sources(EuphoriaAmp
 )
 
 target_include_directories(EuphoriaAmp
-    PRIVATE
+    PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../euphoria-amp.lv2/src
 )
 
@@ -81,6 +82,7 @@ target_compile_definitions(EuphoriaAmp
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
         CYBER_ENABLE_STUDIO_DELAY=1
+        $<$<PLATFORM_ID:Windows>:JUCE_ASIO=1>
         $<$<PLATFORM_ID:Windows>:JUCE_DIRECTSOUND=1>
         $<$<PLATFORM_ID:Windows>:JUCE_WASAPI=1>
 )

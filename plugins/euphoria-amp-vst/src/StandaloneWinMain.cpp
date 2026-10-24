@@ -33,6 +33,7 @@
 
 #define CYBER_ENABLE_STUDIO_DELAY 1
 #include "../../euphoria-amp.lv2/src/EuphoriaAmpEngine.hpp"
+#include "iasiodrv.h"
 
 using namespace EuphoriaDSP;
 
@@ -46,14 +47,24 @@ using namespace EuphoriaDSP;
 #pragma comment(lib, "user32.lib")
 
 static constexpr int SAMPLE_RATE  = 48000;
+static HWND g_hwndMain = nullptr;
 
 struct AudioDeviceConfig {
+    int driverMode = 0;      // 0 = ASIO Direct Hardware, 1 = WASAPI Exclusive, 2 = WASAPI Low-Latency Shared
+    int asioDriverIdx = 0;   // Index into g_asioDriverList
     int inDevId = -1;        // -1 = Default Windows Device, 0..N = device index
     int outDevId = -1;       // -1 = Default Windows Device, 0..N = device index
     int inChannel = 0;       // 0 = Ch 1 (Left / Inst 1), 1 = Ch 2 (Right / Inst 2), 2 = Stereo Sum
-    int bufferFrames = 64;   // 32 (0.7ms), 64 (1.3ms ToneDirect), 128 (2.7ms), 256 (5.3ms), 512 (10.7ms)
+    int bufferFrames = 32;   // 16 (0.33ms), 24 (0.5ms), 32 (0.67ms), 48 (1.0ms), 64 (1.33ms), 96, 128, 256, 512
+    char asioDriverName[128] = "Audient USB Audio ASIO Driver";
     char inDevName[128] = "Default Windows Recording Device";
     char outDevName[128] = "Default Windows Playback Device";
+};
+
+struct AsioDriverItem {
+    char name[128];
+    char clsidStr[64];
+    CLSID clsid;
 };
 
 struct DeviceItem {
@@ -64,19 +75,57 @@ struct DeviceItem {
 
 static AudioDeviceConfig g_audioCfg;
 static std::atomic<bool> g_audioConfigChanged{false};
+static std::atomic<bool> g_asioActive{false};
+static std::atomic<bool> g_asioOpenPanelReq{false};
 static std::atomic<float> g_inMeterPeak{0.0f};
 static std::atomic<float> g_outMeterPeakL{0.0f};
 static std::atomic<float> g_outMeterPeakR{0.0f};
 static std::atomic<bool>  g_running{true};
 static std::atomic<bool>  g_testRiffActive{false};
 
+static std::vector<AsioDriverItem> g_asioDriverList;
 static std::vector<DeviceItem> g_inDevList;
 static std::vector<DeviceItem> g_outDevList;
 
 static void refreshAudioDeviceLists() {
     CoInitialize(nullptr);
+    g_asioDriverList.clear();
     g_inDevList.clear();
     g_outDevList.clear();
+
+    // 0. Enumerate Installed ASIO Drivers from Windows Registry (HKLM\SOFTWARE\ASIO)
+    HKEY hAsioRoot = nullptr;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\ASIO", 0, KEY_READ, &hAsioRoot) == ERROR_SUCCESS && hAsioRoot) {
+        char subKeyName[128];
+        DWORD idx = 0;
+        while (RegEnumKeyA(hAsioRoot, idx++, subKeyName, sizeof(subKeyName)) == ERROR_SUCCESS) {
+            HKEY hDrvKey = nullptr;
+            if (RegOpenKeyExA(hAsioRoot, subKeyName, 0, KEY_READ, &hDrvKey) == ERROR_SUCCESS && hDrvKey) {
+                char clsidBuf[64] = "";
+                char descBuf[128] = "";
+                DWORD cbClsid = sizeof(clsidBuf);
+                DWORD cbDesc = sizeof(descBuf);
+                DWORD type = 0;
+                RegQueryValueExA(hDrvKey, "CLSID", nullptr, &type, (LPBYTE)clsidBuf, &cbClsid);
+                RegQueryValueExA(hDrvKey, "Description", nullptr, &type, (LPBYTE)descBuf, &cbDesc);
+                RegCloseKey(hDrvKey);
+
+                if (clsidBuf[0] != '\0') {
+                    wchar_t wClsid[64] = L"";
+                    MultiByteToWideChar(CP_UTF8, 0, clsidBuf, -1, wClsid, 64);
+                    CLSID clsid = {};
+                    if (SUCCEEDED(CLSIDFromString(wClsid, &clsid))) {
+                        AsioDriverItem item = {};
+                        std::strncpy(item.name, (descBuf[0] != '\0') ? descBuf : subKeyName, sizeof(item.name) - 1);
+                        std::strncpy(item.clsidStr, clsidBuf, sizeof(item.clsidStr) - 1);
+                        item.clsid = clsid;
+                        g_asioDriverList.push_back(item);
+                    }
+                }
+            }
+        }
+        RegCloseKey(hAsioRoot);
+    }
 
     DeviceItem defIn = { -1, "Default Windows Recording Device", L"" };
     g_inDevList.push_back(defIn);
@@ -175,9 +224,12 @@ static std::string getIniPath() {
 
 static void saveAudioConfig() {
     std::string path = getIniPath();
+    WritePrivateProfileStringA("Audio", "AsioDriverName", g_audioCfg.asioDriverName, path.c_str());
     WritePrivateProfileStringA("Audio", "InDevName", g_audioCfg.inDevName, path.c_str());
     WritePrivateProfileStringA("Audio", "OutDevName", g_audioCfg.outDevName, path.c_str());
     char buf[32];
+    std::snprintf(buf, sizeof(buf), "%d", g_audioCfg.driverMode);
+    WritePrivateProfileStringA("Audio", "DriverMode", buf, path.c_str());
     std::snprintf(buf, sizeof(buf), "%d", g_audioCfg.inChannel);
     WritePrivateProfileStringA("Audio", "InChannel", buf, path.c_str());
     std::snprintf(buf, sizeof(buf), "%d", g_audioCfg.bufferFrames);
@@ -187,14 +239,19 @@ static void saveAudioConfig() {
 static void loadAudioConfig() {
     refreshAudioDeviceLists();
     std::string path = getIniPath();
-    char inName[128] = "", outName[128] = "";
+    char asioName[128] = "", inName[128] = "", outName[128] = "";
+    GetPrivateProfileStringA("Audio", "AsioDriverName", "", asioName, sizeof(asioName), path.c_str());
     GetPrivateProfileStringA("Audio", "InDevName", "", inName, sizeof(inName), path.c_str());
     GetPrivateProfileStringA("Audio", "OutDevName", "", outName, sizeof(outName), path.c_str());
+    g_audioCfg.driverMode = GetPrivateProfileIntA("Audio", "DriverMode", g_asioDriverList.empty() ? 2 : 0, path.c_str());
+    if (g_audioCfg.driverMode < 0 || g_audioCfg.driverMode > 2) g_audioCfg.driverMode = 0;
     g_audioCfg.inChannel = GetPrivateProfileIntA("Audio", "InChannel", 0, path.c_str());
-    g_audioCfg.bufferFrames = GetPrivateProfileIntA("Audio", "BufferFrames", 64, path.c_str());
-    if (g_audioCfg.bufferFrames != 32 && g_audioCfg.bufferFrames != 64 &&
+    g_audioCfg.bufferFrames = GetPrivateProfileIntA("Audio", "BufferFrames", 32, path.c_str());
+    if (g_audioCfg.bufferFrames != 16 && g_audioCfg.bufferFrames != 24 &&
+        g_audioCfg.bufferFrames != 32 && g_audioCfg.bufferFrames != 48 &&
+        g_audioCfg.bufferFrames != 64 && g_audioCfg.bufferFrames != 96 &&
         g_audioCfg.bufferFrames != 128 && g_audioCfg.bufferFrames != 256 && g_audioCfg.bufferFrames != 512) {
-        g_audioCfg.bufferFrames = 64;
+        g_audioCfg.bufferFrames = 32;
     }
 
     auto isProAudioInterface = [](const char* name) -> bool {
@@ -203,9 +260,40 @@ static void loadAudioConfig() {
                std::strstr(name, "Line 6") != nullptr ||
                std::strstr(name, "Focusrite") != nullptr ||
                std::strstr(name, "Scarlett") != nullptr ||
+               std::strstr(name, "ASIO4ALL") != nullptr ||
                std::strstr(name, "USB Audio") != nullptr ||
                std::strstr(name, "CODEC") != nullptr;
     };
+
+    if (!g_asioDriverList.empty()) {
+        bool foundAsio = false;
+        if (std::strlen(asioName) > 0) {
+            for (size_t i = 0; i < g_asioDriverList.size(); ++i) {
+                if (std::strstr(g_asioDriverList[i].name, asioName) != nullptr ||
+                    std::strcmp(g_asioDriverList[i].name, asioName) == 0) {
+                    g_audioCfg.asioDriverIdx = (int)i;
+                    std::strncpy(g_audioCfg.asioDriverName, g_asioDriverList[i].name, sizeof(g_audioCfg.asioDriverName) - 1);
+                    foundAsio = true;
+                    break;
+                }
+            }
+        }
+        if (!foundAsio) {
+            // Prefer Audient / Line 6 / Focusrite first, then ASIO4ALL, then index 0
+            g_audioCfg.asioDriverIdx = 0;
+            std::strncpy(g_audioCfg.asioDriverName, g_asioDriverList[0].name, sizeof(g_audioCfg.asioDriverName) - 1);
+            for (size_t i = 0; i < g_asioDriverList.size(); ++i) {
+                if (std::strstr(g_asioDriverList[i].name, "Audient") != nullptr ||
+                    std::strstr(g_asioDriverList[i].name, "EVO") != nullptr ||
+                    std::strstr(g_asioDriverList[i].name, "Line 6") != nullptr ||
+                    std::strstr(g_asioDriverList[i].name, "Focusrite") != nullptr) {
+                    g_audioCfg.asioDriverIdx = (int)i;
+                    std::strncpy(g_audioCfg.asioDriverName, g_asioDriverList[i].name, sizeof(g_audioCfg.asioDriverName) - 1);
+                    break;
+                }
+            }
+        }
+    }
 
     if (std::strlen(inName) > 0) {
         for (const auto& dev : g_inDevList) {
@@ -1950,6 +2038,179 @@ static LockFreeRingBuffer<float, 65536> g_ringBuffer;
 
 static const GUID s_KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = { 0x00000003, 0x0000, 0x0010, { 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 } };
 
+// ============================================================================
+// Native ASIO 2.3 Zero-Copy Hardware DMA Engine (Audient EVO / Line 6 / Focusrite / ASIO4ALL)
+// ============================================================================
+static IASIO*          g_pAsioDriver = nullptr;
+static ASIOBufferInfo  g_asioBufInfos[4] = {};
+static ASIOSampleType  g_asioInTypes[2]  = { ASIOSTInt32LSB, ASIOSTInt32LSB };
+static ASIOSampleType  g_asioOutTypes[2] = { ASIOSTInt32LSB, ASIOSTInt32LSB };
+static long            g_asioInCount     = 0;
+static long            g_asioOutCount    = 0;
+static long            g_asioBufSize     = 32;
+static float           g_asioInFloat[4096] = {};
+static float           g_asioOutL[4096]    = {};
+static float           g_asioOutR[4096]    = {};
+
+static inline float readAsioSampleToFloat(const void* buf, ASIOSampleType type, long idx) noexcept {
+    if (!buf) return 0.0f;
+    switch (type) {
+        case ASIOSTInt32LSB:
+            return float(reinterpret_cast<const int32_t*>(buf)[idx]) * (1.0f / 2147483648.0f);
+        case ASIOSTInt24LSB: {
+            const uint8_t* p = reinterpret_cast<const uint8_t*>(buf) + idx * 3;
+            int32_t v = (int32_t(p[0]) << 8) | (int32_t(p[1]) << 16) | (int32_t(p[2]) << 24);
+            return float(v) * (1.0f / 2147483648.0f);
+        }
+        case ASIOSTInt16LSB:
+            return float(reinterpret_cast<const int16_t*>(buf)[idx]) * (1.0f / 32768.0f);
+        case ASIOSTFloat32LSB:
+            return reinterpret_cast<const float*>(buf)[idx];
+        case ASIOSTFloat64LSB:
+            return float(reinterpret_cast<const double*>(buf)[idx]);
+        default:
+            return 0.0f;
+    }
+}
+
+static inline void writeFloatToAsioSample(void* buf, ASIOSampleType type, long idx, float s) noexcept {
+    if (!buf) return;
+    s = std::clamp(s, -1.0f, 1.0f);
+    switch (type) {
+        case ASIOSTInt32LSB:
+            reinterpret_cast<int32_t*>(buf)[idx] = int32_t(double(s) * 2147483520.0);
+            break;
+        case ASIOSTInt24LSB: {
+            int32_t v = int32_t(double(s) * 8388600.0);
+            uint8_t* p = reinterpret_cast<uint8_t*>(buf) + idx * 3;
+            p[0] = uint8_t(v & 0xFF);
+            p[1] = uint8_t((v >> 8) & 0xFF);
+            p[2] = uint8_t((v >> 16) & 0xFF);
+            break;
+        }
+        case ASIOSTInt16LSB:
+            reinterpret_cast<int16_t*>(buf)[idx] = int16_t(s * 32760.0f);
+            break;
+        case ASIOSTFloat32LSB:
+            reinterpret_cast<float*>(buf)[idx] = s;
+            break;
+        case ASIOSTFloat64LSB:
+            reinterpret_cast<double*>(buf)[idx] = double(s);
+            break;
+        default:
+            break;
+    }
+}
+
+static void asioBufferSwitch(long doubleBufferIndex, ASIOBool /*directProcess*/) {
+    EuphoriaHyperDSP::FluidMath::disableDenormals();
+    const long nFrames = std::min<long>(g_asioBufSize, 4096);
+    if (nFrames <= 0) return;
+
+    const int chSelect = g_audioCfg.inChannel;
+    float maxIn = 0.0f;
+    const void* inBuf0 = (g_asioInCount >= 1) ? g_asioBufInfos[0].buffers[doubleBufferIndex] : nullptr;
+    const void* inBuf1 = (g_asioInCount >= 2) ? g_asioBufInfos[1].buffers[doubleBufferIndex] : nullptr;
+
+    for (long i = 0; i < nFrames; ++i) {
+        float s0 = readAsioSampleToFloat(inBuf0, g_asioInTypes[0], i);
+        float s1 = (g_asioInCount >= 2) ? readAsioSampleToFloat(inBuf1, g_asioInTypes[1], i) : s0;
+        float s = (chSelect == 0) ? s0 : ((chSelect == 1) ? s1 : (s0 + s1) * 0.5f);
+        g_asioInFloat[i] = s;
+        if (std::fabs(s) > maxIn) maxIn = std::fabs(s);
+    }
+
+    if (g_testRiffActive.load()) {
+        for (long i = 0; i < nFrames; ++i) {
+            float rs = g_riffSynth.nextSample();
+            g_asioInFloat[i] += rs;
+            if (std::fabs(rs) > maxIn) maxIn = std::fabs(rs);
+        }
+    }
+    if (maxIn > 0.0f) g_inMeterPeak.store(maxIn);
+    else g_inMeterPeak.store(g_inMeterPeak.load() * 0.95f);
+
+    LARGE_INTEGER qpcStart, qpcEnd, qpcFreq;
+    QueryPerformanceFrequency(&qpcFreq);
+    QueryPerformanceCounter(&qpcStart);
+
+    runEngineBlock(g_asioInFloat, g_asioOutL, g_asioOutR, (uint32_t)nFrames);
+
+    g_tuner.writeSamples(g_asioInFloat, (int)nFrames);
+    float refPitch = (g_knobs[K_TUNING_REF].curVal > 0.5f) ? 432.0f : 440.0f;
+    g_tuner.process(refPitch);
+
+    QueryPerformanceCounter(&qpcEnd);
+    double elapsedSec = double(qpcEnd.QuadPart - qpcStart.QuadPart) / double(qpcFreq.QuadPart);
+    float timeUs = float(elapsedSec * 1000000.0);
+    double blockSec = double(nFrames) / double(SAMPLE_RATE);
+    float cpuPct = float((elapsedSec / blockSec) * 100.0);
+    g_dspCpuPercent.store(g_dspCpuPercent.load() * 0.90f + cpuPct * 0.10f);
+    g_dspTimeUs.store(g_dspTimeUs.load() * 0.90f + timeUs * 0.10f);
+
+    void* outBuf0 = (g_asioOutCount >= 1) ? g_asioBufInfos[g_asioInCount + 0].buffers[doubleBufferIndex] : nullptr;
+    void* outBuf1 = (g_asioOutCount >= 2) ? g_asioBufInfos[g_asioInCount + 1].buffers[doubleBufferIndex] : nullptr;
+    float peakL = 0.0f, peakR = 0.0f;
+    for (long i = 0; i < nFrames; ++i) {
+        float l = EuphoriaHyperDSP::FluidMath::fast_tanh(g_asioOutL[i]);
+        float r = EuphoriaHyperDSP::FluidMath::fast_tanh(g_asioOutR[i]);
+        if (std::fabs(l) > peakL) peakL = std::fabs(l);
+        if (std::fabs(r) > peakR) peakR = std::fabs(r);
+        writeFloatToAsioSample(outBuf0, g_asioOutTypes[0], i, l);
+        if (outBuf1) writeFloatToAsioSample(outBuf1, g_asioOutTypes[1], i, r);
+    }
+    g_outMeterPeakL.store(peakL);
+    g_outMeterPeakR.store(peakR);
+
+    if (g_pAsioDriver) {
+        g_pAsioDriver->outputReady();
+    }
+}
+
+static ASIOTime* asioBufferSwitchTimeInfo(ASIOTime* params, long doubleBufferIndex, ASIOBool directProcess) {
+    asioBufferSwitch(doubleBufferIndex, directProcess);
+    return params;
+}
+
+static void asioSampleRateDidChange(ASIOSampleRate sRate) {
+    if (sRate > 8000.0) {
+        g_tuner.setSampleRate(float(sRate));
+    }
+}
+
+static long asioMessageCallback(long selector, long value, void* /*message*/, double* /*opt*/) {
+    switch (selector) {
+        case kAsioSelectorSupported:
+            if (value == kAsioResetRequest || value == kAsioEngineVersion ||
+                value == kAsioResyncRequest || value == kAsioLatenciesChanged ||
+                value == kAsioSupportsTimeInfo || value == kAsioSupportsTimeCode ||
+                value == kAsioOverload) {
+                return 1L;
+            }
+            return 0L;
+        case kAsioEngineVersion:
+            return 2L;
+        case kAsioResetRequest:
+            g_audioConfigChanged.store(true);
+            return 1L;
+        case kAsioResyncRequest:
+        case kAsioLatenciesChanged:
+            return 1L;
+        case kAsioSupportsTimeInfo:
+        case kAsioSupportsTimeCode:
+            return 1L;
+        default:
+            return 0L;
+    }
+}
+
+static ASIOCallbacks g_asioCallbacks = {
+    &asioBufferSwitch,
+    &asioSampleRateDidChange,
+    &asioMessageCallback,
+    &asioBufferSwitchTimeInfo
+};
+
 static DWORD WINAPI audioThreadProc(LPVOID) {
     CoInitialize(nullptr);
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
@@ -1985,7 +2246,99 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
     HANDLE hEventIn = nullptr;
     UINT32 bufOut = 0, bufIn = 0;
 
+    auto closeAsioHardware = [&]() {
+        g_asioActive.store(false);
+        if (g_pAsioDriver) {
+            g_pAsioDriver->stop();
+            g_pAsioDriver->disposeBuffers();
+            g_pAsioDriver->Release();
+            g_pAsioDriver = nullptr;
+        }
+    };
+
+    auto openAsioHardware = [&]() -> bool {
+        closeAsioHardware();
+        if (g_asioDriverList.empty()) return false;
+        int idx = std::clamp(g_audioCfg.asioDriverIdx, 0, (int)g_asioDriverList.size() - 1);
+        const AsioDriverItem& drv = g_asioDriverList[idx];
+
+        IASIO* pAsio = nullptr;
+        HRESULT hrAsio = CoCreateInstance(drv.clsid, nullptr, CLSCTX_INPROC_SERVER, drv.clsid, (void**)&pAsio);
+        if (FAILED(hrAsio) || !pAsio) return false;
+
+        if (!pAsio->init((void*)g_hwndMain)) {
+            pAsio->Release();
+            return false;
+        }
+
+        long numIn = 0, numOut = 0;
+        if (pAsio->getChannels(&numIn, &numOut) != ASE_OK || numOut <= 0) {
+            pAsio->Release();
+            return false;
+        }
+
+        ASIOSampleRate curRate = 48000.0;
+        if (pAsio->canSampleRate(48000.0) == ASE_OK) {
+            pAsio->setSampleRate(48000.0);
+        }
+        if (pAsio->getSampleRate(&curRate) == ASE_OK && curRate > 8000.0) {
+            g_tuner.setSampleRate(float(curRate));
+        }
+
+        long minSize = 16, maxSize = 2048, prefSize = 64, gran = 0;
+        if (pAsio->getBufferSize(&minSize, &maxSize, &prefSize, &gran) != ASE_OK) {
+            minSize = 16; maxSize = 2048; prefSize = 64;
+        }
+        long reqSize = std::clamp<long>(g_audioCfg.bufferFrames, std::max<long>(16, minSize), std::min<long>(4096, maxSize));
+        g_asioBufSize = (reqSize > 0) ? reqSize : ((prefSize > 0) ? prefSize : 64);
+
+        g_asioInCount  = std::min<long>(numIn, 2);
+        g_asioOutCount = std::min<long>(numOut, 2);
+        long totalChans = g_asioInCount + g_asioOutCount;
+
+        for (long c = 0; c < g_asioInCount; ++c) {
+            g_asioBufInfos[c].isInput = ASIOTrue;
+            g_asioBufInfos[c].channelNum = c;
+            g_asioBufInfos[c].buffers[0] = nullptr;
+            g_asioBufInfos[c].buffers[1] = nullptr;
+            ASIOChannelInfo ci = {};
+            ci.channel = c;
+            ci.isInput = ASIOTrue;
+            if (pAsio->getChannelInfo(&ci) == ASE_OK) g_asioInTypes[c] = ci.type;
+        }
+        for (long c = 0; c < g_asioOutCount; ++c) {
+            long slot = g_asioInCount + c;
+            g_asioBufInfos[slot].isInput = ASIOFalse;
+            g_asioBufInfos[slot].channelNum = c;
+            g_asioBufInfos[slot].buffers[0] = nullptr;
+            g_asioBufInfos[slot].buffers[1] = nullptr;
+            ASIOChannelInfo ci = {};
+            ci.channel = c;
+            ci.isInput = ASIOFalse;
+            if (pAsio->getChannelInfo(&ci) == ASE_OK) g_asioOutTypes[c] = ci.type;
+        }
+
+        if (pAsio->createBuffers(g_asioBufInfos, totalChans, g_asioBufSize, &g_asioCallbacks) != ASE_OK) {
+            // Retry with driver's preferred buffer size if custom size was rejected
+            g_asioBufSize = (prefSize > 0) ? prefSize : 64;
+            if (pAsio->createBuffers(g_asioBufInfos, totalChans, g_asioBufSize, &g_asioCallbacks) != ASE_OK) {
+                pAsio->Release();
+                return false;
+            }
+        }
+
+        g_pAsioDriver = pAsio;
+        if (pAsio->start() != ASE_OK) {
+            closeAsioHardware();
+            return false;
+        }
+
+        g_asioActive.store(true);
+        return true;
+    };
+
     auto closeAudioHardware = [&]() {
+        closeAsioHardware();
         if (pAudioClientIn)  { pAudioClientIn->Stop(); }
         if (pAudioClientOut) { pAudioClientOut->Stop(); }
         if (pCaptureClient)  { pCaptureClient->Release(); pCaptureClient = nullptr; }
@@ -2003,6 +2356,11 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
     auto openAudioHardware = [&]() -> bool {
         closeAudioHardware();
         g_ringBuffer.reset();
+
+        // 0. Try Native ASIO Direct Hardware first if DriverMode == 0 (ASIO Direct)
+        if (g_audioCfg.driverMode == 0 && openAsioHardware()) {
+            return true;
+        }
 
         // 1. Get Render device
         if (g_audioCfg.outDevId == -1) {
@@ -2042,12 +2400,9 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
             if (pAudioClientIn) pAudioClientIn->GetMixFormat(&pWfxIn);
         }
 
-        REFERENCE_TIME hnsReq = 14000;
-        if (g_audioCfg.bufferFrames <= 32)       hnsReq = 7000;
-        else if (g_audioCfg.bufferFrames <= 64)  hnsReq = 14000;
-        else if (g_audioCfg.bufferFrames <= 128) hnsReq = 28000;
-        else if (g_audioCfg.bufferFrames <= 256) hnsReq = 55000;
-        else                                     hnsReq = 110000;
+        // Compute requested buffer duration in 100-nanosecond units (16..512 frames @ 48 kHz)
+        REFERENCE_TIME hnsReq = (REFERENCE_TIME)((double(g_audioCfg.bufferFrames) * 10000000.0) / 48000.0 + 0.5);
+        if (hnsReq < 3333) hnsReq = 3333; // 16 frames = 0.333 ms
 
         REFERENCE_TIME hnsDefaultOut = 0, hnsMinOut = 0;
         if (SUCCEEDED(pAudioClientOut->GetDevicePeriod(&hnsDefaultOut, &hnsMinOut)) && hnsMinOut > 0) {
@@ -2055,8 +2410,15 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
         }
 
         hEventOut = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        hr = pAudioClientOut->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, hnsReq, 0, pWfxOut, nullptr);
-        if (FAILED(hr)) return false;
+        HRESULT hrInitOut = E_FAIL;
+        if (g_audioCfg.driverMode == 1) {
+            // Try WASAPI Exclusive Mode first for direct kernel streaming
+            hrInitOut = pAudioClientOut->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, hnsReq, hnsReq, pWfxOut, nullptr);
+        }
+        if (FAILED(hrInitOut)) {
+            hrInitOut = pAudioClientOut->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, hnsReq, 0, pWfxOut, nullptr);
+        }
+        if (FAILED(hrInitOut)) return false;
         pAudioClientOut->SetEventHandle(hEventOut);
         pAudioClientOut->GetService(__uuidof(IAudioRenderClient), (void**)&pRenderClient);
         pAudioClientOut->GetBufferSize(&bufOut);
@@ -2076,8 +2438,14 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
                 if (hnsReqIn < hnsMinIn) hnsReqIn = hnsMinIn;
             }
             hEventIn = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-            hr = pAudioClientIn->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, hnsReqIn, 0, pWfxIn, nullptr);
-            if (SUCCEEDED(hr)) {
+            HRESULT hrInitIn = E_FAIL;
+            if (g_audioCfg.driverMode == 1) {
+                hrInitIn = pAudioClientIn->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, hnsReqIn, hnsReqIn, pWfxIn, nullptr);
+            }
+            if (FAILED(hrInitIn)) {
+                hrInitIn = pAudioClientIn->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, hnsReqIn, 0, pWfxIn, nullptr);
+            }
+            if (SUCCEEDED(hrInitIn)) {
                 pAudioClientIn->SetEventHandle(hEventIn);
                 pAudioClientIn->GetService(__uuidof(IAudioCaptureClient), (void**)&pCaptureClient);
                 pAudioClientIn->GetBufferSize(&bufIn);
@@ -2110,6 +2478,28 @@ static DWORD WINAPI audioThreadProc(LPVOID) {
     while (g_running.load()) {
         if (g_audioConfigChanged.exchange(false)) {
             openAudioHardware();
+            continue;
+        }
+        if (g_asioOpenPanelReq.exchange(false)) {
+            if (g_pAsioDriver) {
+                g_pAsioDriver->controlPanel();
+            } else if (!g_asioDriverList.empty()) {
+                int idx = std::clamp(g_audioCfg.asioDriverIdx, 0, (int)g_asioDriverList.size() - 1);
+                IASIO* pTmp = nullptr;
+                if (SUCCEEDED(CoCreateInstance(g_asioDriverList[idx].clsid, nullptr, CLSCTX_INPROC_SERVER, g_asioDriverList[idx].clsid, (void**)&pTmp)) && pTmp) {
+                    pTmp->init((void*)g_hwndMain);
+                    pTmp->controlPanel();
+                    pTmp->Release();
+                }
+            }
+        }
+        if (g_asioActive.load()) {
+            MSG comMsg;
+            while (PeekMessageA(&comMsg, nullptr, 0, 0, PM_REMOVE)) {
+                TranslateMessage(&comMsg);
+                DispatchMessageA(&comMsg);
+            }
+            Sleep(5);
             continue;
         }
 
@@ -4924,9 +5314,17 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
 
     char statusBuf[256];
     const char* chNames[3] = { "Ch 1 (Left)", "Ch 2 (Right)", "Stereo Sum" };
-    std::snprintf(statusBuf, sizeof(statusBuf),
-                  "IN: %s [%s]  |  OUT: %s  |  BUF: %d",
-                  g_audioCfg.inDevName, chNames[g_audioCfg.inChannel], g_audioCfg.outDevName, g_audioCfg.bufferFrames);
+    float latMs = float(g_audioCfg.bufferFrames) * 1000.0f / 48000.0f;
+    if (g_asioActive.load()) {
+        std::snprintf(statusBuf, sizeof(statusBuf),
+                      "ASIO DIRECT: %s [%s]  |  BUF: %ld smp (%.2f ms)",
+                      g_audioCfg.asioDriverName, chNames[g_audioCfg.inChannel], g_asioBufSize, float(g_asioBufSize) * 1000.0f / 48000.0f);
+    } else {
+        const char* drvTag = (g_audioCfg.driverMode == 1) ? "WASAPI EXCL" : "TONEDIRECT";
+        std::snprintf(statusBuf, sizeof(statusBuf),
+                      "%s: %s [%s]  |  BUF: %d smp (%.2f ms)",
+                      drvTag, g_audioCfg.inDevName, chNames[g_audioCfg.inChannel], g_audioCfg.bufferFrames, latMs);
+    }
 
     RECT footer = { 22, h - 36, 440, h - 10 };
     SetTextColor(hdc, RGB(204, 251, 241));
@@ -5047,6 +5445,8 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
 // ============================================================================
 // Euphoria Dedicated Audio Hardware Settings Dialog
 // ============================================================================
+static HWND g_hDrvModeCombo = nullptr;
+static HWND g_hAsioCombo = nullptr;
 static HWND g_hInCombo = nullptr;
 static HWND g_hChanCombo = nullptr;
 static HWND g_hOutCombo = nullptr;
@@ -5059,8 +5459,37 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
             HFONT hf = CreateFontA(14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Segoe UI");
             HFONT hfBold = CreateFontA(14, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Segoe UI");
 
-            CreateWindowA("STATIC", "1. Guitar Input Audio Interface (Euphoria Pure Fluid Engine):", WS_CHILD | WS_VISIBLE, 24, 18, 460, 20, hwnd, nullptr, nullptr, nullptr);
-            g_hInCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, 24, 42, 470, 200, hwnd, (HMENU)101, nullptr, nullptr);
+            CreateWindowA("STATIC", "0. Audio Driver Architecture (ASIO / ToneDirect / WASAPI):", WS_CHILD | WS_VISIBLE, 24, 14, 490, 20, hwnd, nullptr, nullptr, nullptr);
+            g_hDrvModeCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 24, 36, 490, 150, hwnd, (HMENU)105, nullptr, nullptr);
+            SendMessageA(g_hDrvModeCombo, WM_SETFONT, (WPARAM)hfBold, TRUE);
+            SendMessageA(g_hDrvModeCombo, CB_ADDSTRING, 0, (LPARAM)"ASIO Direct Hardware (Zero-Copy DMA - Audient EVO / Line 6 / ASIO4ALL)");
+            SendMessageA(g_hDrvModeCombo, CB_ADDSTRING, 0, (LPARAM)"WASAPI Exclusive Mode (Direct Kernel Streaming - Ultra-Low Latency)");
+            SendMessageA(g_hDrvModeCombo, CB_ADDSTRING, 0, (LPARAM)"WASAPI Low-Latency Shared (Windows Pro Audio + ToneDirect)");
+            SendMessageA(g_hDrvModeCombo, CB_SETCURSEL, (WPARAM)std::clamp(g_audioCfg.driverMode, 0, 2), 0);
+
+            CreateWindowA("STATIC", "   ASIO Hardware Driver (Used when ASIO Direct is active):", WS_CHILD | WS_VISIBLE, 24, 68, 490, 20, hwnd, nullptr, nullptr, nullptr);
+            g_hAsioCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, 24, 90, 355, 180, hwnd, (HMENU)106, nullptr, nullptr);
+            SendMessageA(g_hAsioCombo, WM_SETFONT, (WPARAM)hf, TRUE);
+            if (g_asioDriverList.empty()) {
+                SendMessageA(g_hAsioCombo, CB_ADDSTRING, 0, (LPARAM)"(No ASIO Driver Detected - Using WASAPI ToneDirect)");
+                SendMessageA(g_hAsioCombo, CB_SETCURSEL, 0, 0);
+            } else {
+                for (size_t i = 0; i < g_asioDriverList.size(); ++i) {
+                    SendMessageA(g_hAsioCombo, CB_ADDSTRING, 0, (LPARAM)g_asioDriverList[i].name);
+                    if ((int)i == g_audioCfg.asioDriverIdx || std::strcmp(g_asioDriverList[i].name, g_audioCfg.asioDriverName) == 0) {
+                        SendMessageA(g_hAsioCombo, CB_SETCURSEL, (WPARAM)i, 0);
+                    }
+                }
+                if (SendMessageA(g_hAsioCombo, CB_GETCURSEL, 0, 0) == CB_ERR) {
+                    SendMessageA(g_hAsioCombo, CB_SETCURSEL, 0, 0);
+                }
+            }
+
+            HWND hBtnAsioPanel = CreateWindowA("BUTTON", "ASIO PANEL...", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 386, 89, 128, 26, hwnd, (HMENU)107, nullptr, nullptr);
+            SendMessageA(hBtnAsioPanel, WM_SETFONT, (WPARAM)hfBold, TRUE);
+
+            CreateWindowA("STATIC", "1. Guitar Input Audio Interface (Windows WASAPI / Fallback):", WS_CHILD | WS_VISIBLE, 24, 126, 490, 20, hwnd, nullptr, nullptr, nullptr);
+            g_hInCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, 24, 148, 490, 200, hwnd, (HMENU)101, nullptr, nullptr);
             SendMessageA(g_hInCombo, WM_SETFONT, (WPARAM)hf, TRUE);
 
             for (size_t i = 0; i < g_inDevList.size(); ++i) {
@@ -5073,16 +5502,16 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
                 SendMessageA(g_hInCombo, CB_SETCURSEL, 0, 0);
             }
 
-            CreateWindowA("STATIC", "   Input Channel (Instrument Port):", WS_CHILD | WS_VISIBLE, 24, 82, 460, 20, hwnd, nullptr, nullptr, nullptr);
-            g_hChanCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 24, 104, 470, 150, hwnd, (HMENU)102, nullptr, nullptr);
+            CreateWindowA("STATIC", "   Input Channel (Guitar Instrument Port - Applies to ASIO & WASAPI):", WS_CHILD | WS_VISIBLE, 24, 182, 490, 20, hwnd, nullptr, nullptr, nullptr);
+            g_hChanCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 24, 204, 490, 150, hwnd, (HMENU)102, nullptr, nullptr);
             SendMessageA(g_hChanCombo, WM_SETFONT, (WPARAM)hf, TRUE);
-            SendMessageA(g_hChanCombo, CB_ADDSTRING, 0, (LPARAM)"Channel 1 (Left / Instrument 1 - Audient, Focusrite)");
+            SendMessageA(g_hChanCombo, CB_ADDSTRING, 0, (LPARAM)"Channel 1 (Left / Instrument 1 - Audient EVO 4, Line 6, Focusrite)");
             SendMessageA(g_hChanCombo, CB_ADDSTRING, 0, (LPARAM)"Channel 2 (Right / Instrument 2)");
             SendMessageA(g_hChanCombo, CB_ADDSTRING, 0, (LPARAM)"Stereo Sum (Combine Ch 1 + Ch 2)");
             SendMessageA(g_hChanCombo, CB_SETCURSEL, (WPARAM)g_audioCfg.inChannel, 0);
 
-            CreateWindowA("STATIC", "2. Playback Output Device (Monitors / Headphones):", WS_CHILD | WS_VISIBLE, 24, 184, 460, 20, hwnd, nullptr, nullptr, nullptr);
-            g_hOutCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, 24, 208, 470, 200, hwnd, (HMENU)103, nullptr, nullptr);
+            CreateWindowA("STATIC", "2. Playback Output Device (Monitors / Headphones):", WS_CHILD | WS_VISIBLE, 24, 282, 490, 20, hwnd, nullptr, nullptr, nullptr);
+            g_hOutCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, 24, 304, 490, 200, hwnd, (HMENU)103, nullptr, nullptr);
             SendMessageA(g_hOutCombo, WM_SETFONT, (WPARAM)hf, TRUE);
 
             for (size_t i = 0; i < g_outDevList.size(); ++i) {
@@ -5095,24 +5524,31 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
                 SendMessageA(g_hOutCombo, CB_SETCURSEL, 0, 0);
             }
 
-            CreateWindowA("STATIC", "3. Audio Buffer Latency / ToneDirect Direct Monitoring (48,000 Hz):", WS_CHILD | WS_VISIBLE, 24, 248, 460, 20, hwnd, nullptr, nullptr, nullptr);
-            g_hBufCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 24, 272, 470, 180, hwnd, (HMENU)104, nullptr, nullptr);
-            SendMessageA(g_hBufCombo, WM_SETFONT, (WPARAM)hf, TRUE);
-            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"32 frames (~0.7 ms) - ToneDirect Ultra (Line 6 / EVO 4 Fast)");
-            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"64 frames (~1.3 ms) - ToneDirect Fast (Default Direct Monitor)");
-            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"128 frames (~2.7 ms) - Low Latency (Fast Guitar Response)");
-            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"256 frames (~5.3 ms) - Balanced Studio");
-            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"512 frames (~10.7 ms) - High Stability Safe Mode");
-            int selBuf = 1;
-            if (g_audioCfg.bufferFrames <= 32)       selBuf = 0;
-            else if (g_audioCfg.bufferFrames <= 64)  selBuf = 1;
-            else if (g_audioCfg.bufferFrames <= 128) selBuf = 2;
-            else if (g_audioCfg.bufferFrames <= 256) selBuf = 3;
-            else                                     selBuf = 4;
+            CreateWindowA("STATIC", "3. Audio Buffer Size / Hardware Latency (48,000 Hz):", WS_CHILD | WS_VISIBLE, 24, 342, 490, 20, hwnd, nullptr, nullptr, nullptr);
+            g_hBufCombo = CreateWindowA("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, 24, 364, 490, 240, hwnd, (HMENU)104, nullptr, nullptr);
+            SendMessageA(g_hBufCombo, WM_SETFONT, (WPARAM)hfBold, TRUE);
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"16 frames (~0.33 ms) - ASIO / ToneDirect Extreme Ultra-Low Latency");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"24 frames (~0.50 ms) - ASIO / ToneDirect Sub-Millisecond");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"32 frames (~0.67 ms) - ASIO / ToneDirect Ultra (Line 6 / EVO 4 Fast)");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"48 frames (~1.00 ms) - ASIO / ToneDirect Pro 1.0 ms");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"64 frames (~1.33 ms) - ASIO / ToneDirect Fast (Default Direct Monitor)");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"96 frames (~2.00 ms) - Studio Fast Response");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"128 frames (~2.67 ms) - Standard Low Latency");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"256 frames (~5.33 ms) - Balanced Studio");
+            SendMessageA(g_hBufCombo, CB_ADDSTRING, 0, (LPARAM)"512 frames (~10.67 ms) - High Stability Safe Mode");
+
+            const int bufSizes[9] = { 16, 24, 32, 48, 64, 96, 128, 256, 512 };
+            int selBuf = 2; // default 32 frames
+            for (int b = 0; b < 9; ++b) {
+                if (g_audioCfg.bufferFrames <= bufSizes[b]) {
+                    selBuf = b;
+                    break;
+                }
+            }
             SendMessageA(g_hBufCombo, CB_SETCURSEL, (WPARAM)selBuf, 0);
 
-            HWND hBtnOk = CreateWindowA("BUTTON", "APPLY & SAVE SETTINGS", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 120, 336, 180, 36, hwnd, (HMENU)IDOK, nullptr, nullptr);
-            HWND hBtnCancel = CreateWindowA("BUTTON", "CANCEL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 320, 336, 110, 36, hwnd, (HMENU)IDCANCEL, nullptr, nullptr);
+            HWND hBtnOk = CreateWindowA("BUTTON", "APPLY & SAVE SETTINGS", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 120, 412, 190, 38, hwnd, (HMENU)IDOK, nullptr, nullptr);
+            HWND hBtnCancel = CreateWindowA("BUTTON", "CANCEL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 330, 412, 110, 38, hwnd, (HMENU)IDCANCEL, nullptr, nullptr);
             SendMessageA(hBtnOk, WM_SETFONT, (WPARAM)hfBold, TRUE);
             SendMessageA(hBtnCancel, WM_SETFONT, (WPARAM)hf, TRUE);
 
@@ -5126,7 +5562,7 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
 
-            RECT meterArea = { 24, 142, 494, 172 };
+            RECT meterArea = { 24, 240, 514, 270 };
             fillRoundRect(hdc, meterArea.left, meterArea.top, meterArea.right, meterArea.bottom, 6, RGB(6, 34, 28), RGB(20, 184, 166), 1);
 
             float pk = std::min(1.0f, g_inMeterPeak.load());
@@ -5156,7 +5592,24 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
 
         case WM_COMMAND: {
             int id = LOWORD(wp);
-            if (id == IDOK) {
+            if (id == 107) {
+                int asioSel = (int)SendMessageA(g_hAsioCombo, CB_GETCURSEL, 0, 0);
+                if (asioSel >= 0 && asioSel < (int)g_asioDriverList.size()) {
+                    g_audioCfg.asioDriverIdx = asioSel;
+                    std::strncpy(g_audioCfg.asioDriverName, g_asioDriverList[asioSel].name, sizeof(g_audioCfg.asioDriverName) - 1);
+                }
+                g_asioOpenPanelReq.store(true);
+                return 0;
+            } else if (id == IDOK) {
+                int drvModeSel = (int)SendMessageA(g_hDrvModeCombo, CB_GETCURSEL, 0, 0);
+                if (drvModeSel >= 0 && drvModeSel <= 2) {
+                    g_audioCfg.driverMode = drvModeSel;
+                }
+                int asioSel = (int)SendMessageA(g_hAsioCombo, CB_GETCURSEL, 0, 0);
+                if (asioSel >= 0 && asioSel < (int)g_asioDriverList.size()) {
+                    g_audioCfg.asioDriverIdx = asioSel;
+                    std::strncpy(g_audioCfg.asioDriverName, g_asioDriverList[asioSel].name, sizeof(g_audioCfg.asioDriverName) - 1);
+                }
                 int inSel = (int)SendMessageA(g_hInCombo, CB_GETCURSEL, 0, 0);
                 if (inSel >= 0 && inSel < (int)g_inDevList.size()) {
                     g_audioCfg.inDevId = g_inDevList[inSel].id;
@@ -5172,8 +5625,8 @@ static LRESULT CALLBACK audioSettingsDlgProc(HWND hwnd, UINT msg, WPARAM wp, LPA
                     std::strncpy(g_audioCfg.outDevName, g_outDevList[outSel].name, sizeof(g_audioCfg.outDevName) - 1);
                 }
                 int bufSel = (int)SendMessageA(g_hBufCombo, CB_GETCURSEL, 0, 0);
-                const int bufSizes[5] = { 32, 64, 128, 256, 512 };
-                g_audioCfg.bufferFrames = (bufSel >= 0 && bufSel < 5) ? bufSizes[bufSel] : 64;
+                const int bufSizes[9] = { 16, 24, 32, 48, 64, 96, 128, 256, 512 };
+                g_audioCfg.bufferFrames = (bufSel >= 0 && bufSel < 9) ? bufSizes[bufSel] : 32;
 
                 saveAudioConfig();
                 g_audioConfigChanged.store(true);
@@ -5207,15 +5660,15 @@ static void openAudioSettingsDialog(HWND hwndParent) {
 
     RECT pr;
     GetWindowRect(hwndParent, &pr);
-    int cx = (pr.left + pr.right) / 2 - 270;
-    int cy = (pr.top + pr.bottom) / 2 - 215;
+    int cx = (pr.left + pr.right) / 2 - 275;
+    int cy = (pr.top + pr.bottom) / 2 - 250;
 
     HWND hDlg = CreateWindowExA(
         WS_EX_DLGMODALFRAME | WS_EX_TOPMOST,
         dc.lpszClassName,
-        "Euphoria Amp — Audio Hardware & Guitar Interface Settings",
+        "Euphoria Amp — ASIO / ToneDirect & Guitar Interface Settings",
         WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_VISIBLE,
-        cx, cy, 540, 430,
+        cx, cy, 550, 500,
         hwndParent, nullptr, dc.hInstance, nullptr
     );
 
@@ -5522,6 +5975,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR lpCmdLine, int nCmdShow) {
         CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
         nullptr, nullptr, hInst, nullptr
     );
+    g_hwndMain = hwnd;
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
