@@ -23,6 +23,29 @@ if(APPLE)
     list(APPEND PLUGIN_FORMATS AU)
 endif()
 
+juce_add_binary_data(EuphoriaAmpAssets
+    SOURCES
+        ../../JUCE_Assets/wood_floor_tile.png
+        ../../JUCE_Assets/chassis_wide.png
+        ../../JUCE_Assets/chassis_clean_blue.png
+        ../../JUCE_Assets/chassis_crunch_brown.png
+        ../../JUCE_Assets/chassis_lead_red.png
+        ../../JUCE_Assets/rack_space_topaz.png
+        ../../JUCE_Assets/rack_reverb_pink.png
+        ../../JUCE_Assets/rack_trem_orange.png
+        ../../JUCE_Assets/rack_delay_green.png
+        ../../JUCE_Assets/chassis_compact.png
+        ../../JUCE_Assets/guitar_luxury.png
+        ../../JUCE_Assets/pedal_fuzz_round.png
+        ../../JUCE_Assets/pedal_klon_gold.png
+        ../../JUCE_Assets/pedal_ts9_green.png
+        ../../JUCE_Assets/pedal_blues_blue.png
+        ../../JUCE_Assets/pedal_rat_black.png
+        ../../JUCE_Assets/knob_filmstrip.png
+)
+
+set_target_properties(EuphoriaAmpAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 juce_add_plugin(EuphoriaAmp
     COMPANY_NAME "Cyber Audio"
     IS_SYNTH FALSE
@@ -64,6 +87,7 @@ target_compile_definitions(EuphoriaAmp
 
 target_link_libraries(EuphoriaAmp
     PRIVATE
+        EuphoriaAmpAssets
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC

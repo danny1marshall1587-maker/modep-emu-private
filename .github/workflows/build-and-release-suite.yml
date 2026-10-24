@@ -65,11 +65,10 @@ jobs:
           path: EuphoriaAmp-macOS-${{ matrix.arch }}.zip
 
       - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name || 'v1.0.0' }}
-          name: "Release ${{ github.ref_name || 'v1.0.0' }}"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.2.0-3d-suite' }}
+          name: "Euphoria Amp 3D Suite (${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.2.0-3d-suite' }})"
           draft: false
           prerelease: false
           files: EuphoriaAmp-macOS-${{ matrix.arch }}.zip
@@ -98,8 +97,14 @@ jobs:
       - name: Package Windows Artefacts
         shell: bash
         run: |
-          mkdir -p release_euphoria_win
+          mkdir -p release_euphoria_win/Native-Win32-Standalone
           cp -R build-euphoria/EuphoriaAmp_artefacts/Release/* release_euphoria_win/
+          if [ -f standalone/EuphoriaAmp-Standalone.exe ]; then
+            cp standalone/EuphoriaAmp-Standalone.exe release_euphoria_win/Native-Win32-Standalone/
+          fi
+          if [ -d JUCE_Assets ]; then
+            cp -R JUCE_Assets release_euphoria_win/Native-Win32-Standalone/
+          fi
           cd release_euphoria_win
           7z a -tzip ../EuphoriaAmp-Windows-x64.zip .
 
@@ -110,11 +115,10 @@ jobs:
           path: EuphoriaAmp-Windows-x64.zip
 
       - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name || 'v1.0.0' }}
-          name: "Release ${{ github.ref_name || 'v1.0.0' }}"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.2.0-3d-suite' }}
+          name: "Euphoria Amp 3D Suite (${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.2.0-3d-suite' }})"
           draft: false
           prerelease: false
           files: EuphoriaAmp-Windows-x64.zip
