@@ -1,6 +1,12 @@
 name: Build Tubular Amp and Euphoria Amp Multi-Platform Suite
 
 on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
