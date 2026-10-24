@@ -55,14 +55,9 @@ jobs:
         run: |
           mkdir -p release_euphoria_mac
           cp -R build-euphoria/EuphoriaAmp_artefacts/Release/* release_euphoria_mac/
+          rm -f release_euphoria_mac/*.a
           cd release_euphoria_mac
           zip -r -y ../EuphoriaAmp-macOS-${{ matrix.arch }}.zip .
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: EuphoriaAmp-macOS-${{ matrix.arch }}
-          path: EuphoriaAmp-macOS-${{ matrix.arch }}.zip
 
       - name: Attach to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -74,6 +69,14 @@ jobs:
           files: EuphoriaAmp-macOS-${{ matrix.arch }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: EuphoriaAmp-macOS-${{ matrix.arch }}
+          path: EuphoriaAmp-macOS-${{ matrix.arch }}.zip
+          retention-days: 5
 
   # =========================================================================
   # Windows Build: x64
@@ -99,6 +102,7 @@ jobs:
         run: |
           mkdir -p release_euphoria_win/Native-Win32-Standalone
           cp -R build-euphoria/EuphoriaAmp_artefacts/Release/* release_euphoria_win/
+          rm -f release_euphoria_win/*.lib release_euphoria_win/*.exp release_euphoria_win/*.pdb
           if [ -f standalone/EuphoriaAmp-Standalone.exe ]; then
             cp standalone/EuphoriaAmp-Standalone.exe release_euphoria_win/Native-Win32-Standalone/
           fi
@@ -107,12 +111,6 @@ jobs:
           fi
           cd release_euphoria_win
           7z a -tzip ../EuphoriaAmp-Windows-x64.zip .
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: EuphoriaAmp-Windows-x64
-          path: EuphoriaAmp-Windows-x64.zip
 
       - name: Attach to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -124,3 +122,11 @@ jobs:
           files: EuphoriaAmp-Windows-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: EuphoriaAmp-Windows-x64
+          path: EuphoriaAmp-Windows-x64.zip
+          retention-days: 5
