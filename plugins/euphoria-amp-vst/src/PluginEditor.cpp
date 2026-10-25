@@ -913,7 +913,7 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
         int p2X1 = 327, p2X2 = 517, p2Y1 = 135, p2Y2 = 555;
         bool tsActive = (processor.getParamValue(K_TS_ON) > 0.5f);
         bool tsHyp    = (processor.getParamValue(K_TS_HYPER) > 0.5f);
-        bool tsFat    = (processor.getParamValue(K_TS_FAT) > 0.5f);
+        bool tsFat    = (processor.getParamValue(K_TS_MOD) > 0.5f);
 
         // Floor drop shadow
         fillRoundRectJuce(g, p2X1 + 5, p2Y1 + 7, p2X2 + 5, p2Y2 + 7, 14, RGBCol(18, 10, 6), RGBCol(18, 10, 6), 1);
