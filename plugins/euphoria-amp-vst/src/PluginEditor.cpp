@@ -2024,7 +2024,7 @@ void EuphoriaAmpAudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
             menu.addItem(3, "Clear All MIDI Mappings");
 
             menu.showMenuAsync(juce::PopupMenu::Options().withTargetScreenArea(
-                e.getScreenPosition().toInt().toRectangle().withSize(1, 1)),
+                juce::Rectangle<int>(e.getScreenPosition().x, e.getScreenPosition().y, 1, 1)),
                 [this, targetParam](int result) {
                     if (result == 1) {
                         processor.midiMap.startLearn(targetParam);
