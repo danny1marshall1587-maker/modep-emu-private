@@ -25,6 +25,10 @@ struct EuphoriaStrobeTunerEngine {
     float m_hp_x = 0.0f, m_hp_y = 0.0f;
     float m_lp_y1 = 0.0f, m_lp_y2 = 0.0f;
 
+    // Inaudible AGC / Detector Pre-Gain state
+    float m_detEnv = 0.0f;
+    float m_detGain = 6.0f;
+
     float m_displayCents = 0.0f;
     float m_displayFreq = 0.0f;
     int   m_activeMidi = -1;
@@ -65,6 +69,8 @@ struct EuphoriaStrobeTunerEngine {
         m_writeIdx = 0;
         m_hp_x = m_hp_y = 0.0f;
         m_lp_y1 = m_lp_y2 = 0.0f;
+        m_detEnv = 0.0f;
+        m_detGain = 6.0f;
         m_displayCents = 0.0f;
         m_displayFreq = 0.0f;
         m_activeMidi = -1;
@@ -93,20 +99,40 @@ struct EuphoriaStrobeTunerEngine {
     float getSampleRate() const { return m_sampleRate; }
 
     void writeSamples(const float* in, int numSamples) {
+        // Continuous per-sample DC-blocking HPF (30 Hz) + 2-pole Bessel/Butterworth LPF (700 Hz)
+        // High harmonic treble/pick attack is smoothed continuously without filter settling transients
         float hp_a = 1.0f / (1.0f + 2.0f * 3.14159265f * 30.0f / m_sampleRate);
         float lp_a = (2.0f * 3.14159265f * 700.0f) / (m_sampleRate + 2.0f * 3.14159265f * 700.0f);
 
         for (int i = 0; i < numSamples; ++i) {
             float s = in[i];
-            float hp = hp_a * (m_hp_y + s - m_hp_x);
-            m_hp_x = s;
+
+            // Inaudible Detector Input Gain Boost (AGC Pre-Amp):
+            // Normalizes decaying / low-gain guitar signals up to +28 dB into the detector filters,
+            // while preserving 100% untouched through-signal for audible guitar audio.
+            float absS = std::abs(s);
+            if (absS > m_detEnv) {
+                m_detEnv += 0.02f * (absS - m_detEnv); // ~1ms fast attack
+            } else {
+                m_detEnv += 0.0001f * (absS - m_detEnv); // ~300ms smooth release
+            }
+
+            float desiredGain = 0.28f / std::max(0.002f, m_detEnv);
+            float targetGain = std::clamp(desiredGain, 1.0f, 25.0f);
+            m_detGain += 0.002f * (targetGain - m_detGain);
+
+            // Bounded hyperbolic tangent soft-saturation: preserves zero-crossings and period tau with zero hard clipping
+            float boostedS = std::tanh(s * m_detGain * 0.85f);
+
+            float hp = hp_a * (m_hp_y + boostedS - m_hp_x);
+            m_hp_x = boostedS;
             m_hp_y = hp;
 
             m_lp_y1 += lp_a * (hp - m_lp_y1);
             m_lp_y2 += lp_a * (m_lp_y1 - m_lp_y2);
 
-            m_rawBuf[m_writeIdx] = s;
-            m_filtBuf[m_writeIdx] = m_lp_y2;
+            m_rawBuf[m_writeIdx] = s;         // true raw input preserved for RMS metering
+            m_filtBuf[m_writeIdx] = m_lp_y2;  // boosted & filtered for precision pitch detection
 
             if (++m_writeIdx >= BUF_SIZE) m_writeIdx = 0;
         }
@@ -135,7 +161,7 @@ struct EuphoriaStrobeTunerEngine {
         float rms = std::sqrt(sumSq / float(N));
         inRms.store(rms);
 
-        if (rms < 0.0025f) {
+        if (rms < 0.0008f) {
             if (m_holdFrames > 0) {
                 m_holdFrames--;
                 strobeSpeed.store(strobeSpeed.load() * 0.90f);
@@ -148,12 +174,12 @@ struct EuphoriaStrobeTunerEngine {
             return;
         }
 
-        m_holdFrames = 18;
+        m_holdFrames = 24;
         hasSignal.store(true);
         signalActive.store(true);
 
-        int minLag = int(m_sampleRate / 1050.0f);
-        int maxLag = int(m_sampleRate / 30.0f);
+        int minLag = int(m_sampleRate / 1050.0f); // High C6 ~ 1046 Hz
+        int maxLag = int(m_sampleRate / 30.0f);   // Low B0 ~ 30.87 Hz
         if (maxLag > N / 2) maxLag = N / 2;
 
         float d[(N / 2) + 2] = {};
@@ -162,7 +188,7 @@ struct EuphoriaStrobeTunerEngine {
 
         for (int tau = 1; tau <= maxLag; ++tau) {
             float sum = 0.0f;
-            for (int j = 0; j < N - tau; j += 2) {
+            for (int j = 0; j < N - tau; ++j) {
                 float delta = x[j] - x[j + tau];
                 sum += delta * delta;
             }
@@ -235,12 +261,13 @@ struct EuphoriaStrobeTunerEngine {
         float exactMidi = semitones + 69.0f;
         int rawMidi = int(std::round(exactMidi));
 
+        // Note decision stabilization (3-frame candidate debounce, no sticky deadband)
         if (m_activeMidi < 0) {
             m_activeMidi = rawMidi;
             m_displayFreq = rawFreq;
         } else if (rawMidi != m_activeMidi) {
             if (rawMidi == m_candidateMidi) {
-                if (++m_candidateConfirm >= 2) {
+                if (++m_candidateConfirm >= 3) {
                     m_activeMidi = rawMidi;
                     m_candidateConfirm = 0;
                     m_displayFreq = rawFreq;
@@ -253,7 +280,10 @@ struct EuphoriaStrobeTunerEngine {
             m_candidateConfirm = 0;
         }
 
-        m_displayFreq = m_displayFreq * 0.40f + rawFreq * 0.60f;
+        // Adaptive frequency tracking: fast response for peg turns, stable for fine tuning
+        float freqDiff = std::abs(rawFreq - m_displayFreq);
+        float fAlpha = (freqDiff > 3.0f) ? 0.50f : ((freqDiff > 0.8f) ? 0.25f : 0.12f);
+        m_displayFreq += fAlpha * (rawFreq - m_displayFreq);
         detectedFreq.store(m_displayFreq);
         detectedPitch.store(m_displayFreq);
 
@@ -262,7 +292,31 @@ struct EuphoriaStrobeTunerEngine {
         targetPitch.store(tFreq);
 
         float rawCents = 1200.0f * std::log2(m_displayFreq / tFreq);
-        m_displayCents = m_displayCents * 0.35f + rawCents * 0.65f;
+
+        // Multi-stage adaptive cents ballistics + dead-center magnetic settling
+        float deltaCents = rawCents - m_displayCents;
+        float absDelta = std::abs(deltaCents);
+        float cAlpha;
+        if (absDelta > 5.0f) {
+            cAlpha = 0.35f; // Fast-follow large peg movements (zero lag)
+        } else if (absDelta > 2.0f) {
+            cAlpha = 0.18f; // Smooth approach
+        } else if (absDelta > 0.6f) {
+            cAlpha = 0.08f; // Fine tuning (jitter-free)
+        } else {
+            cAlpha = 0.035f; // Dead-center stabilization
+        }
+
+        m_displayCents += cAlpha * deltaCents;
+
+        // Sub-cent magnetic settling: locks rock-solid on 0.0 cents when in-tune
+        if (std::abs(rawCents) < 0.25f && absDelta < 0.4f) {
+            m_displayCents += 0.05f * (0.0f - m_displayCents);
+            if (std::abs(m_displayCents) < 0.06f) {
+                m_displayCents = 0.0f;
+            }
+        }
+
         centsDeviation.store(m_displayCents);
         cents.store(m_displayCents);
 

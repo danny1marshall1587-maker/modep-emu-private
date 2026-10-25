@@ -10,7 +10,7 @@
     doap:name "Euphoria Amp (Pure Fluid Dynamics '65 Blackface + '59 Bassman/JMP)" ;
     doap:license <http://usefulinc.com/doap/licenses/proprietary> ;
     lv2:minorVersion 3 ;
-    lv2:microVersion 1 ;
+    lv2:microVersion 2 ;
     rdfs:comment "Pure Fluid Dynamics Dual-Topology Tube Suite modeling electrical wave propagation through vacuum tubes as a pure fluid-dynamic pressure field with fluid momentum hysteresis, dynamic chamber sag, 3-Spring Accutronics Drip Reverb, Brownface Harmonic Tube Vibrato, and 1x-8x fluid oversampling." ;
     mod:brand "Cyber Audio" ;
     mod:label "Euphoria Amp" ;

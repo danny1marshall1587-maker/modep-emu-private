@@ -1731,6 +1731,96 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
         g.setColour(inTune ? RGBCol(255, 255, 255) : RGBCol(239, 68, 68));
         g.drawVerticalLine(centerDispX, (float)(strobeY1 + 2), (float)(strobeY2 - 2));
 
+        // Center Strobe Indicator Triangles
+        juce::Path topTri, botTri;
+        topTri.startNewSubPath((float)(centerDispX - 6), (float)(strobeY1 - 6));
+        topTri.lineTo((float)(centerDispX + 6), (float)(strobeY1 - 6));
+        topTri.lineTo((float)centerDispX, (float)strobeY1);
+        topTri.closeSubPath();
+        g.setColour(inTune ? RGBCol(52, 211, 153) : RGBCol(239, 68, 68));
+        g.fillPath(topTri);
+
+        botTri.startNewSubPath((float)(centerDispX - 6), (float)(strobeY2 + 6));
+        botTri.lineTo((float)(centerDispX + 6), (float)(strobeY2 + 6));
+        botTri.lineTo((float)centerDispX, (float)strobeY2);
+        botTri.closeSubPath();
+        g.fillPath(botTri);
+
+        // 5. Fine Cents Deflection Ruler & Needle (-50 ct .. +50 ct)
+        int rulerTop = strobeY2 + 10;
+        int rulerBot = rulerTop + 44;
+        fillRoundRectJuce(g, strobeX1, rulerTop, strobeX2, rulerBot, 4, RGBCol(4, 7, 12), RGBCol(30, 41, 59), 1);
+
+        int inTuneHalfW = 12;
+        fillRoundRectJuce(g, centerDispX - inTuneHalfW, rulerTop + 1, centerDispX + inTuneHalfW, rulerBot - 1, 2,
+                          inTune ? RGBCol(6, 78, 59) : RGBCol(8, 25, 20), RGBCol(16, 185, 129), 1);
+
+        g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+        static const int s_tickCents[] = { -50, -40, -30, -20, -10, -5, 0, 5, 10, 20, 30, 40, 50 };
+        for (int tc : s_tickCents) {
+            int tx = centerDispX + int((float(tc) / 50.0f) * 360.0f);
+            int tickH = (tc == 0) ? 14 : ((tc % 10 == 0) ? 10 : 6);
+            juce::Colour tcColor = (tc == 0) ? (inTune ? RGBCol(52, 211, 153) : RGBCol(255, 255, 255)) : RGBCol(100, 116, 139);
+            g.setColour(tcColor);
+            g.drawLine((float)tx, (float)(rulerTop + 2), (float)tx, (float)(rulerTop + 2 + tickH), (tc == 0) ? 2.0f : 1.0f);
+
+            if (tc % 10 == 0 || tc == 0) {
+                char tBuf[16];
+                std::snprintf(tBuf, sizeof(tBuf), "%d", tc);
+                g.setColour((tc == 0 && inTune) ? RGBCol(52, 211, 153) : RGBCol(100, 116, 139));
+                g.drawText(tBuf, tx - 16, rulerTop + 16, 32, rulerBot - rulerTop - 20, juce::Justification::centred, false);
+            }
+        }
+
+        // Visual Needle Ballistics (critically damped inertia)
+        if (sigActive) {
+            if (!tunerWasSigActive) {
+                smoothNeedleCents = cents;
+                tunerWasSigActive = true;
+            } else {
+                float targetCents = std::clamp(cents, -50.0f, 50.0f);
+                float diff = targetCents - smoothNeedleCents;
+                float ballistics = (std::abs(diff) > 8.0f) ? 0.35f : 0.20f;
+                smoothNeedleCents += diff * ballistics;
+            }
+
+            int needleX = centerDispX + int((std::clamp(smoothNeedleCents, -50.0f, 50.0f) / 50.0f) * 360.0f);
+            juce::Colour needleColor = inTune ? RGBCol(52, 211, 153) : (cents < 0 ? RGBCol(56, 189, 248) : RGBCol(249, 115, 22));
+            g.setColour(needleColor);
+            g.drawLine((float)needleX, (float)(rulerTop + 1), (float)needleX, (float)(rulerBot - 1), 3.0f);
+
+            juce::Path diamond;
+            diamond.startNewSubPath((float)needleX, (float)(rulerTop - 4));
+            diamond.lineTo((float)(needleX + 5), (float)(rulerTop + 2));
+            diamond.lineTo((float)needleX, (float)(rulerTop + 8));
+            diamond.lineTo((float)(needleX - 5), (float)(rulerTop + 2));
+            diamond.closeSubPath();
+            g.fillPath(diamond);
+        } else {
+            tunerWasSigActive = false;
+            smoothNeedleCents *= 0.85f;
+        }
+
+        // 6. Telemetry & Audio Pass-Through Banner
+        int telemY1 = rulerBot + 8;
+        int telemY2 = dispBottom - 8;
+        fillRoundRectJuce(g, dispLeft + 16, telemY1, dispRight - 16, telemY2, 4, RGBCol(2, 6, 10), RGBCol(14, 116, 144), 1);
+        char telemBuf[256];
+        if (sigActive) {
+            float inDb = (inRms > 1e-5f) ? (20.0f * std::log10(inRms)) : -96.0f;
+            std::snprintf(telemBuf, sizeof(telemBuf),
+                          "PITCH: %.2f Hz  |  TARGET: %.2f Hz (%s%d)  |  DEVIATION: %+.1f Cents  |  STABILITY: %.1f%%  |  RMS: %.1f dBFS  |  AUDIO: %s",
+                          detPitch, tgtPitch, nName, octave, cents, clarity * 100.0f, inDb,
+                          isMuted ? "MUTED (SILENT TUNING)" : "UNMUTED (PASS-THRU)");
+        } else {
+            std::snprintf(telemBuf, sizeof(telemBuf),
+                          "CHROMATIC STROBE TUNER: WAITING FOR GUITAR INPUT (PLUCK ANY STRING TO TRACK)  |  AUDIO: %s",
+                          isMuted ? "MUTED (SILENT TUNING)" : "UNMUTED (PASS-THRU)");
+        }
+        g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
+        g.setColour(sigActive ? (inTune ? RGBCol(52, 211, 153) : RGBCol(125, 211, 252)) : RGBCol(148, 163, 184));
+        g.drawText(telemBuf, dispLeft + 16, telemY1, dispRight - dispLeft - 32, telemY2 - telemY1, juce::Justification::centred, false);
+
         // Right Hardware Bay on Tuner Page
         int rBayLeft = 1018, rBayRight = bx2 - 20;
         fillRoundRectJuce(g, rBayLeft, dispTop, rBayRight, dispBottom, 8, RGBCol(8, 12, 18), RGBCol(30, 41, 59), 2);

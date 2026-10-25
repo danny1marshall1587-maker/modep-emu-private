@@ -76,5 +76,8 @@ private:
     juce::Image imgFuzz;
     juce::Image imgKnobStrip;
 
+    float smoothNeedleCents = 0.0f;
+    bool  tunerWasSigActive = false;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EuphoriaAmpAudioProcessorEditor)
 };
