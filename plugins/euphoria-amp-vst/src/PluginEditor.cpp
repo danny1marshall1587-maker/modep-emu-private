@@ -135,6 +135,11 @@ void EuphoriaAmpAudioProcessorEditor::timerCallback() {
     strobeWheelPhase += processor.tuner.strobeSpeed.load() * 0.40f;
     if (strobeWheelPhase > 1000.0f) strobeWheelPhase -= 1000.0f;
     else if (strobeWheelPhase < -1000.0f) strobeWheelPhase += 1000.0f;
+
+    if (processor.midiMap.checkAndResetNeedsSave()) {
+        processor.midiMap.saveToFile(processor.getMidiConfigFile().getFullPathName().toStdString());
+    }
+
     repaint();
 }
 
@@ -1894,22 +1899,152 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
                       RGBCol(15, 23, 42), RGBCol(245, 158, 11), 1);
     g.setColour(RGBCol(254, 240, 138));
     g.drawText("+", kMasterVolPlusRect, juce::Justification::centred, false);
+
+    // =========================================================================
+    // MIDI LEARN & STATUS HUD OVERLAYS
+    // =========================================================================
+    if (processor.midiMap.isLearning()) {
+        int lIdx = processor.midiMap.getLearningParam();
+        const auto& table = euphoriaParamTable();
+        juce::String pName = (lIdx >= 0 && lIdx < (int)table.size()) ? table[(size_t)lIdx].label : "Control";
+
+        juce::Rectangle<int> r(0, 0, 0, 0);
+        if (lIdx == K_KLON_ON) r = juce::Rectangle<int>(204 - 45, 435, 90, 120);
+        else if (lIdx == K_TS_ON) r = juce::Rectangle<int>(422 - 45, 435, 90, 120);
+        else if (lIdx == K_BD_ON) r = juce::Rectangle<int>(640 - 45, 435, 90, 120);
+        else if (lIdx == K_RAT_ON) r = juce::Rectangle<int>(858 - 45, 435, 90, 120);
+        else if (lIdx == K_FUZZ_ON) r = juce::Rectangle<int>(1076 - 45, 435, 90, 120);
+        else if (lIdx == K_CLEAN_OUT) r = kMasterVolPillRect;
+        else if (lIdx >= 0 && lIdx < (int)knobLayout.size()) r = knobLayout[(size_t)lIdx].rect;
+
+        if (!r.isEmpty() && (lIdx < 6 || knobLayout[(size_t)lIdx].pageIdx == activePage || (lIdx >= K_KLON_ON && lIdx <= K_FUZZ_HYPER && activePage == 3))) {
+            float pulse = 0.6f + 0.4f * std::sin(animPhase * 4.0f);
+            g.setColour(juce::Colour::fromFloatRGBA(0.0f, 0.95f, 1.0f, pulse));
+            g.drawRoundedRectangle(r.toFloat().expanded(4.0f), 8.0f, 3.0f);
+        }
+
+        int bw = 720, bh = 34;
+        int bx = (1280 - bw) / 2, by = 672;
+        fillRoundRectJuce(g, bx, by, bx + bw, by + bh, 8, RGBCol(10, 25, 40), RGBCol(0, 220, 255), 2);
+        g.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+        g.setColour(RGBCol(0, 240, 255));
+        g.drawText("[MIDI LEARN ACTIVE] Move any knob, slider, or press a footswitch to assign to '" + pName + "' (Click or Esc to cancel)",
+                   bx, by, bw, bh, juce::Justification::centred, false);
+    }
+    else if (processor.midiMap.getAssignedFlashTimer() > 0) {
+        processor.midiMap.decrementFlashTimer();
+        int aIdx = processor.midiMap.getLastAssignedParam();
+        int aCc = processor.midiMap.getLastAssignedCc();
+        const auto& table = euphoriaParamTable();
+        juce::String pName = (aIdx >= 0 && aIdx < (int)table.size()) ? table[(size_t)aIdx].label : "Control";
+
+        int bw = 540, bh = 34;
+        int bx = (1280 - bw) / 2, by = 672;
+        fillRoundRectJuce(g, bx, by, bx + bw, by + bh, 8, RGBCol(12, 42, 20), RGBCol(52, 211, 153), 2);
+        g.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+        g.setColour(RGBCol(167, 243, 208));
+        g.drawText("Assigned MIDI CC #" + juce::String(aCc) + " to '" + pName + "'",
+                   bx, by, bw, bh, juce::Justification::centred, false);
+    }
+}
+
+bool EuphoriaAmpAudioProcessorEditor::keyPressed(const juce::KeyPress& key) {
+    if (key.isKeyCode(juce::KeyPress::escapeKey)) {
+        if (processor.midiMap.isLearning()) {
+            processor.midiMap.cancelLearn();
+            repaint();
+            return true;
+        }
+    }
+    return false;
 }
 
 void EuphoriaAmpAudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     const auto pt = toVirtualPt(e.position);
 
+    if (processor.midiMap.isLearning()) {
+        processor.midiMap.cancelLearn();
+        repaint();
+        return;
+    }
+
     if (e.mods.isRightButtonDown()) {
-        const auto& table = euphoriaParamTable();
-        for (int i = 0; i < (int)table.size(); ++i) {
-            if (knobLayout[(size_t)i].pageIdx != -1 && knobLayout[(size_t)i].pageIdx != activePage) continue;
-            if (knobLayout[(size_t)i].rect.contains(pt) && knobLayout[(size_t)i].isStepped) {
-                int steps = knobLayout[(size_t)i].steps;
-                int prev = ((int)std::lround(processor.getParamValue(i)) - 1 + steps) % steps;
-                processor.setParamValueFromGui(i, (float)prev);
-                repaint();
-                return;
+        int targetParam = -1;
+
+        if (activePage == 3) {
+            const juce::Rectangle<int> rKlonFoot(204 - 45, 435, 90, 120);
+            const juce::Rectangle<int> rTsFoot(422 - 45, 435, 90, 120);
+            const juce::Rectangle<int> rBdFoot(640 - 45, 435, 90, 120);
+            const juce::Rectangle<int> rRatFoot(858 - 45, 435, 90, 120);
+            const juce::Rectangle<int> rFuzzFoot(1076 - 45, 435, 90, 120);
+            if (rKlonFoot.contains(pt)) targetParam = K_KLON_ON;
+            else if (rTsFoot.contains(pt)) targetParam = K_TS_ON;
+            else if (rBdFoot.contains(pt)) targetParam = K_BD_ON;
+            else if (rRatFoot.contains(pt)) targetParam = K_RAT_ON;
+            else if (rFuzzFoot.contains(pt)) targetParam = K_FUZZ_ON;
+        }
+
+        if (targetParam < 0 && (kMasterVolPillRect.contains(pt) || kMasterVolMinusRect.contains(pt) || kMasterVolPlusRect.contains(pt))) {
+            targetParam = K_CLEAN_OUT;
+        }
+
+        if (targetParam < 0) {
+            const auto& table = euphoriaParamTable();
+            for (int i = 0; i < (int)table.size(); ++i) {
+                if (knobLayout[(size_t)i].pageIdx != -1 && knobLayout[(size_t)i].pageIdx != activePage) continue;
+                if (knobLayout[(size_t)i].rect.contains(pt)) {
+                    targetParam = i;
+                    break;
+                }
             }
+        }
+
+        if (targetParam >= 0) {
+            const auto& table = euphoriaParamTable();
+            const char* label = (targetParam < (int)table.size()) ? table[(size_t)targetParam].label : "Control";
+            int currentCc = processor.midiMap.getCcForParam(targetParam);
+
+            juce::PopupMenu menu;
+            menu.addSectionHeader("MIDI Control: " + juce::String(label));
+            menu.addSeparator();
+
+            if (currentCc >= 0) {
+                menu.addItem(1, "MIDI Learn (Currently: CC #" + juce::String(currentCc) + ")");
+                menu.addItem(2, "Clear MIDI CC #" + juce::String(currentCc));
+            } else {
+                menu.addItem(1, "MIDI Learn (Move knob or press footswitch)");
+            }
+
+            if (knobLayout[(size_t)targetParam].isStepped) {
+                menu.addSeparator();
+                menu.addItem(10, "Cycle Previous Step");
+            }
+
+            menu.addSeparator();
+            menu.addItem(3, "Clear All MIDI Mappings");
+
+            menu.showMenuAsync(juce::PopupMenu::Options().withTargetScreenArea(
+                e.getScreenPosition().toInt().toRectangle().withSize(1, 1)),
+                [this, targetParam](int result) {
+                    if (result == 1) {
+                        processor.midiMap.startLearn(targetParam);
+                        repaint();
+                    } else if (result == 2) {
+                        processor.midiMap.clearBinding(targetParam);
+                        processor.midiMap.saveToFile(processor.getMidiConfigFile().getFullPathName().toStdString());
+                        repaint();
+                    } else if (result == 3) {
+                        processor.midiMap.clearAllBindings();
+                        processor.midiMap.saveToFile(processor.getMidiConfigFile().getFullPathName().toStdString());
+                        repaint();
+                    } else if (result == 10) {
+                        int steps = knobLayout[(size_t)targetParam].steps;
+                        int prev = ((int)std::lround(processor.getParamValue(targetParam)) - 1 + steps) % steps;
+                        processor.setParamValueFromGui(targetParam, (float)prev);
+                        repaint();
+                    }
+                });
+            return;
         }
         return;
     }

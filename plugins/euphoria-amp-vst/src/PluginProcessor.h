@@ -3,6 +3,7 @@
 #define CYBER_ENABLE_STUDIO_DELAY 1
 #include "EuphoriaAmpEngine.hpp"
 #include "EuphoriaParams.h"
+#include "EuphoriaMidiMap.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <atomic>
 #include <cmath>
@@ -322,7 +323,7 @@ public:
     bool hasEditor() const override { return true; }
 
     const juce::String getName() const override { return "Euphoria Amp"; }
-    bool acceptsMidi() const override { return false; }
+    bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 2.5; }
@@ -344,6 +345,11 @@ public:
     // Parameter access helpers for the 3D Hardware GUI
     float getParamValue(int idx) const noexcept { return V(idx); }
     void setParamValueFromGui(int idx, float denormVal);
+    void setParamValueFromMidi(int idx, float denormVal);
+
+    // Universal MIDI CC Mapping & Interactive MIDI Learn
+    EuphoriaMIDI::MidiMapManager midiMap;
+    juce::File getMidiConfigFile() const;
 
     // Preset system matching StandaloneWinMain.cpp
     struct PresetItem {

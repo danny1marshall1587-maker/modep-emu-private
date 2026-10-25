@@ -33,6 +33,7 @@
 
 #define CYBER_ENABLE_STUDIO_DELAY 1
 #include "../../euphoria-amp.lv2/src/EuphoriaAmpEngine.hpp"
+#include "EuphoriaMidiMap.h"
 #include "iasiodrv.h"
 
 using namespace EuphoriaDSP;
@@ -231,8 +232,19 @@ static std::string getIniPath() {
     return std::string(exePath) + "euphoria_amp_audio.ini";
 }
 
+static std::string getMidiMapPath() {
+    char exePath[MAX_PATH];
+    GetModuleFileNameA(nullptr, exePath, MAX_PATH);
+    char* p = strrchr(exePath, '\\');
+    if (p) *(p + 1) = '\0';
+    return std::string(exePath) + "euphoria_amp_midi.cfg";
+}
+
+static EuphoriaMIDI::MidiMapManager g_midiMap;
+
 static void saveAudioConfig() {
     std::string path = getIniPath();
+    g_midiMap.saveToFile(getMidiMapPath());
     WritePrivateProfileStringA("Audio", "AsioDriverName", g_audioCfg.asioDriverName, path.c_str());
     WritePrivateProfileStringA("Audio", "InDevName", g_audioCfg.inDevName, path.c_str());
     WritePrivateProfileStringA("Audio", "OutDevName", g_audioCfg.outDevName, path.c_str());
@@ -249,6 +261,7 @@ static void saveAudioConfig() {
 
 static void loadAudioConfig() {
     refreshAudioDeviceLists();
+    g_midiMap.loadFromFile(getMidiMapPath());
     std::string path = getIniPath();
     char asioName[128] = "", inName[128] = "", outName[128] = "";
     GetPrivateProfileStringA("Audio", "AsioDriverName", "", asioName, sizeof(asioName), path.c_str());
@@ -827,32 +840,8 @@ static ULONGLONG         g_recSampleDoneTime = 0;
 static std::vector<float> g_recSampleBuf;
 static std::mutex        g_recSampleMutex;
 
-// Parameter Indices (79 knobs total across 7 pages)
-enum {
-    K_CH_MODE = 0, K_QUALITY, K_CAB_SIM, K_CAB_SIZE, K_TUNING_REF, K_PICKUP_VOICE, // 0..5 (Global Header)
-    // Page 0: Euphoria Supreme Glass Clean Head (6..16, 11 knobs)
-    K_CLEAN_VOL, K_CLEAN_BRIGHT, K_CLEAN_DEEP, K_CLEAN_BASS, K_CLEAN_MID, K_CLEAN_MIDSHIFT,
-    K_CLEAN_TREBLE, K_CLEAN_GLASS, K_CLEAN_PRESENCE, K_CLEAN_MASTER, K_CLEAN_OUT,
-    // Page 1: Euphoria '59 Bassman / '68 JMP Crunch (17..26, 10 knobs)
-    K_BM_DRIVE, K_BM_VOL, K_BM_BASS, K_BM_MID, K_BM_TREBLE, K_BM_PRESENCE, K_BM_SLOPE, K_BM_TUBES, K_BM_SAG, K_BM_SPKDRV,
-    // Page 2: Euphoria '80s Friedman BE-100 / JCM 800 Lead Head (27..36, 10 knobs)
-    K_LEAD_GAIN, K_LEAD_VOL, K_LEAD_BASS, K_LEAD_MID, K_LEAD_TREBLE, K_LEAD_PRESENCE, K_LEAD_HBE, K_LEAD_C45, K_LEAD_SAT, K_LEAD_DEHISS,
-    // Page 3: Euphoria Dynamic Fluid Stompbox Lab (30 controls across 5 independent series pedals)
-    K_KLON_ON, K_KLON_GAIN, K_KLON_TREBLE, K_KLON_OUTPUT, K_KLON_BLEND, K_KLON_HYPER,
-    K_TS_ON, K_TS_DRIVE, K_TS_TONE, K_TS_LEVEL, K_TS_MOD, K_TS_HYPER,
-    K_BD_ON, K_BD_GAIN, K_BD_TONE, K_BD_LEVEL, K_BD_PHAT, K_BD_HYPER,
-    K_RAT_ON, K_RAT_DIST, K_RAT_FILTER, K_RAT_VOL, K_RAT_TURBO, K_RAT_HYPER,
-    K_FUZZ_ON, K_FUZZ_GAIN, K_FUZZ_SAG, K_FUZZ_LEVEL, K_FUZZ_TRANSISTOR, K_FUZZ_HYPER,
-    // Page 4: Fluid Space Chamber & Space Modulation (57..64, 8 knobs)
-    K_SPACE_SHAPE, K_SPACE_SIZE, K_SPACE_MOD_ON, K_SPACE_MOD_RATE,
-    K_SPACE_SHAPE_DEP, K_SPACE_SIZE_DEP, K_SPACE_WAVEFORM, K_SPACE_SPREAD,
-    // Page 5: Fluid Dynamics Reverb Space & Fender Harmonic Tremolo (65..75, 11 knobs)
-    K_REV_ON, K_REV_SHAPE, K_REV_SIZE, K_REV_LOWCUT, K_REV_HIGHCUT, K_REV_DWELL, K_REV_MIX,
-    K_VIB_ON, K_VIB_MODE, K_VIB_SPEED, K_VIB_DEPTH,
-    // Page 6: Studio Tape Delay Rack (76..83, 8 knobs)
-    K_DLY_ON, K_DLY_PINGPONG, K_DLY_TIME, K_DLY_FB, K_DLY_MIX, K_DLY_DRIVE, K_DLY_FLUTTER, K_DLY_DUCK,
-    NUM_KNOBS
-};
+// Parameter Indices (79 knobs total across 7 pages, defined in EuphoriaParams.h)
+constexpr int NUM_KNOBS = K_NUM_PARAMS;
 
 static KnobCtrl g_knobs[NUM_KNOBS] = {
     // Global switches shown in top-right subbar (page -1)
@@ -1003,6 +992,65 @@ static inline const char* getAmpTabTitle() {
 static inline void syncAmpPageWithRouting() {
     if (g_activePage < 3) {
         g_activePage = getActiveAmpPage();
+    }
+}
+
+// ============================================================================
+// Native Windows Multimedia MIDI Input System (winmm.lib)
+// ============================================================================
+static std::vector<HMIDIIN> g_activeMidiInputs;
+
+static void CALLBACK MidiInCallback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
+    if (wMsg == MIM_DATA) {
+        DWORD dwMidi = (DWORD)dwParam1;
+        BYTE status = LOBYTE(LOWORD(dwMidi));
+        BYTE data1  = HIBYTE(LOWORD(dwMidi)); // CC number
+        BYTE data2  = LOBYTE(HIWORD(dwMidi)); // CC value
+        BYTE msgType = status & 0xF0;
+        BYTE channel = (status & 0x0F) + 1;
+        if (msgType == 0xB0) { // Control Change
+            bool changed = g_midiMap.handleIncomingCc(data1, data2, channel,
+                [](int paramIdx, float targetVal) {
+                    if (paramIdx >= 0 && paramIdx < NUM_KNOBS) {
+                        g_knobs[paramIdx].curVal = targetVal;
+                        if (paramIdx == K_CH_MODE) {
+                            syncAmpPageWithRouting();
+                        }
+                    }
+                },
+                [](int paramIdx) {
+                    if (paramIdx >= 0 && paramIdx < NUM_KNOBS) {
+                        return g_knobs[paramIdx].curVal;
+                    }
+                    return 0.0f;
+                });
+            if (changed && g_hwndMain) {
+                InvalidateRect(g_hwndMain, nullptr, FALSE);
+            }
+        }
+    }
+}
+
+static void closeMidiInputs() {
+    for (auto hIn : g_activeMidiInputs) {
+        if (hIn) {
+            midiInStop(hIn);
+            midiInClose(hIn);
+        }
+    }
+    g_activeMidiInputs.clear();
+}
+
+static void initMidiInputs() {
+    closeMidiInputs();
+    UINT numDevs = midiInGetNumDevs();
+    for (UINT i = 0; i < numDevs; ++i) {
+        HMIDIIN hIn = nullptr;
+        MMRESULT res = midiInOpen(&hIn, i, (DWORD_PTR)MidiInCallback, 0, CALLBACK_FUNCTION);
+        if (res == MMSYSERR_NOERROR && hIn) {
+            midiInStart(hIn);
+            g_activeMidiInputs.push_back(hIn);
+        }
     }
 }
 
@@ -5624,6 +5672,62 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
     SetTextColor(hdc, RGB(254, 240, 138));
     DrawTextA(hdc, "+", -1, &g_mstrVolPlusRect, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 
+    // =========================================================================
+    // MIDI LEARN & STATUS HUD OVERLAYS (GDI)
+    // =========================================================================
+    if (g_midiMap.isLearning()) {
+        int lIdx = g_midiMap.getLearningParam();
+        const char* pName = (lIdx >= 0 && lIdx < NUM_KNOBS) ? g_knobs[lIdx].label : "Control";
+
+        RECT r = { 0, 0, 0, 0 };
+        if (lIdx == K_KLON_ON) r = { 204 - 45, 435, 204 + 45, 555 };
+        else if (lIdx == K_TS_ON) r = { 422 - 45, 435, 422 + 45, 555 };
+        else if (lIdx == K_BD_ON) r = { 640 - 45, 435, 640 + 45, 555 };
+        else if (lIdx == K_RAT_ON) r = { 858 - 45, 435, 858 + 45, 555 };
+        else if (lIdx == K_FUZZ_ON) r = { 1076 - 45, 435, 1076 + 45, 555 };
+        else if (lIdx == K_CLEAN_OUT) r = g_mstrVolPillRect;
+        else if (lIdx >= 0 && lIdx < NUM_KNOBS) r = g_knobs[lIdx].rect;
+
+        if (r.right > r.left && (lIdx < 6 || g_knobs[lIdx].pageIdx == g_activePage || (lIdx >= K_KLON_ON && lIdx <= K_FUZZ_HYPER && g_activePage == 3))) {
+            HBRUSH nullBr = (HBRUSH)GetStockObject(NULL_BRUSH);
+            HPEN cyanPen = CreatePen(PS_SOLID, 3, RGB(0, 220, 255));
+            HGDIOBJ oldP = SelectObject(hdc, cyanPen);
+            HGDIOBJ oldB = SelectObject(hdc, nullBr);
+            RoundRect(hdc, r.left - 4, r.top - 4, r.right + 4, r.bottom + 4, 8, 8);
+            SelectObject(hdc, oldP);
+            SelectObject(hdc, oldB);
+            DeleteObject(cyanPen);
+        }
+
+        int bw = 740, bh = 34;
+        int bx = (w - bw) / 2, by = h - 48;
+        fillRoundRect(hdc, bx, by, bx + bw, by + bh, 8, RGB(10, 25, 40), RGB(0, 220, 255), 2);
+        SelectObject(hdc, fontSub);
+        SetTextColor(hdc, RGB(0, 240, 255));
+        SetBkMode(hdc, TRANSPARENT);
+        char hudBuf[256];
+        std::snprintf(hudBuf, sizeof(hudBuf), "[MIDI LEARN ACTIVE] Move any knob, slider, or press a footswitch to assign to '%s' (Click or Esc to cancel)", pName);
+        RECT rHud = { bx, by, bx + bw, by + bh };
+        DrawTextA(hdc, hudBuf, -1, &rHud, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
+    }
+    else if (g_midiMap.getAssignedFlashTimer() > 0) {
+        g_midiMap.decrementFlashTimer();
+        int aIdx = g_midiMap.getLastAssignedParam();
+        int aCc = g_midiMap.getLastAssignedCc();
+        const char* pName = (aIdx >= 0 && aIdx < NUM_KNOBS) ? g_knobs[aIdx].label : "Control";
+
+        int bw = 540, bh = 34;
+        int bx = (w - bw) / 2, by = h - 48;
+        fillRoundRect(hdc, bx, by, bx + bw, by + bh, 8, RGB(12, 42, 20), RGB(52, 211, 153), 2);
+        SelectObject(hdc, fontSub);
+        SetTextColor(hdc, RGB(167, 243, 208));
+        SetBkMode(hdc, TRANSPARENT);
+        char hudBuf[256];
+        std::snprintf(hudBuf, sizeof(hudBuf), "Assigned MIDI CC #%d to '%s'", aCc, pName);
+        RECT rHud = { bx, by, bx + bw, by + bh };
+        DrawTextA(hdc, hudBuf, -1, &rHud, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
+    }
+
     BitBlt(hdcWin, 0, 0, w, h, hdc, 0, 0, SRCCOPY);
 
     SelectObject(hdc, oldFont);
@@ -5937,10 +6041,18 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             g_strobeWheelPhase += g_tuner.strobeSpeed.load() * 0.40f;
             if (g_strobeWheelPhase > 1000.0f) g_strobeWheelPhase -= 1000.0f;
             else if (g_strobeWheelPhase < -1000.0f) g_strobeWheelPhase += 1000.0f;
+            if (g_midiMap.checkAndResetNeedsSave()) {
+                g_midiMap.saveToFile(getMidiMapPath());
+            }
             InvalidateRect(hwnd, nullptr, FALSE);
             return 0;
         case WM_LBUTTONDOWN: {
             POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
+            if (g_midiMap.isLearning()) {
+                g_midiMap.cancelLearn();
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
             for (int t = 0; t < 6; ++t) {
                 if (PtInRect(&g_tabRects[t], pt)) {
                     if (t == 0) {
@@ -6150,30 +6262,87 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         case WM_RBUTTONDOWN: {
             POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
-            if (PtInRect(&g_inTrimPillRect, pt) || PtInRect(&g_inTrimMinusRect, pt) || PtInRect(&g_inTrimPlusRect, pt)) {
-                g_inputTrimDb.store(0.0f);
-                g_inputTrimLinear.store(1.0f);
-                g_audioCfg.inputTrimDb = 0.0f;
-                saveAudioConfig();
-                InvalidateRect(hwnd, nullptr, FALSE);
-                return 0;
+            int targetParam = -1;
+
+            if (g_activePage == 3) {
+                RECT rKlonFoot = { 204 - 45, 435, 204 + 45, 555 };
+                RECT rTsFoot   = { 422 - 45, 435, 422 + 45, 555 };
+                RECT rBdFoot   = { 640 - 45, 435, 640 + 45, 555 };
+                RECT rRatFoot  = { 858 - 45, 435, 858 + 45, 555 };
+                RECT rFuzzFoot = { 1076 - 45, 435, 1076 + 45, 555 };
+                if (PtInRect(&rKlonFoot, pt)) targetParam = K_KLON_ON;
+                else if (PtInRect(&rTsFoot, pt)) targetParam = K_TS_ON;
+                else if (PtInRect(&rBdFoot, pt)) targetParam = K_BD_ON;
+                else if (PtInRect(&rRatFoot, pt)) targetParam = K_RAT_ON;
+                else if (PtInRect(&rFuzzFoot, pt)) targetParam = K_FUZZ_ON;
             }
-            if (PtInRect(&g_mstrVolPillRect, pt) || PtInRect(&g_mstrVolMinusRect, pt) || PtInRect(&g_mstrVolPlusRect, pt)) {
-                g_knobs[K_CLEAN_OUT].curVal = 5.0f;
-                InvalidateRect(hwnd, nullptr, FALSE);
-                return 0;
+
+            if (targetParam < 0 && (PtInRect(&g_mstrVolPillRect, pt) || PtInRect(&g_mstrVolMinusRect, pt) || PtInRect(&g_mstrVolPlusRect, pt))) {
+                targetParam = K_CLEAN_OUT;
             }
-            for (int i = 0; i < NUM_KNOBS; ++i) {
-                if (g_knobs[i].pageIdx != -1 && g_knobs[i].pageIdx != g_activePage) continue;
-                if (PtInRect(&g_knobs[i].rect, pt) && g_knobs[i].isStepped) {
-                    int prev = (int(std::round(g_knobs[i].curVal)) - 1 + g_knobs[i].steps) % g_knobs[i].steps;
-                    g_knobs[i].curVal = float(prev);
-                    if (i == K_CH_MODE) {
-                        syncAmpPageWithRouting();
+
+            if (targetParam < 0) {
+                for (int i = 0; i < NUM_KNOBS; ++i) {
+                    if (g_knobs[i].pageIdx != -1 && g_knobs[i].pageIdx != g_activePage) continue;
+                    if (PtInRect(&g_knobs[i].rect, pt)) {
+                        targetParam = i;
+                        break;
                     }
-                    InvalidateRect(hwnd, nullptr, FALSE);
-                    return 0;
                 }
+            }
+
+            if (targetParam >= 0) {
+                const char* label = g_knobs[targetParam].label;
+                int currentCc = g_midiMap.getCcForParam(targetParam);
+
+                HMENU hMenu = CreatePopupMenu();
+                char titleBuf[128];
+                std::snprintf(titleBuf, sizeof(titleBuf), "MIDI Control: %s", label);
+                AppendMenuA(hMenu, MF_STRING | MF_GRAYED, 0, titleBuf);
+                AppendMenuA(hMenu, MF_SEPARATOR, 0, nullptr);
+
+                if (currentCc >= 0) {
+                    char learnBuf[128];
+                    std::snprintf(learnBuf, sizeof(learnBuf), "MIDI Learn (Currently: CC #%d)", currentCc);
+                    AppendMenuA(hMenu, MF_STRING, 1001, learnBuf);
+                    char clrBuf[128];
+                    std::snprintf(clrBuf, sizeof(clrBuf), "Clear MIDI CC #%d", currentCc);
+                    AppendMenuA(hMenu, MF_STRING, 1002, clrBuf);
+                } else {
+                    AppendMenuA(hMenu, MF_STRING, 1001, "MIDI Learn (Move knob or press footswitch)");
+                }
+
+                if (g_knobs[targetParam].isStepped) {
+                    AppendMenuA(hMenu, MF_SEPARATOR, 0, nullptr);
+                    AppendMenuA(hMenu, MF_STRING, 1010, "Cycle Previous Step");
+                }
+
+                AppendMenuA(hMenu, MF_SEPARATOR, 0, nullptr);
+                AppendMenuA(hMenu, MF_STRING, 1003, "Clear All MIDI Mappings");
+
+                POINT ptScreen = pt;
+                ClientToScreen(hwnd, &ptScreen);
+                int cmd = TrackPopupMenu(hMenu, TPM_RIGHTBUTTON | TPM_RETURNCMD, ptScreen.x, ptScreen.y, 0, hwnd, nullptr);
+                DestroyMenu(hMenu);
+
+                if (cmd == 1001) {
+                    g_midiMap.startLearn(targetParam);
+                    InvalidateRect(hwnd, nullptr, FALSE);
+                } else if (cmd == 1002) {
+                    g_midiMap.clearBinding(targetParam);
+                    g_midiMap.saveToFile(getMidiMapPath());
+                    InvalidateRect(hwnd, nullptr, FALSE);
+                } else if (cmd == 1003) {
+                    g_midiMap.clearAllBindings();
+                    g_midiMap.saveToFile(getMidiMapPath());
+                    InvalidateRect(hwnd, nullptr, FALSE);
+                } else if (cmd == 1010) {
+                    int prev = (int(std::round(g_knobs[targetParam].curVal)) - 1 + g_knobs[targetParam].steps) % g_knobs[targetParam].steps;
+                    g_knobs[targetParam].curVal = float(prev);
+                    if (targetParam == K_CH_MODE) syncAmpPageWithRouting();
+                    InvalidateRect(hwnd, nullptr, FALSE);
+                }
+                return 0;
             }
             return 0;
         }
@@ -6254,7 +6423,21 @@ static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             EndPaint(hwnd, &ps);
             return 0;
         }
+        case WM_KEYDOWN:
+            if (wp == VK_ESCAPE) {
+                if (g_midiMap.isLearning()) {
+                    g_midiMap.cancelLearn();
+                    InvalidateRect(hwnd, nullptr, FALSE);
+                    return 0;
+                }
+            }
+            break;
+        case WM_DEVICECHANGE:
+            initMidiInputs();
+            InvalidateRect(hwnd, nullptr, FALSE);
+            break;
         case WM_DESTROY:
+            closeMidiInputs();
             g_running.store(false);
             PostQuitMessage(0);
             return 0;
@@ -6287,6 +6470,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR lpCmdLine, int nCmdShow) {
     refreshAudioDeviceLists();
     loadAudioConfig();
     initPresetSystem();
+    initMidiInputs();
 
     WNDCLASSEXA wc = {};
     wc.cbSize = sizeof(wc);

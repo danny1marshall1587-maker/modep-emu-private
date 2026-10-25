@@ -4,7 +4,7 @@ if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET OR CMAKE_OSX_DEPLOYMENT_TARGET STREQU
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS version" FORCE)
 endif()
 
-project(EuphoriaAmpVST VERSION 2.3.0 LANGUAGES C CXX)
+project(EuphoriaAmpVST VERSION 2.3.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -51,7 +51,7 @@ set_target_properties(EuphoriaAmpAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
 juce_add_plugin(EuphoriaAmp
     COMPANY_NAME "Cyber Audio"
     IS_SYNTH FALSE
-    NEEDS_MIDI_INPUT FALSE
+    NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
@@ -61,7 +61,7 @@ juce_add_plugin(EuphoriaAmp
     FORMATS ${PLUGIN_FORMATS}
     LV2URI "http://cyber-audio.co.uk/plugins/euphoria-amp-vst"
     PRODUCT_NAME "Euphoria Amp"
-    VERSION "2.3.0"
+    VERSION "2.3.1"
 )
 
 target_sources(EuphoriaAmp

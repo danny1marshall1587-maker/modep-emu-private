@@ -19,6 +19,11 @@ EuphoriaAmpAudioProcessor::EuphoriaAmpAudioProcessor()
         rawParams.push_back(apvts.getRawParameterValue(d.id));
 
     initFactoryPresets();
+
+    auto midiFile = getMidiConfigFile();
+    if (midiFile.existsAsFile()) {
+        midiMap.loadFromFile(midiFile.getFullPathName().toStdString());
+    }
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout EuphoriaAmpAudioProcessor::createParameterLayout() {
@@ -48,6 +53,24 @@ void EuphoriaAmpAudioProcessor::setParamValueFromGui(int idx, float denormVal) {
         p->beginChangeGesture();
         p->setValueNotifyingHost(norm);
         p->endChangeGesture();
+    }
+}
+
+juce::File EuphoriaAmpAudioProcessor::getMidiConfigFile() const {
+    auto appData = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
+    auto dir = appData.getChildFile("CyberAudio").getChildFile("EuphoriaAmp");
+    if (!dir.exists()) dir.createDirectory();
+    return dir.getChildFile("midi_mappings.cfg");
+}
+
+void EuphoriaAmpAudioProcessor::setParamValueFromMidi(int idx, float denormVal) {
+    const auto& table = euphoriaParamTable();
+    if (idx < 0 || idx >= (int)table.size()) return;
+    const auto& d = table[(size_t)idx];
+    float clamped = std::clamp(denormVal, d.minVal, d.maxVal);
+    if (auto* p = apvts.getParameter(d.id)) {
+        float norm = p->convertTo0to1(clamped);
+        p->setValueNotifyingHost(norm);
     }
 }
 
@@ -340,8 +363,22 @@ void EuphoriaAmpAudioProcessor::pushParamsToEngine(uint32_t) {
                          V(K_CLEAN_PRESENCE), V(K_CLEAN_VOL), V(K_CLEAN_BASS), V(K_CLEAN_MID), V(K_CLEAN_TREBLE));
 }
 
-void EuphoriaAmpAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) {
+void EuphoriaAmpAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
+
+    // Process incoming MIDI Control Change (CC) messages for MIDI Learn and real-time control
+    for (const auto metadata : midiMessages) {
+        const auto msg = metadata.getMessage();
+        if (msg.isController()) {
+            midiMap.handleIncomingCc(msg.getControllerNumber(), msg.getControllerValue(), msg.getChannel(),
+                [this](int paramIdx, float targetVal) {
+                    setParamValueFromMidi(paramIdx, targetVal);
+                },
+                [this](int paramIdx) {
+                    return getParamValue(paramIdx);
+                });
+        }
+    }
     const int numSamples = buffer.getNumSamples();
     if (numSamples <= 0 || !dspEngine) return;
 
@@ -460,13 +497,20 @@ juce::AudioProcessorEditor* EuphoriaAmpAudioProcessor::createEditor() {
 void EuphoriaAmpAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     auto state = apvts.copyState();
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
-    copyXmlToBinary(*xml, destData);
+    if (xml != nullptr) {
+        xml->setAttribute("midiMap", juce::String(midiMap.serializeToString()));
+        copyXmlToBinary(*xml, destData);
+    }
 }
 
 void EuphoriaAmpAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
     std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
-    if (xmlState != nullptr && xmlState->hasTagName(apvts.state.getType()))
+    if (xmlState != nullptr && xmlState->hasTagName(apvts.state.getType())) {
+        if (xmlState->hasAttribute("midiMap")) {
+            midiMap.deserializeFromString(xmlState->getStringAttribute("midiMap").toStdString());
+        }
         apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+    }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {
