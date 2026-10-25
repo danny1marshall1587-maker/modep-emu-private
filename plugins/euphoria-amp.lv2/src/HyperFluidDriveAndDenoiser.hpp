@@ -133,6 +133,110 @@ namespace EuphoriaHyperDSP {
 namespace FluidMath = ::FluidMath;
 
 // ============================================================================
+// 0. HYPER TONE BIQUAD FILTER (Direct Form II Transposed - Glitch-Free Bounded Filter)
+// Provides full-frequency musical tone contours: active shelving, peaking, & LP
+// ============================================================================
+struct HyperToneBiquad {
+    float b0 = 1.0f, b1 = 0.0f, b2 = 0.0f;
+    float a1 = 0.0f, a2 = 0.0f;
+    float s1 = 0.0f, s2 = 0.0f;
+
+    inline float process(float in) noexcept {
+        float out = b0 * in + s1;
+        s1 = b1 * in - a1 * out + s2;
+        s2 = b2 * in - a2 * out;
+        return out;
+    }
+
+    void reset() noexcept { s1 = s2 = 0.0f; }
+
+    void setIdentity() noexcept {
+        b0 = 1.0f; b1 = b2 = a1 = a2 = 0.0f;
+        s1 = s2 = 0.0f;
+    }
+
+    void setLowPass(float fc, float Q, float sr) noexcept {
+        if (sr <= 1000.0f) sr = 48000.0f;
+        fc = std::clamp(fc, 20.0f, sr * 0.45f);
+        if (Q <= 0.01f) Q = 0.707f;
+        float omega = 2.0f * 3.14159265f * fc / sr;
+        float sn = std::sin(omega);
+        float cs = std::cos(omega);
+        float alpha = sn / (2.0f * Q);
+        float a0 = 1.0f + alpha;
+        b0 = ((1.0f - cs) * 0.5f) / a0;
+        b1 = (1.0f - cs) / a0;
+        b2 = ((1.0f - cs) * 0.5f) / a0;
+        a1 = (-2.0f * cs) / a0;
+        a2 = (1.0f - alpha) / a0;
+    }
+
+    void setHighPass(float fc, float Q, float sr) noexcept {
+        if (sr <= 1000.0f) sr = 48000.0f;
+        fc = std::clamp(fc, 20.0f, sr * 0.45f);
+        if (Q <= 0.01f) Q = 0.707f;
+        float omega = 2.0f * 3.14159265f * fc / sr;
+        float sn = std::sin(omega);
+        float cs = std::cos(omega);
+        float alpha = sn / (2.0f * Q);
+        float a0 = 1.0f + alpha;
+        b0 = ((1.0f + cs) * 0.5f) / a0;
+        b1 = (-(1.0f + cs)) / a0;
+        b2 = ((1.0f + cs) * 0.5f) / a0;
+        a1 = (-2.0f * cs) / a0;
+        a2 = (1.0f - alpha) / a0;
+    }
+
+    void setLowShelf(float fc, float gainDb, float Q, float sr) noexcept {
+        if (sr <= 1000.0f) sr = 48000.0f;
+        fc = std::clamp(fc, 20.0f, sr * 0.45f);
+        float A = std::pow(10.0f, gainDb / 40.0f);
+        float omega = 2.0f * 3.14159265f * fc / sr;
+        float sn = std::sin(omega);
+        float cs = std::cos(omega);
+        float beta = std::sqrt(A + A);
+        float a0 = (A + 1.0f) + (A - 1.0f) * cs + beta * sn;
+        b0 = (A * ((A + 1.0f) - (A - 1.0f) * cs + beta * sn)) / a0;
+        b1 = (2.0f * A * ((A - 1.0f) - (A + 1.0f) * cs)) / a0;
+        b2 = (A * ((A + 1.0f) - (A - 1.0f) * cs - beta * sn)) / a0;
+        a1 = (-2.0f * ((A - 1.0f) + (A + 1.0f) * cs)) / a0;
+        a2 = ((A + 1.0f) + (A - 1.0f) * cs - beta * sn) / a0;
+    }
+
+    void setHighShelf(float fc, float gainDb, float Q, float sr) noexcept {
+        if (sr <= 1000.0f) sr = 48000.0f;
+        fc = std::clamp(fc, 20.0f, sr * 0.45f);
+        float A = std::pow(10.0f, gainDb / 40.0f);
+        float omega = 2.0f * 3.14159265f * fc / sr;
+        float sn = std::sin(omega);
+        float cs = std::cos(omega);
+        float beta = std::sqrt(A + A);
+        float a0 = (A + 1.0f) - (A - 1.0f) * cs + beta * sn;
+        b0 = (A * ((A + 1.0f) + (A - 1.0f) * cs + beta * sn)) / a0;
+        b1 = (-2.0f * A * ((A - 1.0f) + (A + 1.0f) * cs)) / a0;
+        b2 = (A * ((A + 1.0f) - (A - 1.0f) * cs - beta * sn)) / a0;
+        a1 = (2.0f * ((A - 1.0f) - (A + 1.0f) * cs)) / a0;
+        a2 = ((A + 1.0f) - (A - 1.0f) * cs - beta * sn) / a0;
+    }
+
+    void setPeaking(float fc, float gainDb, float Q, float sr) noexcept {
+        if (sr <= 1000.0f) sr = 48000.0f;
+        fc = std::clamp(fc, 20.0f, sr * 0.45f);
+        float A = std::pow(10.0f, gainDb / 40.0f);
+        float omega = 2.0f * 3.14159265f * fc / sr;
+        float sn = std::sin(omega);
+        float cs = std::cos(omega);
+        float alpha = sn / (2.0f * Q);
+        float a0 = 1.0f + alpha / A;
+        b0 = (1.0f + alpha * A) / a0;
+        b1 = (-2.0f * cs) / a0;
+        b2 = (1.0f - alpha * A) / a0;
+        a1 = (-2.0f * cs) / a0;
+        a2 = (1.0f - alpha / A) / a0;
+    }
+};
+
+// ============================================================================
 // 1. ADAA HYPER-FLUID NON-LINEAR CELL (Eliminates Ultrasonic Aliasing Fizz)
 // Branchless 4th-Order Simpson/Midpoint ADAA using FluidMath::fast_tanh
 // Zero std::exp / std::log1p calls, zero division-by-zero branches, ~6 cycles!
@@ -192,15 +296,18 @@ class HyperCentaurPedal {
 private:
     PhaseCoherentMidSplitter splitter;
     HyperFluidADAA gePosADAA, geNegADAA;
+    HyperToneBiquad toneShelf;
+    HyperToneBiquad toneLp;
     float prevIn = 0.0f;
     float pickTransientEnv = 0.0f;
-    float toneLpState = 0.0f;
+    float lastToneKnob = -1.0f;
     float sampleRate = 48000.0f;
 
 public:
     void prepare(float sr) noexcept {
-        sampleRate = sr;
-        splitter.prepare(sr, 360.0f, 4200.0f);
+        sampleRate = (sr > 1000.0f) ? sr : 48000.0f;
+        splitter.prepare(sampleRate, 360.0f, 4200.0f);
+        lastToneKnob = -1.0f;
         reset();
     }
 
@@ -208,9 +315,11 @@ public:
         splitter.reset();
         gePosADAA.reset();
         geNegADAA.reset();
+        toneShelf.reset();
+        toneLp.reset();
         prevIn = 0.0f;
         pickTransientEnv = 0.0f;
-        toneLpState = 0.0f;
+        lastToneKnob = -1.0f;
     }
 
     // gainKnob, toneKnob, levelKnob in [0.0f ... 1.0f], muSmooth = dB guitar vol morph [0..1]
@@ -242,12 +351,24 @@ public:
         float cleanBlend = (1.0f - 0.65f * kDynDrive) * (1.0f + 0.35f * (1.0f - muSmooth));
         float ySum = (xCleanComplement + xMid * cleanBlend) + yClipped * (3.2f * kDynDrive);
 
-        // 5. Active Liquid-Glass Tilt/Treble Matrix
-        toneLpState += 0.28f * (ySum - toneLpState); // ~2.4 kHz pivot
-        float highAir = ySum - toneLpState;
-        float toneShaped = ySum + (toneKnob - 0.5f) * 1.4f * highAir;
+        // 5. Active Baxandall Treble & Liquid-Glass Matrix (Full-range sweep from velvety dark to glassy chime)
+        if (std::abs(toneKnob - lastToneKnob) > 0.0005f) {
+            lastToneKnob = toneKnob;
+            if (toneKnob <= 0.5f) {
+                float cutDb = (toneKnob - 0.5f) * 44.0f; // 0 to -22 dB
+                toneShelf.setHighShelf(1600.0f, cutDb, 0.707f, sampleRate);
+                float lpCut = 1200.0f * std::pow(16000.0f / 1200.0f, toneKnob * 2.0f);
+                toneLp.setLowPass(lpCut, 0.707f, sampleRate);
+            } else {
+                float boostDb = (toneKnob - 0.5f) * 32.0f; // 0 to +16 dB
+                toneShelf.setHighShelf(3000.0f, boostDb, 0.707f, sampleRate);
+                toneLp.setLowPass(20000.0f, 0.707f, sampleRate);
+            }
+        }
+        float yToned = toneShelf.process(ySum);
+        yToned = toneLp.process(yToned);
 
-        return toneShaped * levelKnob;
+        return yToned * levelKnob;
     }
 };
 
@@ -258,23 +379,27 @@ class HyperTS808Pedal {
 private:
     PhaseCoherentMidSplitter dynamicSplitter;
     HyperFluidADAA diodeLoopADAA;
+    HyperToneBiquad toneShelf;
+    HyperToneBiquad toneLp;
     float envFollower = 0.0f;
-    float vocalResState1 = 0.0f, vocalResState2 = 0.0f;
-    float toneLpState = 0.0f;
+    float lastToneKnob = -1.0f;
     float sampleRate = 48000.0f;
 
 public:
     void prepare(float sr) noexcept {
-        sampleRate = sr;
-        dynamicSplitter.prepare(sr, 360.0f, 3600.0f);
+        sampleRate = (sr > 1000.0f) ? sr : 48000.0f;
+        dynamicSplitter.prepare(sampleRate, 360.0f, 3600.0f);
+        lastToneKnob = -1.0f;
         reset();
     }
 
     void reset() noexcept {
         dynamicSplitter.reset();
         diodeLoopADAA.reset();
+        toneShelf.reset();
+        toneLp.reset();
         envFollower = 0.0f;
-        vocalResState1 = vocalResState2 = toneLpState = 0.0f;
+        lastToneKnob = -1.0f;
     }
 
     inline float processSample(float x, float driveKnob, float toneKnob, float levelKnob, bool isFat, float muSmooth = 1.0f) noexcept {
@@ -303,12 +428,25 @@ public:
                      + xMidLoop
                      + (symmetricalClip + extracted2ndHarmonic) * (1.65f * kDynDrive);
 
-        // 4. Velvet Post-Filter (Preserves pick chime up to 8.5 kHz instead of choking at 723 Hz)
-        float alphaTone = 0.08f + 0.45f * toneKnob;
-        toneLpState += alphaTone * (yOpAmp - toneLpState);
-        float yTone = toneLpState + (toneKnob * 0.45f) * (yOpAmp - toneLpState);
+        // 4. Authentic TS808 Active Tone Network (Creamy Smooth 650Hz to Laser-Bite 2.8kHz)
+        if (std::abs(toneKnob - lastToneKnob) > 0.0005f) {
+            lastToneKnob = toneKnob;
+            if (toneKnob <= 0.5f) {
+                float cutDb = (toneKnob - 0.5f) * 40.0f; // 0 to -20 dB
+                float corner = 650.0f + toneKnob * 1200.0f;
+                toneShelf.setHighShelf(corner, cutDb, 0.707f, sampleRate);
+                float lpCut = 850.0f * std::pow(12000.0f / 850.0f, toneKnob * 2.0f);
+                toneLp.setLowPass(lpCut, 0.707f, sampleRate);
+            } else {
+                float boostDb = (toneKnob - 0.5f) * 32.0f; // 0 to +16 dB
+                toneShelf.setPeaking(2800.0f, boostDb, 0.85f, sampleRate);
+                toneLp.setLowPass(18000.0f, 0.707f, sampleRate);
+            }
+        }
+        float yToned = toneShelf.process(yOpAmp);
+        yToned = toneLp.process(yToned);
 
-        return FluidMath::fast_tanh(yTone * 0.90f) * levelKnob;
+        return FluidMath::fast_tanh(yToned * 0.90f) * levelKnob;
     }
 
     inline float processSample(float x, float driveKnob, float toneKnob, float levelKnob, float muSmooth) noexcept {
@@ -322,23 +460,33 @@ public:
 class HyperBD2Pedal {
 private:
     HyperFluidADAA jfet1ADAA, jfet2ADAA;
+    HyperToneBiquad toneHi;
+    HyperToneBiquad toneLo;
+    HyperToneBiquad toneLp;
     float jfet1Momentum = 0.0f, jfet2Momentum = 0.0f;
     float jfet2BiasSag = 0.0f;
     float prevX = 0.0f, prevV1 = 0.0f;
     float signalEnv = 0.0f;
     float subTightState = 0.0f;
+    float lastToneKnob = -1.0f;
+    float sampleRate = 48000.0f;
 
 public:
     void prepare(float sr = 48000.0f) noexcept {
-        (void)sr;
+        sampleRate = (sr > 1000.0f) ? sr : 48000.0f;
+        lastToneKnob = -1.0f;
         reset();
     }
 
     void reset() noexcept {
         jfet1ADAA.reset();
         jfet2ADAA.reset();
+        toneHi.reset();
+        toneLo.reset();
+        toneLp.reset();
         jfet1Momentum = jfet2Momentum = jfet2BiasSag = 0.0f;
         prevX = prevV1 = signalEnv = subTightState = 0.0f;
+        lastToneKnob = -1.0f;
     }
 
     inline float processSample(float x, float gainKnob, float toneKnob, float levelKnob, bool isPhat = false, float muSmooth = 1.0f) noexcept {
@@ -372,12 +520,34 @@ public:
         float w2 = jfet2ADAA.process(u2 + 0.28f * jfet2Momentum);
         float v2 = (u2 >= 0.0f) ? (w2 - 0.16f * w2 * w2) : (w2 + 0.12f * w2 * w2);
 
-        // Keeley-Style Phat Low-End Balance + Smooth Tilt Tone
+        // Keeley-Style Phat Low-End Balance
         subTightState += 0.025f * (v2 - subTightState);
         float phatWeight = isPhat ? 0.48f : 0.25f;
-        float phatBoost = v2 + phatWeight * subTightState + (toneKnob - 0.5f) * 0.85f * (v2 - subTightState);
+        float preToned = v2 + phatWeight * subTightState;
 
-        return FluidMath::fast_tanh(phatBoost * 0.92f) * levelKnob;
+        // Active BD-2 Tilt-Matrix Equalizer (Full-range sweep from warm fat body to glassy snap)
+        if (std::abs(toneKnob - lastToneKnob) > 0.0005f) {
+            lastToneKnob = toneKnob;
+            if (toneKnob <= 0.5f) {
+                float cutHiDb = (toneKnob - 0.5f) * 44.0f;   // 0 to -22 dB
+                float boostLoDb = (0.5f - toneKnob) * 12.0f; // 0 to +6 dB
+                float hiFreq = 950.0f + toneKnob * 900.0f;
+                toneHi.setHighShelf(hiFreq, cutHiDb, 0.707f, sampleRate);
+                toneLo.setLowShelf(280.0f, boostLoDb, 0.707f, sampleRate);
+                float lpCut = 1200.0f * std::pow(14000.0f / 1200.0f, toneKnob * 2.0f);
+                toneLp.setLowPass(lpCut, 0.707f, sampleRate);
+            } else {
+                float boostHiDb = (toneKnob - 0.5f) * 36.0f; // 0 to +18 dB
+                float cutLoDb = (0.5f - toneKnob) * 8.0f;    // 0 to -4 dB
+                toneHi.setHighShelf(2400.0f, boostHiDb, 0.707f, sampleRate);
+                toneLo.setLowShelf(220.0f, cutLoDb, 0.707f, sampleRate);
+                toneLp.setLowPass(20000.0f, 0.707f, sampleRate);
+            }
+        }
+        float yToned = toneLo.process(toneHi.process(preToned));
+        yToned = toneLp.process(yToned);
+
+        return FluidMath::fast_tanh(yToned * 0.92f) * levelKnob;
     }
 
     inline float processSample(float x, float gainKnob, float toneKnob, float levelKnob, float muSmooth) noexcept {
@@ -391,20 +561,20 @@ public:
 class HyperRodentPedal {
 private:
     HyperFluidADAA q1ADAA, q2ADAA;
+    HyperToneBiquad ratLp1;
+    HyperToneBiquad ratLp2;
     float slewState = 0.0f;
     float maxSlewPerSample = 0.18f;
     float subSplitState = 0.0f;
     float alphaSub = 0.022f; // ~180 Hz tight sub-bass lock
-    float filterState1 = 0.0f, filterState2 = 0.0f;
     float lastFilterKnob = -1.0f;
-    float cachedAlphaLp = 0.35f;
     float sampleRate = 48000.0f;
 
 public:
     void prepare(float sr, float voltsPerMicrosecond = 0.30f) noexcept {
-        sampleRate = sr;
-        maxSlewPerSample = (voltsPerMicrosecond * 1e6f) / (sr * 12.0f);
-        alphaSub = (2.0f * 3.14159265f * 180.0f) / (sr + 2.0f * 3.14159265f * 180.0f);
+        sampleRate = (sr > 1000.0f) ? sr : 48000.0f;
+        maxSlewPerSample = (voltsPerMicrosecond * 1e6f) / (sampleRate * 12.0f);
+        alphaSub = (2.0f * 3.14159265f * 180.0f) / (sampleRate + 2.0f * 3.14159265f * 180.0f);
         lastFilterKnob = -1.0f;
         reset();
     }
@@ -412,7 +582,10 @@ public:
     void reset() noexcept {
         q1ADAA.reset();
         q2ADAA.reset();
-        slewState = subSplitState = filterState1 = filterState2 = 0.0f;
+        ratLp1.reset();
+        ratLp2.reset();
+        slewState = subSplitState = 0.0f;
+        lastFilterKnob = -1.0f;
     }
 
     inline float processSample(float x, float distKnob, float filterKnob, float volKnob, float turboMorph = 0.0f, float muSmooth = 1.0f) noexcept {
@@ -438,16 +611,17 @@ public:
         // Recombine Tight Laminar Sub-Bass with Creamy LM308 Mid/High Lead
         float combined = tightSub * 0.55f + violinSustain * 0.85f;
 
-        // 4. Classic Rat Filter Sweep (0.0 = Bright 18 kHz, 1.0 = Warm Creamy 480 Hz)
+        // 4. Authentic 1978 LM308 Slew & Resonant Rat Filter (350 Hz to 20 kHz)
         if (std::abs(filterKnob - lastFilterKnob) > 0.0005f) {
             lastFilterKnob = filterKnob;
-            float cutoffHz = 480.0f * std::pow(36.0f, 1.0f - filterKnob);
-            cachedAlphaLp = (2.0f * 3.14159265f * cutoffHz) / (sampleRate + 2.0f * 3.14159265f * cutoffHz);
+            // filterKnob in [0..1]: 0 = warm dark (350 Hz), 1 = razor bright (20,000 Hz) matching classic mode
+            float cutoffHz = 350.0f * std::pow(20000.0f / 350.0f, filterKnob);
+            ratLp1.setLowPass(cutoffHz, 0.707f, sampleRate);
+            ratLp2.setLowPass(std::min(cutoffHz * 1.5f, sampleRate * 0.45f), 0.707f, sampleRate);
         }
-        filterState1 += cachedAlphaLp * (combined - filterState1);
-        filterState2 += cachedAlphaLp * (filterState1 - filterState2);
+        float filtered = ratLp2.process(ratLp1.process(combined));
 
-        return filterState2 * volKnob;
+        return filtered * volKnob;
     }
 };
 

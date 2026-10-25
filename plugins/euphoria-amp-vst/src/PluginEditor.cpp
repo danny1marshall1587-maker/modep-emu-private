@@ -850,95 +850,219 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
         g.drawText("HARDWOOD PEDALBOARD DECK  |  5 INDEPENDENT SERIES STOMPBOXES  |  MASSIVE CLEAN BOOST HEADROOM (+22dB)",
                    bx1 + 24, by1 + 6, bx2 - bx1 - 48, 18, juce::Justification::centred, false);
 
-        // PEDAL 1: FLUID CENTAUR
+        auto drawCornerRivets = [&](int x1, int y1, int x2, int y2) {
+            int rx[4] = { x1 + 10, x2 - 10, x1 + 10, x2 - 10 };
+            int ry[4] = { y1 + 10, y1 + 10, y2 - 10, y2 - 10 };
+            for (int i = 0; i < 4; ++i) {
+                g.setColour(RGBCol(160, 160, 165));
+                g.fillEllipse((float)(rx[i] - 3), (float)(ry[i] - 3), 6.0f, 6.0f);
+                g.setColour(RGBCol(45, 45, 50));
+                g.drawLine((float)(rx[i] - 2), (float)ry[i], (float)(rx[i] + 2), (float)ry[i], 1.0f);
+            }
+        };
+
+        // PEDAL 1: FLUID CENTAUR (Rectangular Boutique Chassis)
         int p1X1 = 109, p1X2 = 299, p1Y1 = 135, p1Y2 = 555;
         bool klonActive = (processor.getParamValue(K_KLON_ON) > 0.5f);
-        if (imgKlon.isValid()) {
-            g.drawImage(imgKlon, p1X1, p1Y1, p1X2 - p1X1, p1Y2 - p1Y1, 0, 0, imgKlon.getWidth(), imgKlon.getHeight());
-        } else {
-            fillRoundRectJuce(g, p1X1, p1Y1, p1X2, p1Y2, 14, klonActive ? RGBCol(180, 130, 38) : RGBCol(140, 100, 30), RGBCol(254, 240, 138), 2);
-        }
+        bool klonHyp    = (processor.getParamValue(K_KLON_HYPER) > 0.5f);
+
+        // Floor drop shadow
+        fillRoundRectJuce(g, p1X1 + 5, p1Y1 + 7, p1X2 + 5, p1Y2 + 7, 14, RGBCol(18, 10, 6), RGBCol(18, 10, 6), 1);
+
+        // Rectangular Champagne Gold Enclosure
+        juce::Colour klonChassisBg = klonActive ? RGBCol(190, 145, 45) : RGBCol(115, 85, 28);
+        juce::Colour klonBorder    = klonActive ? RGBCol(254, 240, 138) : RGBCol(165, 125, 45);
+        fillRoundRectJuce(g, p1X1, p1Y1, p1X2, p1Y2, 14, klonChassisBg, klonBorder, klonActive ? 2 : 1);
+        drawCornerRivets(p1X1, p1Y1, p1X2, p1Y2);
+
+        // Recessed Oxblood Faceplate Accent
+        fillRoundRectJuce(g, 204 - 74, p1Y1 + 42, 204 + 74, p1Y2 - 110, 14,
+                          RGBCol(48, 14, 16), RGBCol(95, 30, 25), 1);
+
+        // Header Plaque
+        fillRoundRectJuce(g, p1X1 + 10, p1Y1 + 8, p1X2 - 10, p1Y1 + 48, 6,
+                          RGBCol(65, 14, 16), RGBCol(217, 119, 6), 1);
+
         g.setFont(juce::FontOptions(20.0f, juce::Font::bold));
         g.setColour(klonActive ? RGBCol(254, 240, 138) : RGBCol(200, 170, 110));
         g.drawText("FLUID CENTAUR", p1X1 + 12, p1Y1 + 10, p1X2 - p1X1 - 24, 24, juce::Justification::centred, false);
-        g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
+        g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
         g.setColour(RGBCol(254, 202, 202));
-        g.drawText("18V PURE GERMANIUM", p1X1 + 12, p1Y1 + 32, p1X2 - p1X1 - 24, 14, juce::Justification::centred, false);
+        g.drawText(klonHyp ? "HYPER 27V ADAA (+22dB)" : "(OLD) 18V PURE GERMANIUM", p1X1 + 2, p1Y1 + 32, p1X2 - p1X1 - 4, 14, juce::Justification::centred, false);
+
+        // Jewel LED Lamp (Amber/Red)
         fillRoundRectJuce(g, 204 - 8, p1Y1 + 52, 204 + 8, p1Y1 + 68, 16,
                           klonActive ? RGBCol(239, 68, 68) : RGBCol(50, 12, 12),
                           klonActive ? RGBCol(254, 202, 202) : RGBCol(80, 20, 20), 1);
         if (klonActive)
             fillRoundRectJuce(g, 204 - 3, p1Y1 + 56, 204 + 3, p1Y1 + 62, 6, RGBCol(255, 255, 255), RGBCol(255, 255, 255), 1);
+
+        // Circuit Mode Badge Pill
+        fillRoundRectJuce(g, p1X1 + 12, p1Y2 - 110, p1X2 - 12, p1Y2 - 90, 4,
+                          RGBCol(55, 12, 15), RGBCol(217, 119, 6), 1);
+        g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+        g.setColour(RGBCol(254, 240, 138));
+        g.drawText(klonHyp ? "HYPER 27V ADAA (+22dB)" : "(OLD) 18V VINTAGE KLON", p1X1 + 14, p1Y2 - 109, p1X2 - p1X1 - 28, 18, juce::Justification::centred, false);
+
         draw3DStompFootswitch(g, 204, 480, klonActive, RGBCol(245, 158, 11));
+        g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
         g.setColour(klonActive ? RGBCol(254, 240, 138) : RGBCol(140, 115, 75));
         g.drawText(klonActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", p1X1, p1Y2 - 24, p1X2 - p1X1, 18, juce::Justification::centred, false);
 
-        // PEDAL 2: TS808 SCREAMER
+        // PEDAL 2: TS808 SCREAMER (Rectangular Boutique Chassis)
         int p2X1 = 327, p2X2 = 517, p2Y1 = 135, p2Y2 = 555;
         bool tsActive = (processor.getParamValue(K_TS_ON) > 0.5f);
-        if (imgTs9.isValid()) {
-            g.drawImage(imgTs9, p2X1, p2Y1, p2X2 - p2X1, p2Y2 - p2Y1, 0, 0, imgTs9.getWidth(), imgTs9.getHeight());
-        } else {
-            fillRoundRectJuce(g, p2X1, p2Y1, p2X2, p2Y2, 14, tsActive ? RGBCol(22, 105, 52) : RGBCol(16, 75, 38), RGBCol(110, 231, 183), 2);
-        }
+        bool tsHyp    = (processor.getParamValue(K_TS_HYPER) > 0.5f);
+        bool tsFat    = (processor.getParamValue(K_TS_FAT) > 0.5f);
+
+        // Floor drop shadow
+        fillRoundRectJuce(g, p2X1 + 5, p2Y1 + 7, p2X2 + 5, p2Y2 + 7, 14, RGBCol(18, 10, 6), RGBCol(18, 10, 6), 1);
+
+        // Rectangular Emerald Green Enclosure
+        juce::Colour tsChassisBg = tsActive ? RGBCol(22, 105, 52) : RGBCol(16, 68, 32);
+        juce::Colour tsBorder    = tsActive ? RGBCol(110, 231, 183) : RGBCol(40, 115, 60);
+        fillRoundRectJuce(g, p2X1, p2Y1, p2X2, p2Y2, 14, tsChassisBg, tsBorder, tsActive ? 2 : 1);
+        drawCornerRivets(p2X1, p2Y1, p2X2, p2Y2);
+
+        // Recessed Dark Emerald Faceplate Accent
+        fillRoundRectJuce(g, 422 - 74, p2Y1 + 42, 422 + 74, p2Y2 - 110, 14,
+                          RGBCol(12, 48, 24), RGBCol(25, 95, 45), 1);
+
+        // Header Plaque
+        fillRoundRectJuce(g, p2X1 + 10, p2Y1 + 8, p2X2 - 10, p2Y1 + 48, 6,
+                          RGBCol(10, 50, 24), RGBCol(34, 197, 94), 1);
+
         g.setFont(juce::FontOptions(20.0f, juce::Font::bold));
         g.setColour(tsActive ? RGBCol(167, 243, 208) : RGBCol(110, 170, 135));
         g.drawText("TS808 SCREAMER", p2X1 + 12, p2Y1 + 10, p2X2 - p2X1 - 24, 24, juce::Justification::centred, false);
-        g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
+        g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
         g.setColour(RGBCol(209, 250, 229));
-        g.drawText("720.5Hz MID-HUMP & JRC4558", p2X1 + 12, p2Y1 + 32, p2X2 - p2X1 - 24, 14, juce::Justification::centred, false);
+        const char* tsSub = tsHyp ? (tsFat ? "HYPER FAT VELVET JRC" : "HYPER VELVET JRC4558")
+                                  : (tsFat ? "(OLD) FAT MOD 340Hz" : "720.5Hz MID-HUMP & JRC");
+        g.drawText(tsSub, p2X1 + 2, p2Y1 + 32, p2X2 - p2X1 - 4, 14, juce::Justification::centred, false);
+
+        // Jewel LED Lamp (Emerald/Amber)
         fillRoundRectJuce(g, 422 - 8, p2Y1 + 52, 422 + 8, p2Y1 + 68, 16,
-                          tsActive ? RGBCol(245, 158, 11) : RGBCol(50, 30, 8),
-                          tsActive ? RGBCol(254, 240, 138) : RGBCol(80, 48, 15), 1);
+                          tsActive ? RGBCol(34, 197, 94) : RGBCol(10, 45, 20),
+                          tsActive ? RGBCol(187, 247, 208) : RGBCol(20, 80, 35), 1);
         if (tsActive)
             fillRoundRectJuce(g, 422 - 3, p2Y1 + 56, 422 + 3, p2Y1 + 62, 6, RGBCol(255, 255, 255), RGBCol(255, 255, 255), 1);
+
+        // Circuit Mode Badge Pill
+        fillRoundRectJuce(g, p2X1 + 12, p2Y2 - 110, p2X2 - 12, p2Y2 - 90, 4,
+                          RGBCol(8, 42, 22), RGBCol(52, 211, 153), 1);
+        g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+        g.setColour(RGBCol(167, 243, 208));
+        const char* tsBdg = tsHyp ? (tsFat ? "HYPER FAT (+20dB)" : "HYPER VELVET (+20dB)")
+                                  : (tsFat ? "(OLD) FAT MOD 340Hz" : "(OLD) STOCK 720Hz");
+        g.drawText(tsBdg, p2X1 + 14, p2Y2 - 109, p2X2 - p2X1 - 28, 18, juce::Justification::centred, false);
+
         draw3DStompFootswitch(g, 422, 480, tsActive, RGBCol(34, 197, 94));
+        g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
         g.setColour(tsActive ? RGBCol(167, 243, 208) : RGBCol(100, 150, 120));
         g.drawText(tsActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", p2X1, p2Y2 - 24, p2X2 - p2X1, 18, juce::Justification::centred, false);
 
-        // PEDAL 3: BD-2 BLUES DRIVER
+        // PEDAL 3: BD-2 BLUES DRIVER (Rectangular Boutique Chassis)
         int p3X1 = 545, p3X2 = 735, p3Y1 = 135, p3Y2 = 555;
         bool bdActive = (processor.getParamValue(K_BD_ON) > 0.5f);
-        if (imgBlues.isValid()) {
-            g.drawImage(imgBlues, p3X1, p3Y1, p3X2 - p3X1, p3Y2 - p3Y1, 0, 0, imgBlues.getWidth(), imgBlues.getHeight());
-        } else {
-            fillRoundRectJuce(g, p3X1, p3Y1, p3X2, p3Y2, 14, bdActive ? RGBCol(20, 72, 150) : RGBCol(14, 48, 105), RGBCol(96, 165, 250), 2);
-        }
+        bool bdHyp    = (processor.getParamValue(K_BD_HYPER) > 0.5f);
+        bool bdPhat   = (processor.getParamValue(K_BD_PHAT) > 0.5f);
+
+        // Floor drop shadow
+        fillRoundRectJuce(g, p3X1 + 5, p3Y1 + 7, p3X2 + 5, p3Y2 + 7, 14, RGBCol(18, 10, 6), RGBCol(18, 10, 6), 1);
+
+        // Rectangular Sapphire Blue Enclosure
+        juce::Colour bdChassisBg = bdActive ? RGBCol(20, 72, 150) : RGBCol(14, 48, 105);
+        juce::Colour bdBorder    = bdActive ? RGBCol(147, 197, 253) : RGBCol(55, 100, 165);
+        fillRoundRectJuce(g, p3X1, p3Y1, p3X2, p3Y2, 14, bdChassisBg, bdBorder, bdActive ? 2 : 1);
+        drawCornerRivets(p3X1, p3Y1, p3X2, p3Y2);
+
+        // Recessed Dark Cobalt Faceplate Accent
+        fillRoundRectJuce(g, 640 - 74, p3Y1 + 42, 640 + 74, p3Y2 - 110, 14,
+                          RGBCol(10, 28, 65), RGBCol(28, 65, 125), 1);
+
+        // Header Plaque
+        fillRoundRectJuce(g, p3X1 + 10, p3Y1 + 8, p3X2 - 10, p3Y1 + 48, 6,
+                          RGBCol(12, 32, 75), RGBCol(56, 189, 248), 1);
+
         g.setFont(juce::FontOptions(20.0f, juce::Font::bold));
         g.setColour(bdActive ? RGBCol(254, 240, 138) : RGBCol(210, 200, 120));
         g.drawText("Blues Driver", p3X1 + 12, p3Y1 + 10, p3X2 - p3X1 - 24, 24, juce::Justification::centred, false);
-        g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
+        g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
         g.setColour(RGBCol(191, 219, 254));
-        g.drawText("BD-2 FLUID LAB | DUAL JFET", p3X1 + 12, p3Y1 + 32, p3X2 - p3X1 - 24, 14, juce::Justification::centred, false);
+        const char* bdSub = bdHyp ? (bdPhat ? "HYPER PHAT JFET (+22dB)" : "HYPER JFET SLIPSTREAM")
+                                  : (bdPhat ? "(OLD) PHAT MOD 160Hz" : "BD-2 FLUID LAB | DUAL JFET");
+        g.drawText(bdSub, p3X1 + 2, p3Y1 + 32, p3X2 - p3X1 - 4, 14, juce::Justification::centred, false);
+
+        // Jewel LED Lamp (Cyan/Azure)
         fillRoundRectJuce(g, 640 - 8, p3Y1 + 52, 640 + 8, p3Y1 + 68, 16,
                           bdActive ? RGBCol(34, 211, 238) : RGBCol(10, 25, 55),
                           bdActive ? RGBCol(186, 230, 253) : RGBCol(25, 50, 95), 1);
         if (bdActive)
             fillRoundRectJuce(g, 640 - 3, p3Y1 + 56, 640 + 3, p3Y1 + 62, 6, RGBCol(255, 255, 255), RGBCol(255, 255, 255), 1);
+
+        // Circuit Mode Badge Pill
+        fillRoundRectJuce(g, p3X1 + 12, p3Y2 - 110, p3X2 - 12, p3Y2 - 90, 4,
+                          RGBCol(10, 30, 68), RGBCol(56, 189, 248), 1);
+        g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+        g.setColour(RGBCol(186, 230, 253));
+        const char* bdBdg = bdHyp ? (bdPhat ? "HYPER PHAT (+22dB)" : "HYPER SLIPSTREAM")
+                                  : (bdPhat ? "(OLD) PHAT MOD 160Hz" : "(OLD) STOCK BD-2");
+        g.drawText(bdBdg, p3X1 + 14, p3Y2 - 109, p3X2 - p3X1 - 28, 18, juce::Justification::centred, false);
+
         draw3DStompFootswitch(g, 640, 480, bdActive, RGBCol(56, 189, 248));
+        g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
         g.setColour(bdActive ? RGBCol(254, 240, 138) : RGBCol(130, 160, 200));
         g.drawText(bdActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", p3X1, p3Y2 - 24, p3X2 - p3X1, 18, juce::Justification::centred, false);
 
-        // PEDAL 4: FLUID RODENT
+        // PEDAL 4: FLUID RODENT (Rectangular Boutique Chassis)
         int p4X1 = 763, p4X2 = 953, p4Y1 = 135, p4Y2 = 555;
         bool ratActive  = (processor.getParamValue(K_RAT_ON) > 0.5f);
         bool ratIsTurbo = (processor.getParamValue(K_RAT_TURBO) > 0.5f);
-        if (imgRat.isValid()) {
-            g.drawImage(imgRat, p4X1, p4Y1, p4X2 - p4X1, p4Y2 - p4Y1, 0, 0, imgRat.getWidth(), imgRat.getHeight());
-        } else {
-            fillRoundRectJuce(g, p4X1, p4Y1, p4X2, p4Y2, 14, RGBCol(28, 28, 32), RGBCol(254, 240, 138), 2);
-        }
+        bool ratHyp     = (processor.getParamValue(K_RAT_HYPER) > 0.5f);
+
+        // Floor drop shadow
+        fillRoundRectJuce(g, p4X1 + 5, p4Y1 + 7, p4X2 + 5, p4Y2 + 7, 14, RGBCol(18, 10, 6), RGBCol(18, 10, 6), 1);
+
+        // Rectangular Obsidian Enclosure
+        juce::Colour ratChassisBg = ratActive ? RGBCol(32, 34, 40) : RGBCol(22, 23, 27);
+        juce::Colour ratBorder    = ratActive ? (ratIsTurbo ? RGBCol(252, 165, 165) : RGBCol(254, 240, 138)) : RGBCol(75, 78, 85);
+        fillRoundRectJuce(g, p4X1, p4Y1, p4X2, p4Y2, 14, ratChassisBg, ratBorder, ratActive ? 2 : 1);
+        drawCornerRivets(p4X1, p4Y1, p4X2, p4Y2);
+
+        // Recessed Gunmetal Faceplate Accent
+        fillRoundRectJuce(g, 858 - 74, p4Y1 + 42, 858 + 74, p4Y2 - 110, 14,
+                          RGBCol(16, 17, 20), RGBCol(45, 48, 55), 1);
+
+        // Header Plaque
+        fillRoundRectJuce(g, p4X1 + 10, p4Y1 + 8, p4X2 - 10, p4Y1 + 48, 6,
+                          RGBCol(18, 19, 22), ratIsTurbo ? RGBCol(239, 68, 68) : RGBCol(245, 158, 11), 1);
+
         g.setFont(juce::FontOptions(20.0f, juce::Font::bold));
         g.setColour(ratActive ? (ratIsTurbo ? RGBCol(254, 202, 202) : RGBCol(254, 240, 138)) : RGBCol(180, 180, 180));
         g.drawText(ratIsTurbo ? "TURBO RODENT" : "FLUID RODENT", p4X1 + 12, p4Y1 + 10, p4X2 - p4X1 - 24, 24, juce::Justification::centred, false);
         g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
         g.setColour(ratIsTurbo ? RGBCol(252, 165, 165) : RGBCol(254, 240, 138));
-        g.drawText(ratIsTurbo ? "TURBO RED LED & LM308 SLEW" : "1978 LM308 SLEW & DIODE SHUNT", p4X1 + 2, p4Y1 + 32, p4X2 - p4X1 - 4, 14, juce::Justification::centred, false);
+        const char* ratSub = ratHyp ? (ratIsTurbo ? "HYPER TURBO VIOLIN LED" : "HYPER LM308 SLEW & SHUNT")
+                                    : (ratIsTurbo ? "TURBO RED LED & LM308 SLEW" : "1978 LM308 SLEW & DIODE SHUNT");
+        g.drawText(ratSub, p4X1 + 2, p4Y1 + 32, p4X2 - p4X1 - 4, 14, juce::Justification::centred, false);
+
+        // Jewel LED Lamp (Red)
         fillRoundRectJuce(g, 858 - 8, p4Y1 + 52, 858 + 8, p4Y1 + 68, 16,
                           ratActive ? RGBCol(239, 68, 68) : RGBCol(50, 12, 12),
                           ratActive ? RGBCol(254, 202, 202) : RGBCol(80, 20, 20), 1);
         if (ratActive)
             fillRoundRectJuce(g, 858 - 3, p4Y1 + 56, 858 + 3, p4Y1 + 62, 6, RGBCol(255, 255, 255), RGBCol(255, 255, 255), 1);
+
+        // Circuit Mode Badge Pill
+        fillRoundRectJuce(g, p4X1 + 12, p4Y2 - 110, p4X2 - 12, p4Y2 - 90, 4,
+                          RGBCol(22, 24, 28), ratIsTurbo ? RGBCol(239, 68, 68) : RGBCol(245, 158, 11), 1);
+        g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+        g.setColour(ratIsTurbo ? RGBCol(252, 165, 165) : RGBCol(254, 240, 138));
+        const char* ratBdg = ratHyp ? (ratIsTurbo ? "HYPER TURBO VIOLIN" : "HYPER LM308 SILICON")
+                                    : (ratIsTurbo ? "(OLD) TURBO RED LED" : "(OLD) SILICON DIODE");
+        g.drawText(ratBdg, p4X1 + 14, p4Y2 - 109, p4X2 - p4X1 - 28, 18, juce::Justification::centred, false);
+
         draw3DStompFootswitch(g, 858, 480, ratActive, RGBCol(239, 68, 68));
         g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
         g.setColour(ratActive ? (ratIsTurbo ? RGBCol(252, 165, 165) : RGBCol(254, 240, 138)) : RGBCol(140, 140, 140));
@@ -959,6 +1083,7 @@ void EuphoriaAmpAudioProcessorEditor::paint(juce::Graphics& g) {
         juce::Colour ffBorder    = ffActive ? (ffIsSilicon ? RGBCol(147, 197, 253) : RGBCol(252, 165, 165))
                                             : (ffIsSilicon ? RGBCol(96, 115, 145) : RGBCol(160, 60, 60));
         fillRoundRectJuce(g, p5X1, p5Y1, p5X2, p5Y2, 14, ffChassisBg, ffBorder, ffActive ? 2 : 1);
+        drawCornerRivets(p5X1, p5Y1, p5X2, p5Y2);
 
         // Circular Vintage Faceplate Disc Accent
         fillRoundRectJuce(g, 1076 - 72, p5Y1 + 42, 1076 + 72, p5Y2 - 110, 72,

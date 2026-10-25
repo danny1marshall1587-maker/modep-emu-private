@@ -1418,6 +1418,7 @@ struct FluidCentaurPedal {
     float currentRMS = 0.0f;
     float smoothedDriveMorph = 1.0f;
     float lastToneNorm = -1.0f;
+    float lastSampleRate = 0.0f;
 
     void reset() {
         klonHpClean.reset();
@@ -1434,11 +1435,17 @@ struct FluidCentaurPedal {
         currentRMS = 0.0f;
         smoothedDriveMorph = 1.0f;
         lastToneNorm = -1.0f;
+        lastSampleRate = 0.0f;
     }
 
     inline float processSample(float in, float sampleRate) {
         using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
+
+        if (sampleRate != lastSampleRate && sampleRate > 1000.0f) {
+            lastSampleRate = sampleRate;
+            hyperPedal.prepare(sampleRate);
+        }
 
         float driveRaw  = std::clamp(gain, 0.0f, 10.0f) * 0.1f;
         float driveNorm = 0.20f * driveRaw + 0.30f * driveRaw * driveRaw + 0.50f * driveRaw * driveRaw * driveRaw;
@@ -1542,6 +1549,7 @@ struct TS808ScreamerPedal {
     float currentRMS = 0.0f;
     float smoothedDriveMorph = 1.0f;
     float lastToneNorm = -1.0f;
+    float lastSampleRate = 0.0f;
 
     void reset() {
         tsRfCut.reset();
@@ -1559,11 +1567,17 @@ struct TS808ScreamerPedal {
         currentRMS = 0.0f;
         smoothedDriveMorph = 1.0f;
         lastToneNorm = -1.0f;
+        lastSampleRate = 0.0f;
     }
 
     inline float processSample(float in, float sampleRate) {
         using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
+
+        if (sampleRate != lastSampleRate && sampleRate > 1000.0f) {
+            lastSampleRate = sampleRate;
+            hyperPedal.prepare(sampleRate);
+        }
 
         float driveRaw  = std::clamp(drive, 0.0f, 10.0f) * 0.1f;
         float driveNorm = 0.20f * driveRaw + 0.30f * driveRaw * driveRaw + 0.50f * driveRaw * driveRaw * driveRaw;
@@ -1666,6 +1680,7 @@ struct BD2BluesDriverPedal {
     float currentRMS = 0.0f;
     float smoothedDriveMorph = 1.0f;
     float lastToneNorm = -1.0f;
+    float lastSampleRate = 0.0f;
     bool phatInitialized = false;
 
     void reset() {
@@ -1684,12 +1699,18 @@ struct BD2BluesDriverPedal {
         currentRMS = 0.0f;
         smoothedDriveMorph = 1.0f;
         lastToneNorm = -1.0f;
+        lastSampleRate = 0.0f;
         phatInitialized = false;
     }
 
     inline float processSample(float in, float sampleRate) {
         using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
+
+        if (sampleRate != lastSampleRate && sampleRate > 1000.0f) {
+            lastSampleRate = sampleRate;
+            hyperPedal.prepare(sampleRate);
+        }
 
         float toneNorm  = std::clamp(tone, 0.0f, 10.0f) / 10.0f;
         float gainRaw   = std::clamp(gain, 0.0f, 10.0f) * 0.1f;
@@ -1800,6 +1821,7 @@ struct FluidRodentPedal {
     float currentRMS = 0.0f;
     float smoothedDriveMorph = 1.0f;
     float lastFilterNorm = -1.0f;
+    float lastSampleRate = 0.0f;
 
     void reset() {
         ratHpTight.reset();
@@ -1812,11 +1834,17 @@ struct FluidRodentPedal {
         currentRMS = 0.0f;
         smoothedDriveMorph = 1.0f;
         lastFilterNorm = -1.0f;
+        lastSampleRate = 0.0f;
     }
 
     inline float processSample(float in, float sampleRate) {
         using namespace EuphoriaHyperDSP;
         if (!enabled) return in;
+
+        if (sampleRate != lastSampleRate && sampleRate > 1000.0f) {
+            lastSampleRate = sampleRate;
+            hyperPedal.prepare(sampleRate);
+        }
 
         float distRaw    = std::clamp(distortion, 0.0f, 10.0f) * 0.1f;
         float distNorm   = 0.20f * distRaw + 0.30f * distRaw * distRaw + 0.50f * distRaw * distRaw * distRaw;

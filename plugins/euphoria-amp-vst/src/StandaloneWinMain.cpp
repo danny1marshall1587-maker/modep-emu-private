@@ -3903,36 +3903,42 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         RECT headSubR = { bx1 + 24, by1 + 6, bx2 - 24, by1 + 24 };
         DrawTextA(hdc, "HARDWOOD PEDALBOARD DECK  |  5 INDEPENDENT SERIES STOMPBOXES  |  MASSIVE CLEAN BOOST HEADROOM (+22dB)", -1, &headSubR, DT_CENTER | DT_SINGLELINE);
 
+        auto drawCornerRivetsGdi = [&](int x1, int y1, int x2, int y2) {
+            int rx[4] = { x1 + 10, x2 - 10, x1 + 10, x2 - 10 };
+            int ry[4] = { y1 + 10, y1 + 10, y2 - 10, y2 - 10 };
+            HPEN slitPen = CreatePen(PS_SOLID, 1, RGB(45, 45, 50));
+            HGDIOBJ oldSlit = SelectObject(hdc, slitPen);
+            for (int i = 0; i < 4; ++i) {
+                fillRoundRect(hdc, rx[i] - 3, ry[i] - 3, rx[i] + 3, ry[i] + 3, 6, RGB(160, 160, 165), RGB(160, 160, 165), 1);
+                MoveToEx(hdc, rx[i] - 2, ry[i], nullptr); LineTo(hdc, rx[i] + 2, ry[i]);
+            }
+            SelectObject(hdc, oldSlit);
+            DeleteObject(slitPen);
+        };
+
         // ====================================================================
-        // PEDAL 1: FLUID CENTAUR (Mythical Gold Enclosure, Center X = 204)
+        // PEDAL 1: FLUID CENTAUR (Rectangular Boutique Chassis, Center X = 204)
         // ====================================================================
         int p1X1 = 109, p1X2 = 299, p1Y1 = 135, p1Y2 = 555;
         bool klonActive = (g_knobs[K_KLON_ON].curVal > 0.5f);
+        bool klonHyp    = (g_knobs[K_KLON_HYPER].curVal > 0.5f);
 
-        if (g_assets3D.imgKlon) {
-            Gdiplus::Graphics g(hdc);
-            g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-            g.DrawImage(g_assets3D.imgKlon, p1X1, p1Y1, p1X2 - p1X1, p1Y2 - p1Y1);
-        } else {
-            // Cast shadow on hardwood floor
-            fillRoundRect(hdc, p1X1 + 7, p1Y1 + 9, p1X2 + 7, p1Y2 + 9, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
+        // Floor drop shadow
+        fillRoundRect(hdc, p1X1 + 5, p1Y1 + 7, p1X2 + 5, p1Y2 + 7, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
 
-            // Gold Beveled Enclosure
-            fillRoundRect(hdc, p1X1, p1Y1, p1X2, p1Y2, 14,
-                          klonActive ? RGB(180, 130, 38) : RGB(140, 100, 30),
-                          klonActive ? RGB(254, 240, 138) : RGB(190, 140, 50),
-                          klonActive ? 2 : 1);
+        // Rectangular Champagne Gold Enclosure
+        COLORREF klonChassisBg = klonActive ? RGB(190, 145, 45) : RGB(115, 85, 28);
+        COLORREF klonBorder    = klonActive ? RGB(254, 240, 138) : RGB(165, 125, 45);
+        fillRoundRect(hdc, p1X1, p1Y1, p1X2, p1Y2, 14, klonChassisBg, klonBorder, klonActive ? 2 : 1);
+        drawCornerRivetsGdi(p1X1, p1Y1, p1X2, p1Y2);
 
-            // Header Plaque (Oxblood)
-            fillRoundRect(hdc, p1X1 + 10, p1Y1 + 8, p1X2 - 10, p1Y1 + 48, 6,
-                          RGB(75, 16, 18), RGB(217, 119, 6), 1);
+        // Recessed Oxblood Faceplate Accent
+        fillRoundRect(hdc, 204 - 74, p1Y1 + 42, 204 + 74, p1Y2 - 110, 14,
+                      RGB(48, 14, 16), RGB(95, 30, 25), 1);
 
-            // Bottom Badge & Chrome 3PDT Footswitch
-            fillRoundRect(hdc, p1X1 + 12, p1Y2 - 110, p1X2 - 12, p1Y2 - 90, 4, RGB(55, 12, 15), RGB(217, 119, 6), 1);
-            fillRoundRect(hdc, 204 - 28, 470, 204 + 28, 526, 56, RGB(140, 140, 145), RGB(200, 200, 205), 2); // Hex washer
-            fillRoundRect(hdc, 204 - 20, 478, 204 + 20, 518, 40, RGB(215, 215, 220), RGB(255, 255, 255), 2); // Chrome button
-            fillRoundRect(hdc, 204 - 12, 482, 204 + 2, 496, 14, RGB(255, 255, 255), RGB(255, 255, 255), 1); // Specular highlight arc
-        }
+        // Header Plaque
+        fillRoundRect(hdc, p1X1 + 10, p1Y1 + 8, p1X2 - 10, p1Y1 + 48, 6,
+                      RGB(65, 14, 16), RGB(217, 119, 6), 1);
 
         SelectObject(hdc, fontTitle);
         SetTextColor(hdc, klonActive ? RGB(254, 240, 138) : RGB(200, 170, 110));
@@ -3941,10 +3947,10 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
 
         SelectObject(hdc, fontSub);
         SetTextColor(hdc, RGB(254, 202, 202));
-        RECT klonSubR = { p1X1 + 12, p1Y1 + 32, p1X2 - 12, p1Y1 + 46 };
-        DrawTextA(hdc, "18V PURE GERMANIUM", -1, &klonSubR, DT_CENTER | DT_SINGLELINE);
+        RECT klonSubR = { p1X1 + 2, p1Y1 + 32, p1X2 - 2, p1Y1 + 46 };
+        DrawTextA(hdc, klonHyp ? "HYPER 27V ADAA (+22dB)" : "(OLD) 18V PURE GERMANIUM", -1, &klonSubR, DT_CENTER | DT_SINGLELINE);
 
-        // LED Lamp (Red)
+        // Jewel LED Lamp (Amber/Red)
         fillRoundRect(hdc, 204 - 8, p1Y1 + 52, 204 + 8, p1Y1 + 68, 16,
                       klonActive ? RGB(239, 68, 68) : RGB(50, 12, 12),
                       klonActive ? RGB(254, 202, 202) : RGB(80, 20, 20), 1);
@@ -3952,12 +3958,13 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
             fillRoundRect(hdc, 204 - 3, p1Y1 + 56, 204 + 3, p1Y1 + 62, 6, RGB(255, 255, 255), RGB(255, 255, 255), 1);
         }
 
-        if (!g_assets3D.imgKlon) {
-            SetTextColor(hdc, RGB(254, 240, 138));
-            RECT klonBdgR = { p1X1 + 14, p1Y2 - 109, p1X2 - 14, p1Y2 - 91 };
-            bool isHyp = (g_knobs[K_KLON_HYPER].curVal > 0.5f);
-            DrawTextA(hdc, isHyp ? "HYPER 27V ADAA (+22dB)" : "(OLD) 18V VINTAGE KLON", -1, &klonBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
-        }
+        // Circuit Mode Badge Pill
+        fillRoundRect(hdc, p1X1 + 12, p1Y2 - 110, p1X2 - 12, p1Y2 - 90, 4,
+                      RGB(55, 12, 15), RGB(217, 119, 6), 1);
+        SelectObject(hdc, fontSub);
+        SetTextColor(hdc, RGB(254, 240, 138));
+        RECT klonBdgR = { p1X1 + 14, p1Y2 - 109, p1X2 - 14, p1Y2 - 91 };
+        DrawTextA(hdc, klonHyp ? "HYPER 27V ADAA (+22dB)" : "(OLD) 18V VINTAGE KLON", -1, &klonBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 
         draw3DStompFootswitchGdi(hdc, 204, 480, klonActive, RGB(245, 158, 11));
         SetTextColor(hdc, klonActive ? RGB(254, 240, 138) : RGB(140, 115, 75));
@@ -3965,42 +3972,29 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         DrawTextA(hdc, klonActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", -1, &klonFootLblR, DT_CENTER | DT_SINGLELINE);
 
         // ====================================================================
-        // PEDAL 2: TS808 SCREAMER (Vintage Olive Stompbox, Center X = 422)
+        // PEDAL 2: TS808 SCREAMER (Rectangular Boutique Chassis, Center X = 422)
         // ====================================================================
         int p2X1 = 327, p2X2 = 517, p2Y1 = 135, p2Y2 = 555;
         bool tsActive = (g_knobs[K_TS_ON].curVal > 0.5f);
+        bool tsHyp    = (g_knobs[K_TS_HYPER].curVal > 0.5f);
+        bool tsFat    = (g_knobs[K_TS_MOD].curVal > 0.5f);
 
-        if (g_assets3D.imgTs9) {
-            Gdiplus::Graphics g(hdc);
-            g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-            g.DrawImage(g_assets3D.imgTs9, p2X1, p2Y1, p2X2 - p2X1, p2Y2 - p2Y1);
-        } else {
-            // Cast shadow on hardwood floor
-            fillRoundRect(hdc, p2X1 + 7, p2Y1 + 9, p2X2 + 7, p2Y2 + 9, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
+        // Floor drop shadow
+        fillRoundRect(hdc, p2X1 + 5, p2Y1 + 7, p2X2 + 5, p2Y2 + 7, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
 
-            // Olive Green Enclosure
-            fillRoundRect(hdc, p2X1, p2Y1, p2X2, p2Y2, 14,
-                          tsActive ? RGB(22, 105, 52) : RGB(16, 75, 38),
-                          tsActive ? RGB(110, 231, 183) : RGB(40, 120, 65),
-                          tsActive ? 2 : 1);
+        // Rectangular Emerald Green Enclosure
+        COLORREF tsChassisBg = tsActive ? RGB(22, 105, 52) : RGB(16, 68, 32);
+        COLORREF tsBorder    = tsActive ? RGB(110, 231, 183) : RGB(40, 115, 60);
+        fillRoundRect(hdc, p2X1, p2Y1, p2X2, p2Y2, 14, tsChassisBg, tsBorder, tsActive ? 2 : 1);
+        drawCornerRivetsGdi(p2X1, p2Y1, p2X2, p2Y2);
 
-            // Header Plaque (Dark Olive)
-            fillRoundRect(hdc, p2X1 + 10, p2Y1 + 8, p2X2 - 10, p2Y1 + 48, 6,
-                          RGB(12, 55, 28), RGB(34, 197, 94), 1);
+        // Recessed Dark Emerald Faceplate Accent
+        fillRoundRect(hdc, 422 - 74, p2Y1 + 42, 422 + 74, p2Y2 - 110, 14,
+                      RGB(12, 48, 24), RGB(25, 95, 45), 1);
 
-            // Bottom Badge & TS808 Rubber Footswitch Pad
-            fillRoundRect(hdc, p2X1 + 12, p2Y2 - 110, p2X2 - 12, p2Y2 - 90, 4, RGB(8, 42, 22), RGB(52, 211, 153), 1);
-
-            // Square TS808 Ribbed Stomp Pad (Center: 422, 498)
-            fillRoundRect(hdc, 422 - 38, 472, 422 + 38, 524, 6, RGB(25, 28, 26), RGB(180, 185, 180), 2);
-            HPEN ribPen = CreatePen(PS_SOLID, 2, RGB(45, 50, 48));
-            HGDIOBJ oldRibP = SelectObject(hdc, ribPen);
-            for (int ry = 480; ry <= 516; ry += 6) {
-                MoveToEx(hdc, 422 - 30, ry, nullptr); LineTo(hdc, 422 + 30, ry);
-            }
-            SelectObject(hdc, oldRibP);
-            DeleteObject(ribPen);
-        }
+        // Header Plaque
+        fillRoundRect(hdc, p2X1 + 10, p2Y1 + 8, p2X2 - 10, p2Y1 + 48, 6,
+                      RGB(10, 50, 24), RGB(34, 197, 94), 1);
 
         SelectObject(hdc, fontTitle);
         SetTextColor(hdc, tsActive ? RGB(167, 243, 208) : RGB(110, 170, 135));
@@ -4009,26 +4003,28 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
 
         SelectObject(hdc, fontSub);
         SetTextColor(hdc, RGB(209, 250, 229));
-        RECT tsSubR = { p2X1 + 12, p2Y1 + 32, p2X2 - 12, p2Y1 + 46 };
-        DrawTextA(hdc, "720.5Hz MID-HUMP & JRC4558", -1, &tsSubR, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
+        RECT tsSubR = { p2X1 + 2, p2Y1 + 32, p2X2 - 2, p2Y1 + 46 };
+        const char* tsSub = tsHyp ? (tsFat ? "HYPER FAT VELVET JRC" : "HYPER VELVET JRC4558")
+                                  : (tsFat ? "(OLD) FAT MOD 340Hz" : "720.5Hz MID-HUMP & JRC");
+        DrawTextA(hdc, tsSub, -1, &tsSubR, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
 
-        // LED Lamp (Amber)
+        // Jewel LED Lamp (Emerald/Amber)
         fillRoundRect(hdc, 422 - 8, p2Y1 + 52, 422 + 8, p2Y1 + 68, 16,
-                      tsActive ? RGB(245, 158, 11) : RGB(50, 30, 8),
-                      tsActive ? RGB(254, 240, 138) : RGB(80, 48, 15), 1);
+                      tsActive ? RGB(34, 197, 94) : RGB(10, 45, 20),
+                      tsActive ? RGB(187, 247, 208) : RGB(20, 80, 35), 1);
         if (tsActive) {
             fillRoundRect(hdc, 422 - 3, p2Y1 + 56, 422 + 3, p2Y1 + 62, 6, RGB(255, 255, 255), RGB(255, 255, 255), 1);
         }
 
-        if (!g_assets3D.imgTs9) {
-            SetTextColor(hdc, RGB(167, 243, 208));
-            RECT tsBdgR = { p2X1 + 14, p2Y2 - 109, p2X2 - 14, p2Y2 - 91 };
-            bool isHyp = (g_knobs[K_TS_HYPER].curVal > 0.5f);
-            bool isFat = (g_knobs[K_TS_MOD].curVal > 0.5f);
-            const char* tsBdg = isHyp ? (isFat ? "HYPER FAT (+20dB)" : "HYPER VELVET (+20dB)")
-                                      : (isFat ? "(OLD) FAT MOD 340Hz" : "(OLD) STOCK 720Hz");
-            DrawTextA(hdc, tsBdg, -1, &tsBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
-        }
+        // Circuit Mode Badge Pill
+        fillRoundRect(hdc, p2X1 + 12, p2Y2 - 110, p2X2 - 12, p2Y2 - 90, 4,
+                      RGB(8, 42, 22), RGB(52, 211, 153), 1);
+        SelectObject(hdc, fontSub);
+        SetTextColor(hdc, RGB(167, 243, 208));
+        RECT tsBdgR = { p2X1 + 14, p2Y2 - 109, p2X2 - 14, p2Y2 - 91 };
+        const char* tsBdg = tsHyp ? (tsFat ? "HYPER FAT (+20dB)" : "HYPER VELVET (+20dB)")
+                                  : (tsFat ? "(OLD) FAT MOD 340Hz" : "(OLD) STOCK 720Hz");
+        DrawTextA(hdc, tsBdg, -1, &tsBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 
         draw3DStompFootswitchGdi(hdc, 422, 480, tsActive, RGB(34, 197, 94));
         SetTextColor(hdc, tsActive ? RGB(167, 243, 208) : RGB(100, 150, 120));
@@ -4036,45 +4032,29 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         DrawTextA(hdc, tsActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", -1, &tsFootLblR, DT_CENTER | DT_SINGLELINE);
 
         // ====================================================================
-        // PEDAL 3: BD-2 BLUES DRIVER (Cobalt Blue Boss Enclosure, Center X = 640)
+        // PEDAL 3: BD-2 BLUES DRIVER (Rectangular Boutique Chassis, Center X = 640)
         // ====================================================================
         int p3X1 = 545, p3X2 = 735, p3Y1 = 135, p3Y2 = 555;
         bool bdActive = (g_knobs[K_BD_ON].curVal > 0.5f);
+        bool bdHyp    = (g_knobs[K_BD_HYPER].curVal > 0.5f);
+        bool bdPhat   = (g_knobs[K_BD_PHAT].curVal > 0.5f);
 
-        if (g_assets3D.imgBlues) {
-            Gdiplus::Graphics g(hdc);
-            g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-            g.DrawImage(g_assets3D.imgBlues, p3X1, p3Y1, p3X2 - p3X1, p3Y2 - p3Y1);
-        } else {
-            // Cast shadow on hardwood floor
-            fillRoundRect(hdc, p3X1 + 7, p3Y1 + 9, p3X2 + 7, p3Y2 + 9, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
+        // Floor drop shadow
+        fillRoundRect(hdc, p3X1 + 5, p3Y1 + 7, p3X2 + 5, p3Y2 + 7, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
 
-            // Metallic Cobalt Blue Enclosure
-            fillRoundRect(hdc, p3X1, p3Y1, p3X2, p3Y2, 14,
-                          bdActive ? RGB(20, 72, 150) : RGB(14, 48, 105),
-                          bdActive ? RGB(96, 165, 250) : RGB(37, 99, 235),
-                          bdActive ? 2 : 1);
+        // Rectangular Sapphire Blue Enclosure
+        COLORREF bdChassisBg = bdActive ? RGB(20, 72, 150) : RGB(14, 48, 105);
+        COLORREF bdBorder    = bdActive ? RGB(147, 197, 253) : RGB(55, 100, 165);
+        fillRoundRect(hdc, p3X1, p3Y1, p3X2, p3Y2, 14, bdChassisBg, bdBorder, bdActive ? 2 : 1);
+        drawCornerRivetsGdi(p3X1, p3Y1, p3X2, p3Y2);
 
-            // Header Plaque (Deep Navy)
-            fillRoundRect(hdc, p3X1 + 10, p3Y1 + 8, p3X2 - 10, p3Y1 + 48, 6,
-                          RGB(10, 32, 75), RGB(59, 130, 246), 1);
+        // Recessed Dark Cobalt Faceplate Accent
+        fillRoundRect(hdc, 640 - 74, p3Y1 + 42, 640 + 74, p3Y2 - 110, 14,
+                      RGB(10, 28, 65), RGB(28, 65, 125), 1);
 
-            // Bottom Badge & Boss Treadle Footswitch
-            fillRoundRect(hdc, p3X1 + 12, p3Y2 - 110, p3X2 - 12, p3Y2 - 90, 4, RGB(8, 25, 55), RGB(59, 130, 246), 1);
-
-            // Boss-style Rubber Foot Treadle (Center: 640, 498)
-            fillRoundRect(hdc, 640 - 44, 468, 640 + 44, 528, 8, RGB(20, 20, 24), RGB(160, 165, 175), 2);
-            HPEN bossRib = CreatePen(PS_SOLID, 2, RGB(40, 42, 48));
-            HGDIOBJ oldBossP = SelectObject(hdc, bossRib);
-            for (int by = 476; by <= 518; by += 7) {
-                MoveToEx(hdc, 640 - 36, by, nullptr); LineTo(hdc, 640 + 36, by);
-            }
-            SelectObject(hdc, oldBossP);
-            DeleteObject(bossRib);
-
-            // Boss Thumb Screw at bottom
-            fillRoundRect(hdc, 640 - 6, 523, 640 + 6, 532, 6, RGB(180, 180, 185), RGB(230, 230, 235), 1);
-        }
+        // Header Plaque
+        fillRoundRect(hdc, p3X1 + 10, p3Y1 + 8, p3X2 - 10, p3Y1 + 48, 6,
+                      RGB(12, 32, 75), RGB(56, 189, 248), 1);
 
         SelectObject(hdc, fontTitle);
         SetTextColor(hdc, bdActive ? RGB(254, 240, 138) : RGB(210, 200, 120)); // Iconic Boss Yellow font
@@ -4083,10 +4063,12 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
 
         SelectObject(hdc, fontSub);
         SetTextColor(hdc, RGB(191, 219, 254));
-        RECT bdSubR = { p3X1 + 12, p3Y1 + 32, p3X2 - 12, p3Y1 + 46 };
-        DrawTextA(hdc, "BD-2 FLUID LAB | DUAL JFET", -1, &bdSubR, DT_CENTER | DT_SINGLELINE);
+        RECT bdSubR = { p3X1 + 2, p3Y1 + 32, p3X2 - 2, p3Y1 + 46 };
+        const char* bdSub = bdHyp ? (bdPhat ? "HYPER PHAT JFET (+22dB)" : "HYPER JFET SLIPSTREAM")
+                                  : (bdPhat ? "(OLD) PHAT MOD 160Hz" : "BD-2 FLUID LAB | DUAL JFET");
+        DrawTextA(hdc, bdSub, -1, &bdSubR, DT_CENTER | DT_SINGLELINE);
 
-        // LED Lamp (Cyan / Blue)
+        // Jewel LED Lamp (Cyan/Azure)
         fillRoundRect(hdc, 640 - 8, p3Y1 + 52, 640 + 8, p3Y1 + 68, 16,
                       bdActive ? RGB(34, 211, 238) : RGB(10, 25, 55),
                       bdActive ? RGB(186, 230, 253) : RGB(25, 50, 95), 1);
@@ -4094,15 +4076,15 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
             fillRoundRect(hdc, 640 - 3, p3Y1 + 56, 640 + 3, p3Y1 + 62, 6, RGB(255, 255, 255), RGB(255, 255, 255), 1);
         }
 
-        if (!g_assets3D.imgBlues) {
-            SetTextColor(hdc, RGB(254, 240, 138));
-            RECT bdBdgR = { p3X1 + 14, p3Y2 - 109, p3X2 - 14, p3Y2 - 91 };
-            bool isHyp = (g_knobs[K_BD_HYPER].curVal > 0.5f);
-            bool isPhat = (g_knobs[K_BD_PHAT].curVal > 0.5f);
-            const char* bdBdg = isHyp ? (isPhat ? "HYPER PHAT (+22dB)" : "HYPER SLIPSTREAM")
-                                      : (isPhat ? "(OLD) PHAT MOD 160Hz" : "(OLD) STOCK BD-2");
-            DrawTextA(hdc, bdBdg, -1, &bdBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
-        }
+        // Circuit Mode Badge Pill
+        fillRoundRect(hdc, p3X1 + 12, p3Y2 - 110, p3X2 - 12, p3Y2 - 90, 4,
+                      RGB(10, 30, 68), RGB(56, 189, 248), 1);
+        SelectObject(hdc, fontSub);
+        SetTextColor(hdc, RGB(186, 230, 253));
+        RECT bdBdgR = { p3X1 + 14, p3Y2 - 109, p3X2 - 14, p3Y2 - 91 };
+        const char* bdBdg = bdHyp ? (bdPhat ? "HYPER PHAT (+22dB)" : "HYPER SLIPSTREAM")
+                                  : (bdPhat ? "(OLD) PHAT MOD 160Hz" : "(OLD) STOCK BD-2");
+        DrawTextA(hdc, bdBdg, -1, &bdBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 
         draw3DStompFootswitchGdi(hdc, 640, 480, bdActive, RGB(56, 189, 248));
         SetTextColor(hdc, bdActive ? RGB(254, 240, 138) : RGB(130, 160, 200));
@@ -4110,37 +4092,29 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         DrawTextA(hdc, bdActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", -1, &bdFootLblR, DT_CENTER | DT_SINGLELINE);
 
         // ====================================================================
-        // PEDAL 4: FLUID RODENT (1978 ProCo Rat Steel Chassis, Center X = 858)
+        // PEDAL 4: FLUID RODENT (Rectangular Boutique Chassis, Center X = 858)
         // ====================================================================
         int p4X1 = 763, p4X2 = 953, p4Y1 = 135, p4Y2 = 555;
-        bool ratActive = (g_knobs[K_RAT_ON].curVal > 0.5f);
+        bool ratActive  = (g_knobs[K_RAT_ON].curVal > 0.5f);
         bool ratIsTurbo = (g_knobs[K_RAT_TURBO].curVal > 0.5f);
+        bool ratHyp     = (g_knobs[K_RAT_HYPER].curVal > 0.5f);
 
-        if (g_assets3D.imgRat) {
-            Gdiplus::Graphics g(hdc);
-            g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-            g.DrawImage(g_assets3D.imgRat, p4X1, p4Y1, p4X2 - p4X1, p4Y2 - p4Y1);
-        } else {
-            // Cast shadow on hardwood floor
-            fillRoundRect(hdc, p4X1 + 7, p4Y1 + 9, p4X2 + 7, p4Y2 + 9, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
+        // Floor drop shadow
+        fillRoundRect(hdc, p4X1 + 5, p4Y1 + 7, p4X2 + 5, p4Y2 + 7, 14, RGB(18, 10, 6), RGB(18, 10, 6), 1);
 
-            // Heavy-duty Matte Black Sloped Steel Chassis
-            COLORREF ratBg     = ratActive ? RGB(28, 28, 32) : RGB(18, 18, 22);
-            COLORREF ratBorder = ratActive ? (ratIsTurbo ? RGB(239, 68, 68) : RGB(254, 240, 138)) : RGB(80, 80, 90);
-            fillRoundRect(hdc, p4X1, p4Y1, p4X2, p4Y2, 14, ratBg, ratBorder, ratActive ? 2 : 1);
+        // Rectangular Obsidian Enclosure
+        COLORREF ratChassisBg = ratActive ? RGB(32, 34, 40) : RGB(22, 23, 27);
+        COLORREF ratBorder    = ratActive ? (ratIsTurbo ? RGB(252, 165, 165) : RGB(254, 240, 138)) : RGB(75, 78, 85);
+        fillRoundRect(hdc, p4X1, p4Y1, p4X2, p4Y2, 14, ratChassisBg, ratBorder, ratActive ? 2 : 1);
+        drawCornerRivetsGdi(p4X1, p4Y1, p4X2, p4Y2);
 
-            // Header Plaque (Industrial Steel / Red Graphic)
-            fillRoundRect(hdc, p4X1 + 10, p4Y1 + 8, p4X2 - 10, p4Y1 + 48, 6,
-                          RGB(14, 14, 18), ratIsTurbo ? RGB(220, 38, 38) : RGB(217, 119, 6), 1);
+        // Recessed Gunmetal Faceplate Accent
+        fillRoundRect(hdc, 858 - 74, p4Y1 + 42, 858 + 74, p4Y2 - 110, 14,
+                      RGB(16, 17, 20), RGB(45, 48, 55), 1);
 
-            // Bottom Badge & Heavy Steel Stomp Footswitch
-            fillRoundRect(hdc, p4X1 + 12, p4Y2 - 110, p4X2 - 12, p4Y2 - 90, 4, RGB(14, 14, 18), RGB(100, 100, 110), 1);
-
-            // Heavy-duty Steel Footswitch (Center: 858, 498)
-            fillRoundRect(hdc, 858 - 28, 470, 858 + 28, 526, 56, RGB(120, 120, 125), RGB(190, 190, 195), 2); // Hex nut
-            fillRoundRect(hdc, 858 - 20, 478, 858 + 20, 518, 40, RGB(210, 210, 215), RGB(255, 255, 255), 2); // Chrome button
-            fillRoundRect(hdc, 858 - 12, 482, 858 + 2, 496, 14, RGB(255, 255, 255), RGB(255, 255, 255), 1); // Specular highlight arc
-        }
+        // Header Plaque
+        fillRoundRect(hdc, p4X1 + 10, p4Y1 + 8, p4X2 - 10, p4Y1 + 48, 6,
+                      RGB(18, 19, 22), ratIsTurbo ? RGB(239, 68, 68) : RGB(245, 158, 11), 1);
 
         SelectObject(hdc, fontTitle);
         SetTextColor(hdc, ratActive ? (ratIsTurbo ? RGB(254, 202, 202) : RGB(254, 240, 138)) : RGB(180, 180, 180));
@@ -4150,25 +4124,27 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         SelectObject(hdc, fontHud);
         SetTextColor(hdc, ratIsTurbo ? RGB(252, 165, 165) : RGB(254, 240, 138));
         RECT ratSubR = { p4X1 + 2, p4Y1 + 32, p4X2 - 2, p4Y1 + 46 };
-        DrawTextA(hdc, ratIsTurbo ? "TURBO RED LED & LM308 SLEW" : "1978 LM308 SLEW & DIODE SHUNT", -1, &ratSubR, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
+        const char* ratSub = ratHyp ? (ratIsTurbo ? "HYPER TURBO VIOLIN LED" : "HYPER LM308 SLEW & SHUNT")
+                                    : (ratIsTurbo ? "TURBO RED LED & LM308 SLEW" : "1978 LM308 SLEW & DIODE SHUNT");
+        DrawTextA(hdc, ratSub, -1, &ratSubR, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
 
-        // LED Lamp (Red)
-        COLORREF ratLedCol  = ratActive ? RGB(239, 68, 68) : RGB(50, 12, 12);
-        COLORREF ratLedGlow = ratActive ? RGB(254, 202, 202) : RGB(80, 20, 20);
-        fillRoundRect(hdc, 858 - 8, p4Y1 + 52, 858 + 8, p4Y1 + 68, 16, ratLedCol, ratLedGlow, 1);
+        // Jewel LED Lamp (Red)
+        fillRoundRect(hdc, 858 - 8, p4Y1 + 52, 858 + 8, p4Y1 + 68, 16,
+                      ratActive ? RGB(239, 68, 68) : RGB(50, 12, 12),
+                      ratActive ? RGB(254, 202, 202) : RGB(80, 20, 20), 1);
         if (ratActive) {
             fillRoundRect(hdc, 858 - 3, p4Y1 + 56, 858 + 3, p4Y1 + 62, 6, RGB(255, 255, 255), RGB(255, 255, 255), 1);
         }
 
-        if (!g_assets3D.imgRat) {
-            bool isHyp = (g_knobs[K_RAT_HYPER].curVal > 0.5f);
-            bool isTurbo = (g_knobs[K_RAT_TURBO].curVal > 0.5f);
-            SetTextColor(hdc, isTurbo ? RGB(252, 165, 165) : RGB(254, 240, 138));
-            RECT ratBdgR = { p4X1 + 14, p4Y2 - 109, p4X2 - 14, p4Y2 - 91 };
-            const char* ratBdg = isHyp ? (isTurbo ? "HYPER TURBO VIOLIN" : "HYPER LM308 SILICON")
-                                       : (isTurbo ? "(OLD) TURBO RED LED" : "(OLD) SILICON DIODE");
-            DrawTextA(hdc, ratBdg, -1, &ratBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
-        }
+        // Circuit Mode Badge Pill
+        fillRoundRect(hdc, p4X1 + 12, p4Y2 - 110, p4X2 - 12, p4Y2 - 90, 4,
+                      RGB(22, 24, 28), ratIsTurbo ? RGB(239, 68, 68) : RGB(245, 158, 11), 1);
+        SelectObject(hdc, fontSub);
+        SetTextColor(hdc, ratIsTurbo ? RGB(252, 165, 165) : RGB(254, 240, 138));
+        RECT ratBdgR = { p4X1 + 14, p4Y2 - 109, p4X2 - 14, p4Y2 - 91 };
+        const char* ratBdg = ratHyp ? (ratIsTurbo ? "HYPER TURBO VIOLIN" : "HYPER LM308 SILICON")
+                                    : (ratIsTurbo ? "(OLD) TURBO RED LED" : "(OLD) SILICON DIODE");
+        DrawTextA(hdc, ratBdg, -1, &ratBdgR, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 
         draw3DStompFootswitchGdi(hdc, 858, 480, ratActive, RGB(239, 68, 68));
         SetTextColor(hdc, ratActive ? (ratIsTurbo ? RGB(252, 165, 165) : RGB(254, 240, 138)) : RGB(140, 140, 140));
@@ -4176,7 +4152,7 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         DrawTextA(hdc, ratActive ? "[ACTIVE] BYPASS" : "[BYPASS] ACTIVATE", -1, &ratFootLblR, DT_CENTER | DT_SINGLELINE);
 
         // ====================================================================
-        // PEDAL 5: FLUID FUZZ FACE (Dallas Arbiter Enclosure, Center X = 1076)
+        // PEDAL 5: FLUID FUZZ FACE (Rectangular Boutique Chassis, Center X = 1076)
         // ====================================================================
         int p5X1 = 981, p5X2 = 1171, p5Y1 = 135, p5Y2 = 555;
         bool ffActive = (g_knobs[K_FUZZ_ON].curVal > 0.5f);
@@ -4191,6 +4167,7 @@ static void renderGui(HWND hwnd, HDC hdcWin) {
         COLORREF ffBorder    = ffActive ? (ffIsSilicon ? RGB(147, 197, 253) : RGB(252, 165, 165))
                                         : (ffIsSilicon ? RGB(96, 115, 145) : RGB(160, 60, 60));
         fillRoundRect(hdc, p5X1, p5Y1, p5X2, p5Y2, 14, ffChassisBg, ffBorder, ffActive ? 2 : 1);
+        drawCornerRivetsGdi(p5X1, p5Y1, p5X2, p5Y2);
 
         // Circular Vintage Faceplate Disc Accent
         fillRoundRect(hdc, 1076 - 72, p5Y1 + 42, 1076 + 72, p5Y2 - 110, 72,
